@@ -40,7 +40,7 @@ if(NOT DEFINED VCPKG_TARGET_TRIPLET)
     endif()
 endif()
 
-project(peekaboo VERSION 0.9.0 LANGUAGES CXX C)
+project(peekaboo VERSION 0.9.1 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -748,6 +748,10 @@ target_link_libraries(adm_app PUBLIC
 set(EXE_SOURCES src/main.cpp)
 if(WIN32)
     list(APPEND EXE_SOURCES src/peekaboo.rc)
+    # windres leaves Ninja no depfile, so the #include of the generated header is not tracked:
+    # a version bump left the exe's version resource (and the package's zip name) on the old one.
+    set_source_files_properties(src/peekaboo.rc PROPERTIES
+        OBJECT_DEPENDS ${CMAKE_BINARY_DIR}/generated_version/PeekabooVersion.h)
 endif()
 
 add_executable(peekaboo

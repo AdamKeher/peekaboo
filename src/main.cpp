@@ -563,13 +563,16 @@ int main(int argc, char** argv)
     app.Initialize(io, window, ui_scale);
     app.InitScreenProfile(startProfile);
 
+    // A first start, or a remembered workspace that is gone, opens the Tosec workspace: the
+    // browser to pick a disk from and the emulator to run it. Without a workspace the only layout
+    // is the fallback above, which leaves today's windows floating where they fall.
     std::string selectedWorkspace = app.GetUserPrefs().Get().activeWorkspace;
-    if (!selectedWorkspace.empty()) {
-        if (app.GetWorkspaceManager().FindWorkspace(selectedWorkspace)) {
-            app.LoadWorkspace(selectedWorkspace);
-        } else {
-            selectedWorkspace.clear();
-        }
+    if (selectedWorkspace.empty() || !app.GetWorkspaceManager().FindWorkspace(selectedWorkspace))
+        selectedWorkspace = "Tosec";
+    if (app.GetWorkspaceManager().FindWorkspace(selectedWorkspace)) {
+        app.LoadWorkspace(selectedWorkspace);
+    } else {
+        selectedWorkspace.clear();
     }
     // A new screen profile brings its own layout of the workspace on screen.
     app.SetOnScreenProfileChanged([&app, &selectedWorkspace]() {

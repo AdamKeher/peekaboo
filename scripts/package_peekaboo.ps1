@@ -316,8 +316,10 @@ if (Test-Path $prefsSrc) {
     $p["privateFeatures"] = [bool]$Private
     if (-not $Private) {
         $p["showExocet"] = $false
-        if ($p["activeWorkspace"] -eq "Exocet") { $p["activeWorkspace"] = "" } # not shipped
     }
+    # Every package starts in the Tosec workspace (pick a disk, run it), not in whichever one this
+    # build last had open.
+    $p["activeWorkspace"] = "Tosec"
     # A Kickstart picked by path on this machine means nothing on another: the model's own.
     if ($p.Contains("emulatorSettings") -and $null -ne $p["emulatorSettings"]) {
         foreach ($k in @("puae_kickstart", "puae_kickstart_ext")) {
