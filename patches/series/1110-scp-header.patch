@@ -1,0 +1,33 @@
+scp.h: SuperCard Pro flux image header
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/include/scp.h b/sources/src/include/scp.h
+new file mode 100644
+index 0000000..9b306f9
+--- /dev/null
++++ b/sources/src/include/scp.h
+@@ -0,0 +1,19 @@
++#ifndef UAE_SCP_H
++#define UAE_SCP_H
++
++/* ADM: upstream libretro-uae ships scp.c but no header for it. Declarations
++   mirror caps.h, which covers the identical role for IPF. disk.c includes this
++   from inside its extern "C" block, so no linkage guard is needed here.
++
++   caps.h gets away without the forward declaration below because disk.c always
++   includes zfile.h first; scp.c does not, and in C a struct first named inside a
++   parameter list gets its own scope - which makes the prototype disagree with
++   the definition. */
++struct zfile;
++
++int scp_open (struct zfile *zf, int drv, int *num_tracks);
++void scp_close (int drv);
++int scp_loadtrack (uae_u16 *mfmbuf, uae_u16 *tracktiming, int drv, int track, int *tracklength, int *multirev, int *gapoffset, int *nextrev, bool setrev);
++void scp_loadrevolution (uae_u16 *mfmbuf, int drv, uae_u16 *tracktiming, int *tracklength);
++
++#endif /* UAE_SCP_H */
+\ No newline at end of file

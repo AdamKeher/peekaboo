@@ -1,0 +1,14 @@
+{
+    "name": "IFF ILBM Picture",
+    "group": "Image",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "494C424D"
+        }
+    ]
+}

@@ -1,0 +1,172 @@
+{
+  "name": "peekaboo-run",
+  "displayName": "Peekaboo Compile & Run",
+  "description": "Compile Amiga projects with Bartman's tools and debug them in Peekaboo: source-level breakpoints, variables, watches and call stacks.",
+  "version": "0.2.9",
+  "publisher": "peekaboo",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AdamKeher/peekaboo.git",
+    "directory": "vscode-extension"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "extensionDependencies": [
+    "BartmanAbyss.amiga-debug"
+  ],
+  "categories": [
+    "Debuggers"
+  ],
+  "activationEvents": [
+    "onDebugResolve:peekaboo",
+    "onDebugDynamicConfigurations:peekaboo",
+    "onCommand:peekaboo.addLaunchTarget",
+    "onCommand:peekaboo.checkConnection"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "peekaboo.addLaunchTarget",
+        "title": "Peekaboo: Add Compile & Run Target"
+      },
+      {
+        "command": "peekaboo.checkConnection",
+        "title": "Peekaboo: Check Connection"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "peekaboo",
+        "label": "Peekaboo",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Bartman output program, with or without the .exe suffix.",
+                "default": "${workspaceFolder}/${config:amiga.program}"
+              },
+              "server": {
+                "type": "string",
+                "description": "URL of the running Peekaboo instance.",
+                "default": "http://127.0.0.1:7474"
+              },
+              "focus": {
+                "type": "boolean",
+                "description": "Bring Peekaboo to the foreground after loading the program.",
+                "default": true
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Halt at the program's entry point so a debugger can attach before any user code runs.",
+                "default": false
+              },
+              "gdbPath": {
+                "type": "string",
+                "description": "Path to m68k-amiga-elf-gdb. Defaults to the copy bundled with Bartman's amiga-debug extension."
+              },
+              "gdbPort": {
+                "type": "number",
+                "description": "Port Peekaboo's GDB server listens on (Preferences -> GDB Server).",
+                "default": 2346
+              },
+              "elfPath": {
+                "type": "string",
+                "description": "ELF carrying debug info. Defaults to the sibling .elf next to the program."
+              },
+              "attach": {
+                "type": "boolean",
+                "description": "Debug whatever Peekaboo is already running instead of sending a new build.",
+                "default": false
+              },
+              "timeout": {
+                "type": "number",
+                "description": "How long to wait for Peekaboo's GDB server, in milliseconds.",
+                "default": 20000
+              },
+              "loadTimeout": {
+                "type": "number",
+                "description": "How long to wait for the program to finish loading in Peekaboo, in milliseconds.",
+                "default": 30000
+              },
+              "globalsFilter": {
+                "type": "string",
+                "description": "Only list globals whose name matches this regex, in the Variables pane. Leave unset to list them all."
+              }
+            }
+          },
+          "attach": {
+            "required": [],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Bartman output program, with or without the .exe suffix.",
+                "default": "${workspaceFolder}/${config:amiga.program}"
+              },
+              "elfPath": {
+                "type": "string",
+                "description": "ELF carrying debug info. Defaults to the sibling .elf next to the program."
+              },
+              "gdbPath": {
+                "type": "string",
+                "description": "Path to m68k-amiga-elf-gdb. Defaults to the copy bundled with Bartman's amiga-debug extension."
+              },
+              "gdbPort": {
+                "type": "number",
+                "description": "Port Peekaboo's GDB server listens on (Preferences -> GDB Server).",
+                "default": 2346
+              },
+              "globalsFilter": {
+                "type": "string",
+                "description": "Only list globals whose name matches this regex, in the Variables pane. Leave unset to list them all."
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "peekaboo",
+            "request": "launch",
+            "name": "Peekaboo",
+            "preLaunchTask": "compile",
+            "program": "${workspaceFolder}/${config:amiga.program}"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Peekaboo: Compile & Run",
+            "description": "Compile with Bartman's compile task and run in Peekaboo.",
+            "body": {
+              "type": "peekaboo",
+              "request": "launch",
+              "name": "Peekaboo",
+              "preLaunchTask": "compile",
+              "program": "${workspaceFolder}/${config:amiga.program}"
+            }
+          },
+          {
+            "label": "Peekaboo: Attach to running program",
+            "description": "Debug whatever Peekaboo already has running.",
+            "body": {
+              "type": "peekaboo",
+              "request": "attach",
+              "name": "Peekaboo: Attach",
+              "program": "${workspaceFolder}/${config:amiga.program}"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "package": "vsce package --out peekaboo-run.vsix",
+    "check": "tsc --noEmit -p jsconfig.json"
+  }
+}

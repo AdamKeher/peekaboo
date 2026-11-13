@@ -1,0 +1,1642 @@
+{
+  "adkconr": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "SET/CLEAR",
+        "desc": "Set/clear control bit.determines if bits written with a 1 get set or cleared.bits written with a zero are always unchanged."
+      },
+      {
+        "hi": 14,
+        "lo": 13,
+        "name": "PRECOMP 1-0",
+        "desc": "00 : none 01 : 140 ns 10 : 280 ns 11 : 560 ns"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "MFMPREC",
+        "desc": "(1 = MFM precomp / 0 = GCR precomp)"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "UARTBRK",
+        "desc": "Forces a UART break (clears TXD) if true"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "WORDSYNC",
+        "desc": "Enables disk read synchronizing on a word equal to DISK SYNC CODE, Located in address DSKSYNC (7E)."
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "MSBSYNC",
+        "desc": "Enables disk read synchronizing on the MSB (most significant bit) appl type GCR"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "FAST",
+        "desc": "Disk data clock rate control : 1 : fast(2us) 0 : slow(4us) (Fast for MFM or 2us,slow for 4us GCR)"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "USE3PN",
+        "desc": "Use audio channel 3 to modulate nothing"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "USE2P3",
+        "desc": "Use audio channel 2 to modulate period of channel 3"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "USE1P2",
+        "desc": "Use audio channel 1 to modulate period of channel 2"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "USE0P1",
+        "desc": "Use audio channel 0 to modulate period of channel 1"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "USE3VN",
+        "desc": "Use audio channel 3 to modulate nothing"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "USE2V3",
+        "desc": "Use audio channel 2 to modulate volume of channel 3"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "USE1V2",
+        "desc": "Use audio channel 1 to modulate volume of channel 2"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "USE0V1",
+        "desc": "Use audio channel 0 to modulate volume of channel 1"
+      }
+    ]
+  },
+  "audxvol": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 7,
+        "name": "Not used",
+        "desc": ""
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "Forces volume to max (64 ones, no zeros)",
+        "desc": ""
+      },
+      {
+        "hi": 5,
+        "lo": 0,
+        "name": "Sets one of the 64 levels (000000 = no output, 111111 = 63 ones, one zero)",
+        "desc": ""
+      }
+    ]
+  },
+  "beamcon0": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "Unused",
+        "desc": ""
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "HARDDIS",
+        "desc": ""
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "LPENDIS",
+        "desc": ""
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "VARVBEN",
+        "desc": ""
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "LOLDIS",
+        "desc": ""
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "CSCBEN",
+        "desc": ""
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "VARVSYEN",
+        "desc": ""
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "VARHSYEN",
+        "desc": ""
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "VARBEAMEN",
+        "desc": ""
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "DUAL",
+        "desc": ""
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "PAL",
+        "desc": ""
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "VARCSYEN",
+        "desc": ""
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "(unused, formerly BLANKEN)",
+        "desc": ""
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "CSYTRUE",
+        "desc": ""
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "VSYTRUE",
+        "desc": ""
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "HSYTRUE",
+        "desc": ""
+      }
+    ]
+  },
+  "bplcon0": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "HIRES",
+        "desc": "HIRES = High resolution (640*200/640*400 interlace) mode"
+      },
+      {
+        "hi": 14,
+        "lo": 12,
+        "name": "BPUx",
+        "desc": "Bit planes use"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "HAM",
+        "desc": "Hold and modify mode, now using either 6 or 8 bit planes."
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "DPF",
+        "desc": "Double playfield (PF1 = odd & PF2 = even bit planes) now available in all resolutions. (If BPU = 6 and HAM = 0 and DPF = 0 a special mode is defined that allows bitplane 6 to cause an intensity reduction of the other 5 bitplanes. The color register output selected by 5 bitplanes is shifted to half intensity by the 6th bit plane. This is called EXTRA-HALFBRITE Mode."
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "COLOR",
+        "desc": "Enables color burst output signal"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "GAUD",
+        "desc": "Genlock audio enable. This level appears on the ZD pin on denise during all blanking periods, unless ZDCLK bit is set."
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "UHRES",
+        "desc": "Ultrahi res enables the UHRES pointers (for 1k*1k) also needs bits in DMACON (hires chips only). Disables hard stops for vert, horiz display windows."
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "SHRES",
+        "desc": "Super hi-res mode (35ns pixel width)"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "BYPASS=0",
+        "desc": "Bit planes are scrolled and prioritized normally, but bypass color table and 8 bit wide data appear on R(7:0)."
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "BPU3=0",
+        "desc": "See above (BPUx)"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "LPEN",
+        "desc": "Light pen enable (reset on power up)"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "LACE",
+        "desc": "Interlace enable (reset on power up)"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "ERSY",
+        "desc": "External resync (HSYNC, VSYNC pads become inputs) (reset on power up)"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "ECSENA=0",
+        "desc": "When low (default), the following bits in BPLCON3 are disabled: BRDRBLNK,BRDNTRAN,ZDCLKEN,BRDSPRT, and EXTBLKEN. These 5 bits can always be set by writing to BPLCON3, however there effects are inhibited until ECSENA goes high. This allows rapid context switching between pre-ECS viewports and new ones."
+      }
+    ]
+  },
+  "bplcon1": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "PF2H7",
+        "desc": "(PF2Hx =) Playfield 2 horizontal scroll code, x=0-7"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "PF2H6",
+        "desc": ""
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "PF2H1",
+        "desc": ""
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "PF2H0",
+        "desc": ""
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "PF1H7",
+        "desc": "(PF1Hx =) Playfield 1 horizontal scroll code, x=0-7 where PFyH0 = LSB = 35ns SHRES pixel (bits have been renamed, old PFyH0 now PFyH2, etc). Now that the scroll range has been quadrupled to allow for wider (32 or 64 bits) bitplanes."
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "PF1H6",
+        "desc": ""
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "PF1H1",
+        "desc": ""
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "PF1H0",
+        "desc": ""
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "PF2H5",
+        "desc": "OCS/ECS"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "PF2H4",
+        "desc": ""
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "PF2H3",
+        "desc": ""
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "PF2H2",
+        "desc": ""
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "PF1H5",
+        "desc": ""
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "PF1H4",
+        "desc": ""
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "PF1H3",
+        "desc": ""
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "PF1H2",
+        "desc": ""
+      }
+    ]
+  },
+  "bplcon2": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "ZDBPSEL2",
+        "desc": "3 bit field which selects which bitplane is to be used for ZD when ZDBBPEN is set- 000 selects BB1 and 111 selects BP8."
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "ZDBPSEL1",
+        "desc": ""
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "ZDBPSEL0",
+        "desc": ""
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "ZDBPEN",
+        "desc": "Causes ZD pin to mirror bitplane selected by ZDBPSELx bits. This does not disable the ZD mode defined by ZDCTEN, but rather is \"ored\" with it."
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "ZDCTEN",
+        "desc": "Causes ZD pin to mirror bit #15 of the active entry in high color table. When ZDCTEN is reset ZD reverts to mirroring color (0)."
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "KILLEHB",
+        "desc": "Disables extra halfbrite mode."
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "RDRAM=0",
+        "desc": "Causes color table address to read the color table instead of writing to it."
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "SOGEN=0",
+        "desc": "When set causes SOG output pin to go high"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "PF2PRI",
+        "desc": "Gives playfield 2 priority over playfield 1."
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "PF2P2",
+        "desc": "Playfield 2 (or single playfield) priority code (with resp. to sprites)."
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "PF2P1",
+        "desc": ""
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "PF2P0",
+        "desc": ""
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "PF1P2",
+        "desc": "Playfield 1 priority code (with resp. to sprites)."
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "PF1P1",
+        "desc": ""
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "PF1P0",
+        "desc": ""
+      }
+    ]
+  },
+  "bplcon3": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 13,
+        "name": "BANKx",
+        "desc": "Selects one of eight color banks, x = 0-2."
+      },
+      {
+        "hi": 12,
+        "lo": 10,
+        "name": "PF2OFx",
+        "desc": "Determine bit plane color table offset when playfield 2 has priority in dual playfield mode : 000 : none 001 : 2 (plane 2 affected) 010 : 4 (plane 3 affected) 011 : 8 (plane 3 affected) (default) 100 : 16 (plane 5 affected) 101 : 32 (plane 6 affected) 110 : 64 (plane 7 affected) 111 : 128 (plane 8 affected)"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "LOCT=0",
+        "desc": "Dictates that subsequent color palette values will be written to a second 12-bit color palette, constituting the RGB low minus order bits. Writes to the normal hi minus order color palette automattically copied to the low order for backwards compatibility."
+      },
+      {
+        "hi": 7,
+        "lo": 6,
+        "name": "SPRESx=0",
+        "desc": "Determine resolution of all 8 sprites (x = 0,1): 00 : ECS defaults (LORES, HIRES=140ns, SHRES=70ns) 01 : LORES (140ns) 10 : HIRES (70ns) 11 : SHRES (35ns)"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "BRDRBLNK=0",
+        "desc": "\"Border area\" is blanked instead of color (0). Disabled when ECSENA low."
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "BRDNTRAN=0",
+        "desc": "\"Border area\" is non minus transparant (ZD pin is low when border is displayed). Disabled when ECSENA low."
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "ZDCLKEN=0",
+        "desc": "ZD pin outputs a 14 MHz clock whose falling edge coincides with hires (7 MHz) video data. this bit when set disables all other ZD functions. Disabled when ESCENA low."
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "BRDSPRT=0",
+        "desc": "Enables sprites outside the display window. disabled when ESCENA low."
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "EXTBLKEN=0",
+        "desc": "Causes BLANK output to be programmable instead of reflecting internal fixed decodes. Disabled when ESCENA low."
+      }
+    ]
+  },
+  "bplcon4": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 8,
+        "name": "BPLAMx=0",
+        "desc": "This 8 bit field is XOR'ed with the 8 bit plane color address, thereby altering the color address sent to the color table. Default value is 00000000 binary. (x=0-7)"
+      },
+      {
+        "hi": 7,
+        "lo": 4,
+        "name": "ESPRMx=1",
+        "desc": "4 Bit field provides the 4 high order color table address bits for even sprites: SPR0,SPR2,SPR4,SPR6. Default value is 0001 binary. (x=7-4)"
+      },
+      {
+        "hi": 3,
+        "lo": 0,
+        "name": "OSPRM7=1",
+        "desc": "4 Bit field provides the 4 high order color table address bits for odd sprites: SPR1,SPR3,SPR5,SPR7. Default value is 0001 binary. (x=7-4)"
+      }
+    ]
+  },
+  "clxcon": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "ENSP7",
+        "desc": "Enable Sprite 7 (ORed with Sprite 6)"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "ENSP5",
+        "desc": "Enable Sprite 5 (ORed with Sprite 4)"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "ENSP3",
+        "desc": "Enable Sprite 3 (ORed with Sprite 2)"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "ENSP1",
+        "desc": "Enable Sprite 1 (ORed with Sprite 0)"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "ENBP6",
+        "desc": "Enable bit plane 6 (match reqd. for collision)"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "ENBP5",
+        "desc": "Enable bit plane 5 (match reqd. for collision)"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "ENBP4",
+        "desc": "Enable bit plane 4 (match reqd. for collision)"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "ENBP3",
+        "desc": "Enable bit plane 3 (match reqd. for collision)"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "ENBP2",
+        "desc": "Enable bit plane 2 (match reqd. for collision)"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "ENBP1",
+        "desc": "Enable bit plane 1 (match reqd. for collision)"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "MVBP6",
+        "desc": "Match value for bit plane 6 collision"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "MVBP5",
+        "desc": "Match value for bit plane 5 collision"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "MVBP4",
+        "desc": "Match value for bit plane 4 collision"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "MVBP3",
+        "desc": "Match value for bit plane 3 collision"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "MVBP2",
+        "desc": "Match value for bit plane 2 collision"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "MVBP1",
+        "desc": "Match value for bit plane 1 collision"
+      }
+    ]
+  },
+  "clxcon2": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "ENBP8",
+        "desc": "Enable bit plane 8 (match reqd. for collision)"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "ENBP7",
+        "desc": "Enable bit plane 7 (match reqd. for collision)"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "MVBP8",
+        "desc": "Match value for bit plane 8 collision"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "MVBP7",
+        "desc": "Match value for bit plane 7 collision"
+      }
+    ]
+  },
+  "dmaconr": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "SET/CLR",
+        "desc": "Set/Clear control bit. Determines if bits written with a 1 get set or cleared Bits written with a zero are unchanged"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "BBUSY",
+        "desc": "Blitter busy status bit (read only)"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "BZERO",
+        "desc": "Blitter logic zero status bit (read only)"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "BLTPRI",
+        "desc": "Blitter DMA priority (over CPU micro) (also called \"blitter nasty\") (disables /BLS pin, preventing micro from stealing any bus cycles while blitter DMA is running)"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "DMAEN",
+        "desc": "Enable all DMA below (also UHRES DMA)"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "BPLEN",
+        "desc": "Bit plane DMA enable"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "COPEN",
+        "desc": "Coprocessor DMA enable"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "BLTEN",
+        "desc": "Blitter DMA enable"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "SPREN",
+        "desc": "Sprite DMA enable"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "DSKEN",
+        "desc": "Disk DMA enable"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "AUD3EN",
+        "desc": "Audio channel 3 DMA enable"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "AUD2EN",
+        "desc": "Audio channel 2 DMA enable"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "AUD1EN",
+        "desc": "Audio channel 1 DMA enable"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "AUD0EN",
+        "desc": "Audio channel 0 DMA enable"
+      }
+    ]
+  },
+  "dskbytr": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "DSKBYT",
+        "desc": "Disk byte ready (reset on read)"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "DMAON",
+        "desc": "DMAEN (DSKLEN) & DMAEN (DMACON) & DSKEN (DMACON)"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "DISKWRITE",
+        "desc": "Mirror of bit 14 (WRITE) in DSKLEN"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "WORDEQUAL",
+        "desc": "This bit true only while DSKSYNC register equals the data from disk"
+      },
+      {
+        "hi": 11,
+        "lo": 8,
+        "name": "0",
+        "desc": "Not used"
+      },
+      {
+        "hi": 7,
+        "lo": 0,
+        "name": "DATA",
+        "desc": "Disk byte data"
+      }
+    ]
+  },
+  "dsklen": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "DMAEN",
+        "desc": "Disk DMA enable"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "WRITE",
+        "desc": "Disk write (RAM or disk) if 1"
+      },
+      {
+        "hi": 13,
+        "lo": 0,
+        "name": "LENGTH",
+        "desc": "Length (# of words) of DMA data."
+      }
+    ]
+  },
+  "fmode": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "SSCAN2",
+        "desc": "Global enable for sprite scan-doubling."
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "BSCAN2",
+        "desc": "Enables the use of 2nd P/F modulus on an alternate line basis to support bitplane scan-doubling."
+      },
+      {
+        "hi": 13,
+        "lo": 4,
+        "name": "Unused",
+        "desc": ""
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "SPAGEM",
+        "desc": "Sprite page mode (double CAS)"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "SPR32",
+        "desc": "Sprite 32 bit wide mode"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "BPAGEM",
+        "desc": "Bitplane Page Mode (double CAS)"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "BLP32",
+        "desc": "Bitplane 32 bit wide mode"
+      }
+    ]
+  },
+  "hbstrt": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 11,
+        "name": "0",
+        "desc": "Unused"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "H1",
+        "desc": "140ns"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "H1",
+        "desc": "70ns"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "H0",
+        "desc": "35ns"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "H10",
+        "desc": "35840ns"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "H9",
+        "desc": "17920ns"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "H8",
+        "desc": "8960ns"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "H7",
+        "desc": "4480ns"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "H6",
+        "desc": "2240ns"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "H5",
+        "desc": "1120ns"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "H4",
+        "desc": "560ns"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "H3",
+        "desc": "280ns"
+      }
+    ]
+  },
+  "intenar": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "SET/CLR",
+        "desc": "Set/clear control bit. 0=clear, 1=set Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged."
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "INTEN",
+        "desc": "Master interrupt (enable only, no request) Enable interrupts below (master toggle)"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "EXTER",
+        "desc": "Level 6 External interrupt"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "DSKSYN",
+        "desc": "Level 5 Disk sync register (DSKSYNC) matches disk"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "RBF",
+        "desc": "Level 5 Serial port receive buffer full"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "AUD3",
+        "desc": "Level 4 Audio channel 3 block finished"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "AUD2",
+        "desc": "Level 4 Audio channel 2 block finished"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "AUD1",
+        "desc": "Level 4 Audio channel 1 block finished"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "AUD0",
+        "desc": "Level 4 Audio channel 0 block finished"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "BLIT",
+        "desc": "Level 3 Blitter Interrupt: blitter has finished"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "VERTB",
+        "desc": "Level 3 Vertical Blank Interrupt: start of vertical blank"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "COPER",
+        "desc": "Level 3 Copper Interrupt"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "PORTS",
+        "desc": "Level 2 CIA Interrupt (I/O ports and timers)"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "SOFT",
+        "desc": "Level 1 Software Interrupt"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "DSKBLK",
+        "desc": "Level 1 Disk Block Finished Interrupt"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "TBE",
+        "desc": "Level 1 Transmit Buffer Empty Interrupt (serial port)"
+      }
+    ]
+  },
+  "intreqr": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "SET/CLR",
+        "desc": "Set/clear control bit. Determines if bits written with a 1 get set or cleared. Bits written with a zero are always unchanged."
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "INTEN",
+        "desc": "Master interrupt (enable only, no request)"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "EXTER",
+        "desc": "External interrupt"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "DSKSYN",
+        "desc": "Disk sync register (DSKSYNC) matches disk"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "RBF",
+        "desc": "Serial port receive buffer full"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "AUD3",
+        "desc": "Audio channel 3 block finished"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "AUD2",
+        "desc": "Audio channel 2 block finished"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "AUD1",
+        "desc": "Audio channel 1 block finished"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "AUD0",
+        "desc": "Audio channel 0 block finished"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "BLIT",
+        "desc": "Blitter has finished"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "VERTB",
+        "desc": "Start of vertical blank"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "COPER",
+        "desc": "Coprocessor"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "PORTS",
+        "desc": "I/O Ports and timers"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "SOFT",
+        "desc": "Reserved for software initiated interrupt."
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "DSKBLK",
+        "desc": "Disk block finished"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "TBE",
+        "desc": "Serial port transmit buffer empty"
+      }
+    ]
+  },
+  "potinp": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "OUTRY",
+        "desc": "Output enable for Paula pin 33"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "DATRY",
+        "desc": "I/O data Paula pin 33"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "OUTRX",
+        "desc": "Output enable for Paula pin 32"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "DATRX",
+        "desc": "I/O data Paula pin 32"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "OUTLY",
+        "desc": "Out put enable for Paula pin 36"
+      },
+      {
+        "hi": 10,
+        "lo": 10,
+        "name": "DATLY",
+        "desc": "I/O data Paula pin 36"
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "OUTLX",
+        "desc": "Output enable for Paula pin 35"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "DATLX",
+        "desc": "I/O data Paula pin 35"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "START",
+        "desc": "Start pots (dump capacitors,start counters)"
+      }
+    ]
+  },
+  "serdatr": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "OVRUN",
+        "desc": "Serial port receiver overun"
+      },
+      {
+        "hi": 14,
+        "lo": 14,
+        "name": "RBF",
+        "desc": "Serial port receive buffer full (mirror)"
+      },
+      {
+        "hi": 13,
+        "lo": 13,
+        "name": "TBE",
+        "desc": "Serial port transmit buffer empty (mirror)"
+      },
+      {
+        "hi": 12,
+        "lo": 12,
+        "name": "TSRE",
+        "desc": "Serial port transmit shift reg. empty"
+      },
+      {
+        "hi": 11,
+        "lo": 11,
+        "name": "RXD",
+        "desc": "RXD pin receives UART serial data for direct bit test by the micro."
+      },
+      {
+        "hi": 9,
+        "lo": 9,
+        "name": "STP",
+        "desc": "Stop bit"
+      },
+      {
+        "hi": 8,
+        "lo": 8,
+        "name": "STP-DB8",
+        "desc": "Stop bit if LONG, data bit if not."
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "DB7",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "DB6",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "DB5",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "DB4",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "DB3",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "DB2",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "DB1",
+        "desc": "Data bit."
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "DB0",
+        "desc": "Data bit."
+      }
+    ]
+  },
+  "serper": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 15,
+        "name": "LONG",
+        "desc": "Defines serial receive as 9 bit word."
+      },
+      {
+        "hi": 14,
+        "lo": 0,
+        "name": "RATE",
+        "desc": "Defines baud rate=1/((N+1)*.2794 microseconds)"
+      }
+    ]
+  },
+  "sprxctl": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 8,
+        "name": "EV7-EV0",
+        "desc": "End (stop) vertical value. Low 8 bits"
+      },
+      {
+        "hi": 7,
+        "lo": 7,
+        "name": "ATT",
+        "desc": "Sprite attach control bit (odd sprites only)"
+      },
+      {
+        "hi": 6,
+        "lo": 6,
+        "name": "SV9",
+        "desc": "Start vertical value 10th bit"
+      },
+      {
+        "hi": 5,
+        "lo": 5,
+        "name": "EV9",
+        "desc": "End (stop) vertical value 10th bit"
+      },
+      {
+        "hi": 4,
+        "lo": 4,
+        "name": "SH1=0",
+        "desc": "Start horizontal value, 70nS increment"
+      },
+      {
+        "hi": 3,
+        "lo": 3,
+        "name": "SH0=0",
+        "desc": "Start horizontal value 35nS increment"
+      },
+      {
+        "hi": 2,
+        "lo": 2,
+        "name": "SV8",
+        "desc": "Start vertical value 9th bit"
+      },
+      {
+        "hi": 1,
+        "lo": 1,
+        "name": "EV8",
+        "desc": "End (stop) vertical value 9th bit"
+      },
+      {
+        "hi": 0,
+        "lo": 0,
+        "name": "SH2",
+        "desc": "Start horizontal value, 140nS increment"
+      }
+    ]
+  },
+  "sprxpos": {
+    "bits": 16,
+    "fields": [
+      {
+        "hi": 15,
+        "lo": 8,
+        "name": "SV7-SV0",
+        "desc": "Start vertical value.High bit (SV8) is in [SPRxCTL](#sprxctl) registers."
+      },
+      {
+        "hi": 7,
+        "lo": 0,
+        "name": "SH10-SH3",
+        "desc": "Sprite horizontal start value. Low order 3 bits are in [SPRxCTL](#sprxctl) registers. If SSCAN2 bit in FMODE is set, then disable SH10 horizontal coincidence detect.This bit is then free to be used by ALICE as an individual scan double enable."
+      }
+    ]
+  },
+  "BLTCON0": {
+    "bits": 16,
+    "variants": [
+      {
+        "mode": "Area Mode",
+        "fields": [
+          {
+            "hi": 15,
+            "lo": 12,
+            "name": "ASH3-0",
+            "desc": "Shift value of A source"
+          },
+          {
+            "hi": 11,
+            "lo": 11,
+            "name": "USEA",
+            "desc": "Mode control bit to use source A"
+          },
+          {
+            "hi": 10,
+            "lo": 10,
+            "name": "USEB",
+            "desc": "Mode control bit to use source B"
+          },
+          {
+            "hi": 9,
+            "lo": 9,
+            "name": "USEC",
+            "desc": "Mode control bit to use source C"
+          },
+          {
+            "hi": 8,
+            "lo": 8,
+            "name": "USED",
+            "desc": "Mode control bit to use destination D"
+          },
+          {
+            "hi": 7,
+            "lo": 0,
+            "name": "LF7-0",
+            "desc": "Logic function minterm select lines"
+          }
+        ]
+      },
+      {
+        "mode": "Line Mode",
+        "fields": [
+          {
+            "hi": 15,
+            "lo": 12,
+            "name": "ASH3-0",
+            "desc": "Shift value of A source (line texture start)"
+          },
+          {
+            "hi": 11,
+            "lo": 11,
+            "name": "USEA",
+            "desc": "Must be 1 in line mode"
+          },
+          {
+            "hi": 10,
+            "lo": 10,
+            "name": "USEB",
+            "desc": "Must be 0 in line mode"
+          },
+          {
+            "hi": 9,
+            "lo": 9,
+            "name": "USEC",
+            "desc": "Must be 1 in line mode"
+          },
+          {
+            "hi": 8,
+            "lo": 8,
+            "name": "USED",
+            "desc": "Must be 1 in line mode"
+          },
+          {
+            "hi": 7,
+            "lo": 0,
+            "name": "LF7-0",
+            "desc": "Logic function minterm select lines"
+          }
+        ]
+      }
+    ]
+  },
+  "BLTCON1": {
+    "bits": 16,
+    "variants": [
+      {
+        "mode": "Area Mode",
+        "fields": [
+          {
+            "hi": 15,
+            "lo": 12,
+            "name": "BSH3-0",
+            "desc": "Shift value of B source and line texture"
+          },
+          {
+            "hi": 7,
+            "lo": 7,
+            "name": "DOFF",
+            "desc": "Disables the D output for external ALUs (hires chips only)"
+          },
+          {
+            "hi": 4,
+            "lo": 4,
+            "name": "EFE",
+            "desc": "Exclusive fill enable"
+          },
+          {
+            "hi": 3,
+            "lo": 3,
+            "name": "IFE",
+            "desc": "Inclusive fill enable"
+          },
+          {
+            "hi": 2,
+            "lo": 2,
+            "name": "FCI",
+            "desc": "Fill carry input"
+          },
+          {
+            "hi": 1,
+            "lo": 1,
+            "name": "DESC",
+            "desc": "Descending (decreasing address) control bit"
+          },
+          {
+            "hi": 0,
+            "lo": 0,
+            "name": "LINE",
+            "desc": "Line mode control bit (0 = area mode)"
+          }
+        ]
+      },
+      {
+        "mode": "Line Mode",
+        "fields": [
+          {
+            "hi": 15,
+            "lo": 12,
+            "name": "BSH3-0",
+            "desc": "Shift value of B source and line texture"
+          },
+          {
+            "hi": 7,
+            "lo": 7,
+            "name": "DPFF",
+            "desc": ""
+          },
+          {
+            "hi": 6,
+            "lo": 6,
+            "name": "SIGN",
+            "desc": "Line draw sign flag"
+          },
+          {
+            "hi": 5,
+            "lo": 5,
+            "name": "OVF",
+            "desc": "Line/draw r/l word overflow flag"
+          },
+          {
+            "hi": 4,
+            "lo": 4,
+            "name": "SUD",
+            "desc": "Line draw: sometimes up or down (=AUD)"
+          },
+          {
+            "hi": 3,
+            "lo": 3,
+            "name": "SUL",
+            "desc": "Line draw: sometimes up or left"
+          },
+          {
+            "hi": 2,
+            "lo": 2,
+            "name": "AUL",
+            "desc": "Line draw: always up or left"
+          },
+          {
+            "hi": 1,
+            "lo": 1,
+            "name": "SING",
+            "desc": "Line draw: single bit per horizontal line"
+          },
+          {
+            "hi": 0,
+            "lo": 0,
+            "name": "LINE",
+            "desc": "Line mode control bit (1 = line mode)"
+          }
+        ]
+      }
+    ]
+  }
+}

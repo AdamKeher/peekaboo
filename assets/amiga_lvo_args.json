@@ -1,0 +1,42 @@
+{
+  "_comment": "Argument and result metadata for the library functions worth tracing, keyed by Amiga node name then by the same negative LVO displacement amiga_lvos.json uses. That file is generated from the NDK .fd files and must not be hand-edited, so the register lists live here instead. 'type' tells the tracer how to render the register: long (signed), ulong, ptr, cstr (a NUL-terminated string in emulated memory), bstr (a BCPL string given as a BPTR, which is how dos.library takes filenames), bptr (a BCPL pointer, i.e. the address shifted right by two). 'result' describes D0 on return. Only functions that carry an identity worth following are listed; anything absent still traces, it just reports raw register values.",
+
+  "exec.library": {
+    "-96":  { "name": "FindResident",  "args": [{"reg": "a1", "name": "name", "type": "cstr"}], "result": {"name": "resident", "type": "ptr"}},
+    "-102": { "name": "InitResident",  "args": [{"reg": "a1", "name": "resident", "type": "ptr"}, {"reg": "d1", "name": "segList", "type": "bptr"}]},
+    "-198": { "name": "AllocMem",      "args": [{"reg": "d0", "name": "byteSize", "type": "ulong"}, {"reg": "d1", "name": "requirements", "type": "ulong"}], "result": {"name": "memoryBlock", "type": "ptr"}},
+    "-204": { "name": "AllocAbs",      "args": [{"reg": "d0", "name": "byteSize", "type": "ulong"}, {"reg": "a1", "name": "location", "type": "ptr"}], "result": {"name": "memoryBlock", "type": "ptr"}},
+    "-210": { "name": "FreeMem",       "args": [{"reg": "a1", "name": "memoryBlock", "type": "ptr"}, {"reg": "d0", "name": "byteSize", "type": "ulong"}]},
+    "-294": { "name": "FindTask",      "args": [{"reg": "a1", "name": "name", "type": "cstr"}], "result": {"name": "task", "type": "ptr"}},
+    "-354": { "name": "AddPort",       "args": [{"reg": "a1", "name": "port", "type": "ptr"}]},
+    "-390": { "name": "FindPort",      "args": [{"reg": "a1", "name": "name", "type": "cstr"}], "result": {"name": "port", "type": "ptr"}},
+    "-420": { "name": "SetFunction",   "args": [{"reg": "a1", "name": "library", "type": "ptr"}, {"reg": "a0", "name": "funcOffset", "type": "long"}, {"reg": "d0", "name": "newFunction", "type": "ptr"}], "result": {"name": "oldFunction", "type": "ptr"}},
+    "-498": { "name": "OpenResource",  "args": [{"reg": "a1", "name": "resName", "type": "cstr"}], "result": {"name": "resource", "type": "ptr"}},
+    "-552": { "name": "OpenLibrary",   "args": [{"reg": "a1", "name": "libName", "type": "cstr"}, {"reg": "d0", "name": "version", "type": "ulong"}], "result": {"name": "library", "type": "ptr"}},
+    "-594": { "name": "FindSemaphore", "args": [{"reg": "a1", "name": "name", "type": "cstr"}], "result": {"name": "semaphore", "type": "ptr"}},
+    "-600": { "name": "AddSemaphore",  "args": [{"reg": "a1", "name": "semaphore", "type": "ptr"}]}
+  },
+
+  "dos.library": {
+    "-30":  { "name": "Open",          "args": [{"reg": "d1", "name": "name", "type": "bstr"}, {"reg": "d2", "name": "accessMode", "type": "long"}], "result": {"name": "file", "type": "bptr"}},
+    "-36":  { "name": "Close",         "args": [{"reg": "d1", "name": "file", "type": "bptr"}]},
+    "-42":  { "name": "Read",          "args": [{"reg": "d1", "name": "file", "type": "bptr"}, {"reg": "d2", "name": "buffer", "type": "ptr"}, {"reg": "d3", "name": "length", "type": "long"}], "result": {"name": "actual", "type": "long"}},
+    "-48":  { "name": "Write",         "args": [{"reg": "d1", "name": "file", "type": "bptr"}, {"reg": "d2", "name": "buffer", "type": "ptr"}, {"reg": "d3", "name": "length", "type": "long"}], "result": {"name": "actual", "type": "long"}},
+    "-54":  { "name": "Input",         "args": [], "result": {"name": "file", "type": "bptr"}},
+    "-60":  { "name": "Output",        "args": [], "result": {"name": "file", "type": "bptr"}},
+    "-66":  { "name": "Seek",          "args": [{"reg": "d1", "name": "file", "type": "bptr"}, {"reg": "d2", "name": "position", "type": "long"}, {"reg": "d3", "name": "offset", "type": "long"}], "result": {"name": "oldPosition", "type": "long"}},
+    "-72":  { "name": "DeleteFile",    "args": [{"reg": "d1", "name": "name", "type": "bstr"}], "result": {"name": "success", "type": "long"}},
+    "-78":  { "name": "Rename",        "args": [{"reg": "d1", "name": "oldName", "type": "bstr"}, {"reg": "d2", "name": "newName", "type": "bstr"}], "result": {"name": "success", "type": "long"}},
+    "-84":  { "name": "Lock",          "args": [{"reg": "d1", "name": "name", "type": "bstr"}, {"reg": "d2", "name": "type", "type": "long"}], "result": {"name": "lock", "type": "bptr"}},
+    "-90":  { "name": "UnLock",        "args": [{"reg": "d1", "name": "lock", "type": "bptr"}]},
+    "-102": { "name": "Examine",       "args": [{"reg": "d1", "name": "lock", "type": "bptr"}, {"reg": "d2", "name": "fileInfoBlock", "type": "ptr"}], "result": {"name": "success", "type": "long"}},
+    "-126": { "name": "CurrentDir",    "args": [{"reg": "d1", "name": "lock", "type": "bptr"}], "result": {"name": "oldLock", "type": "bptr"}},
+    "-150": { "name": "LoadSeg",       "args": [{"reg": "d1", "name": "name", "type": "bstr"}], "result": {"name": "segList", "type": "bptr"}},
+    "-156": { "name": "UnLoadSeg",     "args": [{"reg": "d1", "name": "segList", "type": "bptr"}]},
+    "-180": { "name": "SetComment",    "args": [{"reg": "d1", "name": "name", "type": "bstr"}, {"reg": "d2", "name": "comment", "type": "bstr"}], "result": {"name": "success", "type": "long"}},
+    "-186": { "name": "SetProtection", "args": [{"reg": "d1", "name": "name", "type": "bstr"}, {"reg": "d2", "name": "protect", "type": "long"}], "result": {"name": "success", "type": "long"}},
+    "-222": { "name": "Execute",       "args": [{"reg": "d1", "name": "string", "type": "bstr"}, {"reg": "d2", "name": "input", "type": "bptr"}, {"reg": "d3", "name": "output", "type": "bptr"}], "result": {"name": "success", "type": "long"}},
+    "-900": { "name": "SetVar",        "args": [{"reg": "d1", "name": "name", "type": "cstr"}, {"reg": "d2", "name": "buffer", "type": "cstr"}, {"reg": "d3", "name": "size", "type": "long"}, {"reg": "d4", "name": "flags", "type": "ulong"}], "result": {"name": "success", "type": "long"}},
+    "-906": { "name": "GetVar",        "args": [{"reg": "d1", "name": "name", "type": "cstr"}, {"reg": "d2", "name": "buffer", "type": "ptr"}, {"reg": "d3", "name": "size", "type": "long"}, {"reg": "d4", "name": "flags", "type": "ulong"}], "result": {"name": "length", "type": "long"}}
+  }
+}

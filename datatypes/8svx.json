@@ -1,0 +1,14 @@
+{
+    "name": "IFF 8SVX Sound",
+    "group": "Audio",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "38535658"
+        }
+    ]
+}

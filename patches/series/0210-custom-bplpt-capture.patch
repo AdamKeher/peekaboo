@@ -1,0 +1,56 @@
+custom.c: BPLxPT write capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index c396add..b6322b5 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -637,6 +637,22 @@ static uae_u16 dmal_alloc_mask;
+ 
+ struct custom_store custom_storage[256];
+ 
++/* ADM: per-frame bitplane pointer event log. */
++#define ADM_BPLPT_MAX_EVENTS 512
++struct adm_bplpt_event {
++    uae_u16 vpos;
++    uae_u8  plane;
++    uae_u8  pad;
++    uae_u32 ptr;
++    uae_u16 bplcon0_snap;
++    uae_u16 ddfstrt_snap;
++    uae_u16 ddfstop_snap;
++    uae_u16 pad2;
++    uae_u32 cycle;
++};
++struct adm_bplpt_event adm_bplpt_events[ADM_BPLPT_MAX_EVENTS];
++uint32_t adm_bplpt_write_pos = 0;
++
+ #define TOSCR_RES_PIXELS_LORES 4
+ #define TOSCR_RES_PIXELS_HIRES 2
+ #define TOSCR_RES_PIXELS_SHRES 1
+@@ -9347,6 +9363,21 @@ static void BPLxPTL(int hpos, uae_u16 v, int num)
+ 	}
+ 	bplpt[num] = (bplpt[num] & 0xffff0000) | (v & 0x0000fffe);
+ 	bplptx[num] = (bplptx[num] & 0xffff0000) | (v & 0x0000fffe);
++	/* ADM: record bplpt write (ring buffer) */
++	{
++		struct adm_bplpt_event *ev =
++			&adm_bplpt_events[adm_bplpt_write_pos % ADM_BPLPT_MAX_EVENTS];
++		ev->vpos         = (uae_u16)vpos;
++		ev->plane        = (uae_u8)num;
++		ev->pad          = 0;
++		ev->ptr          = bplpt[num];
++		ev->bplcon0_snap = bplcon0;
++		ev->ddfstrt_snap = (uae_u16)ddfstrt;
++		ev->ddfstop_snap = (uae_u16)ddfstop;
++		ev->pad2         = 0;
++		ev->cycle        = (uae_u32)(get_cycles() / 512);
++		adm_bplpt_write_pos++;
++	}
+ 	dcheck_is_blit_dangerous ();
+ 	//write_log (_T("%d:%d:BPL%dPTL %08X COP=%08x\n"), hpos, vpos, num, bplpt[num], cop_state.ip);
+ }

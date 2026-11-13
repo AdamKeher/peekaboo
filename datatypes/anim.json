@@ -1,0 +1,14 @@
+{
+    "name": "IFF ANIM Animation",
+    "group": "Image",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "414E494D"
+        }
+    ]
+}

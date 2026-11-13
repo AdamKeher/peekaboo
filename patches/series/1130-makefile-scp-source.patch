@@ -1,0 +1,19 @@
+Makefile.common: add scp.c to SOURCES_C
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/Makefile.common b/Makefile.common
+index 18a9f06..535b591 100644
+--- a/Makefile.common
++++ b/Makefile.common
+@@ -308,3 +308,7 @@ SOURCES_CXX += $(EMU)/floppybridge/floppybridge_lib.cpp \
+                $(EMU)/floppybridge/AdmXCopyBridge.cpp \
+                $(EMU)/floppybridge/AdmXCopyBufferedBridge.cpp \
+                $(EMU)/floppybridge/XCopyLink.cpp
++
++# ADM: SuperCard Pro flux image reader. Present in the tree upstream but
++# never compiled; enabled together with -DSCP in retrodep/sysconfig.h.
++SOURCES_C += $(EMU)/scp.c

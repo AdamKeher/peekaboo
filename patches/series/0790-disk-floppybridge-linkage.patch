@@ -1,0 +1,46 @@
+disk.c: keep C linkage when built as C++ for FloppyBridge
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/disk.c b/sources/src/disk.c
+index 0795ad6..4d6f557 100644
+--- a/sources/src/disk.c
++++ b/sources/src/disk.c
+@@ -13,6 +13,15 @@
+ *
+ */
+ 
++#ifdef FLOPPYBRIDGE
++/* ADM: with FLOPPYBRIDGE enabled disk.c is compiled as C++ (it declares
++   FloppyBridgeAPI objects and std::vector). Everything it defines is still
++   called from C translation units, and everything it calls is defined in
++   them, so the whole unit keeps C language linkage. The C++ standard
++   headers are pre-included from the Makefile (-include ...), so none of
++   them are parsed inside this block. */
++extern "C" {
++#endif
+ #include "sysconfig.h"
+ #include "sysdeps.h"
+ 
+@@ -69,8 +78,10 @@ int disk_debug_track = -1;
+ #include "tinyxml2.h"
+ #endif
+ #ifdef FLOPPYBRIDGE
++}  /* extern "C" - the two headers below declare C++ classes */
+ #include "floppybridge/floppybridge_abstract.h"
+ #include "floppybridge/floppybridge_lib.h"
++extern "C" {
+ #endif
+ 
+ #undef CATWEASEL
+@@ -6639,3 +6650,7 @@ uae_u8 *restore_disk_dma(uae_u8 *src)
+ }
+ 
+ #endif /* SAVESTATE */
++
++#ifdef FLOPPYBRIDGE
++}  /* extern "C" */
++#endif

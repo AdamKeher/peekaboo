@@ -1,0 +1,64 @@
+libretro-core.c: bplpt event ring buffer
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 8e684a0..9ec796d 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9033,4 +9033,51 @@ RETRO_API void adm_redraw_frame(void) {
+                  retrow_crop, retroh_crop,
+                  retrow << (pix_bytes >> 1));
+     }
++}
++/* Ring-buffer copy helper used by all ADM event get functions.
++ * Copies up to 'max' entries from a ring buffer in chronological order.
++ * write_pos = total events written (monotonic); cap = array capacity.
++ * Returns count copied; sets *overflow=1 if buffer has wrapped. */
++static int adm_ring_copy(const void* ring, uint32_t cap, uint32_t write_pos,
++                         void* out, int max, size_t sz, int* overflow) {
++    uint32_t avail = write_pos < cap ? write_pos : cap;
++    uint32_t n     = (uint32_t)max < avail ? (uint32_t)max : avail;
++    if (overflow) *overflow = (write_pos > cap) ? 1 : 0;
++    if (n == 0 || !out) return (int)n;
++    uint32_t oldest   = write_pos - avail;
++    uint32_t start_ix = oldest % cap;
++    if (start_ix + n <= cap) {
++        memcpy(out, (const char*)ring + start_ix * sz, n * sz);
++    } else {
++        uint32_t part1 = cap - start_ix;
++        memcpy(out,                          (const char*)ring + start_ix * sz, part1 * sz);
++        memcpy((char*)out + part1 * sz, ring,                                   (n - part1) * sz);
++    }
++    return (int)n;
++}
++
++/* ADM bplpt event cache -- buffer defined in custom.c */
++#define ADM_BPLPT_MAX_EVENTS 512
++struct adm_bplpt_event_lc {
++    uint16_t vpos;
++    uint8_t  plane;
++    uint8_t  pad;
++    uint32_t ptr;
++    uint16_t bplcon0_snap;
++    uint16_t ddfstrt_snap;
++    uint16_t ddfstop_snap;
++    uint16_t pad2;
++    uint32_t cycle;
++};
++extern struct adm_bplpt_event_lc adm_bplpt_events[ADM_BPLPT_MAX_EVENTS];
++extern uint32_t adm_bplpt_write_pos;
++
++RETRO_API int adm_get_bplpt_events(void *out_events, int max_events) {
++    return adm_ring_copy(adm_bplpt_events, ADM_BPLPT_MAX_EVENTS,
++                         adm_bplpt_write_pos, out_events, max_events,
++                         sizeof(struct adm_bplpt_event_lc), NULL);
++}
++
++RETRO_API void adm_clear_bplpt_events(void) {
++    adm_bplpt_write_pos = 0;
+ }
+\ No newline at end of file

@@ -1,0 +1,14 @@
+{
+    "name": "IFF SMUS Music Score",
+    "group": "Audio",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "534D5553"
+        }
+    ]
+}

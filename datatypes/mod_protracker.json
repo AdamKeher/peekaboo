@@ -1,0 +1,10 @@
+{
+    "name": "ProTracker Module",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "4D2E4B2E"
+        }
+    ]
+}

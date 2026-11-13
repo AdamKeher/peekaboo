@@ -1,0 +1,29 @@
+newcpu.c: do not trace the STOP spin
+
+STOP does not park the CPU. The run loop keeps re-dispatching the prefetched STOP
+opcode until an interrupt reaches m68k_resumestopped(), so the trace hook fired once
+every 4 cycles and an idle PAL frame emitted ~35000 entries at a single PC - enough to
+swamp the profile and to overrun the 50000-entry ring on its own. Record the
+instruction once and skip the spin; the gap to the next entry measures the idle.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/newcpu.c b/sources/src/newcpu.c
+index 61fc337..e6aff05 100644
+--- a/sources/src/newcpu.c
++++ b/sources/src/newcpu.c
+@@ -184,6 +184,13 @@ static void adm_cpu_trace_pre(struct regstruct *r) {
+ 	int adm_i, adm_wlen;
+ 	uint8_t adm_raw[10];
+ 	if (!adm_cpu_trace_enabled) return;
++	/* ADM: STOP does not park the CPU. The run loop keeps re-dispatching the prefetched
++	 * STOP opcode, 4 cycles at a time via do_cycles_stop(), until an interrupt reaches
++	 * m68k_resumestopped(). Tracing every spin emits ~35000 entries at one PC for an idle
++	 * PAL frame, which swamps the profile and can overrun the ring on its own. Record the
++	 * instruction once - on the dispatch that sets regs.stopped - and skip the spin; the
++	 * gap to the next entry then measures the idle exactly. */
++	if (regs.stopped) return;
+ 	adm_wlen = (int)cpudatatbl[r->opcode].length;
+ 	if (adm_wlen < 1) adm_wlen = 1;
+ 	if (adm_wlen > 5) adm_wlen = 5;

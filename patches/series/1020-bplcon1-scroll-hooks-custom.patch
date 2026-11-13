@@ -1,0 +1,56 @@
+custom.c: bplcon1 scroll hooks
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index a99202a..894688f 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -688,6 +688,22 @@ static int delay_cycles, delay_cycles2;
+ static int delay_lastcycle[2], delay_hsynccycle;
+ static int vhposr_delay_offset;
+ static bool bplcon1_written;
++
++/* ADM bplcon1-scroll: when cleared, the BPLCON1 delay/scroll fields are treated
++   as zero, so the bitplane shifter stops applying fine horizontal scroll and the
++   raw fetch alignment becomes visible.  1 = normal hardware behaviour.
++   The setter lives here rather than in libretro-core.c because it has to poke
++   bplcon1_written, which is a file static.
++   Adapted from ENGINE9000 (alpine9000), GPL-2 - see PATCHES.md. */
++static int adm_bplcon1_scroll_enabled = 1;
++
++void adm_set_bplcon1_scroll(int enabled)
++{
++	adm_bplcon1_scroll_enabled = enabled ? 1 : 0;
++	/* Force a recompute; otherwise nothing changes until the program next
++	   writes BPLCON1 itself. */
++	bplcon1_written = true;
++}
+ static bool bplcon0_planes_changed;
+ static bool sprites_enabled_this_line;
+ static int shifter_mask, toscr_delay_shifter[2];
+@@ -2479,6 +2495,10 @@ static void compute_toscr_delay(int bplcon1)
+ 	int delay1 = (bplcon1 & 0x0f) | ((bplcon1 & 0x0c00) >> 6);
+ 	int delay2 = ((bplcon1 >> 4) & 0x0f) | (((bplcon1 >> 4) & 0x0c00) >> 6);
+ 	int delaymask = fetchmode_mask >> toscr_res;
++	if (!adm_bplcon1_scroll_enabled) {
++		delay1 = 0;
++		delay2 = 0;
++	}
+ 
+ 	compute_shifter_mask();
+ 
+@@ -2487,6 +2507,10 @@ static void compute_toscr_delay(int bplcon1)
+ 
+ 	int shdelay1 = (bplcon1 >> 8) & 3;
+ 	int shdelay2 = (bplcon1 >> 12) & 3;
++	if (!adm_bplcon1_scroll_enabled) {
++		shdelay1 = 0;
++		shdelay2 = 0;
++	}
+ 	if (!currprefs.chipset_hr) {
+ 		// subpixel scrolling not possible
+ 		if (toscr_res == RES_HIRES) {

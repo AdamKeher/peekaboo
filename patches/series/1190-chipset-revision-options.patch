@@ -1,0 +1,343 @@
+libretro-core.c: chipset revision options below the model preset
+
+The core parses chipset, chipset_compatible, agnusmodel, agnussize and denisemodel from a
+config, but nothing sets them, and a .uae row cannot: the .uae branch drops chipset= and
+chipset_compatible= whenever a model is selected, and the "model" option rewrites
+chipset_mask, cs_compatible and every cs_* field to the preset each time any option changes
+while running. Five options, each "auto" or the cfgfile.c value:
+
+- puae_chipset, puae_chipset_compatible, puae_agnus_model, puae_agnus_size,
+  puae_denise_model, declared beside the other System options.
+- adm_machine_overrides_config() appends chipset= and chipset_compatible= after the content's
+  own rows; adm_machine_overrides_runtime() re-applies them to changed_prefs after every option
+  update.
+- cfgfile.c: built_in_chipset_prefs() resets agnusmodel, agnussize and denisemodel from the
+  chipset_compatible bundle, and fixup_prefs() calls it after every config load, so those
+  rows never survived. It now ends by calling adm_chipset_prefs_hook, through which the core
+  applies the three chip models.
+- adm_get_machine_config() reports the chipset and CPU prefs the machine is running with.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -1107,6 +1107,106 @@
+          "normal"
+ #endif
+       },
++      /* PEEKaboo: chipset revisions below the model preset */
++      {
++         "puae_chipset",
++         "System > Chipset",
++         "Chipset",
++         "'Automatic' defaults to the current preset model. ECS Agnus and ECS Denise put one ECS chip beside an OCS one.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { "ocs", "OCS" },
++            { "ecs_agnus", "ECS Agnus" },
++            { "ecs_denise", "ECS Denise" },
++            { "ecs", "ECS" },
++            { "aga", "AGA" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
++      {
++         "puae_chipset_compatible",
++         "System > Chipset Extra",
++         "Chipset Extra",
++         "The motherboard the chipset sits on: Gayle, RTC, ROM mirrors, CIA quirks. 'Automatic' defaults to the current preset model.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { "Generic", NULL },
++            { "A500", NULL },
++            { "A500+", NULL },
++            { "A600", NULL },
++            { "A1000", NULL },
++            { "A1200", NULL },
++            { "A2000", NULL },
++            { "A3000", NULL },
++            { "A3000T", NULL },
++            { "A4000", NULL },
++            { "A4000T", NULL },
++            { "CDTV", NULL },
++            { "CDTV-CR", NULL },
++            { "CD32", NULL },
++            { "Velvet", "A1000 prototype (Velvet)" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
++      {
++         "puae_agnus_model",
++         "System > Agnus Model",
++         "Agnus Model",
++         "'Automatic' follows the chipset. A1000 and Velvet Agnus force OCS behaviour.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { "velvet", "Velvet" },
++            { "a1000", "A1000" },
++            { "ocs", "OCS" },
++            { "ecs", "ECS" },
++            { "aga", "AGA" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
++      {
++         "puae_agnus_size",
++         "System > Agnus Size",
++         "Agnus Size",
++         "The Chip RAM address range Agnus decodes. 'Automatic' follows the chipset.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { "512k", "512K" },
++            { "1m", "1M" },
++            { "2m", "2M" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
++      {
++         "puae_denise_model",
++         "System > Denise Model",
++         "Denise Model",
++         "'Automatic' follows the chipset. A1000 no-EHB and Velvet Denise have no Extra Half-Brite.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { "velvet", "Velvet" },
++            { "a1000_noehb", "A1000 (no EHB)" },
++            { "a1000", "A1000" },
++            { "ocs", "OCS" },
++            { "ecs", "ECS" },
++            { "aga", "AGA" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
+       {
+          "puae_autoloadfastforward",
+          "Media > Automatic Load Fast-Forward",
+@@ -3376,6 +3476,84 @@
+    var.value = NULL; \
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+ 
++/* PEEKaboo: chipset revision overrides below the model preset.
++ *
++ * puae_chipset, puae_chipset_compatible, puae_agnus_model, puae_agnus_size and
++ * puae_denise_model take the cfgfile.c vocabulary, or "auto" for the preset's own
++ * choice. The chipset and its board bundle are applied like cpu_model, twice: as
++ * config rows after everything a boot appends (adm_machine_overrides_config), and to
++ * changed_prefs on every option update while running (adm_machine_overrides_runtime).
++ * The second is not optional: the "model" option rewrites chipset_mask, cs_compatible
++ * and every cs_* field back to the preset whenever any option changes, which would
++ * quietly put an overridden machine back to stock the first time a volume slider moved.
++ *
++ * The three chip models cannot be config rows at all: built_in_chipset_prefs() resets
++ * them from the bundle, and fixup_prefs() calls it after every config load. They go
++ * in through adm_chipset_prefs_hook instead, which that function calls last. */
++static char opt_adm_chipset[16]            = "auto";
++static char opt_adm_chipset_compatible[16] = "auto";
++static char opt_adm_agnus_model[16]        = "auto";
++static char opt_adm_agnus_size[16]         = "auto";
++static char opt_adm_denise_model[16]       = "auto";
++
++/* The cfgfile.c tables (csmode, cscompa, agnusmodel, agnussize, denisemodel), whose
++ * indices are the prefs values. Casablanca and DraCo are left out: this build has
++ * neither machine. */
++static const char *adm_chipset_names[]      = { "ocs", "ecs_agnus", "ecs_denise", "ecs", "aga", NULL };
++static const char *adm_compatible_names[]   = { "-", "Generic", "CDTV", "CDTV-CR", "CD32", "A500",
++                                                "A500+", "A600", "A1000", "A1200", "A2000", "A3000",
++                                                "A3000T", "A4000", "A4000T", "Velvet", NULL };
++static const char *adm_agnus_model_names[]  = { "default", "velvet", "a1000", "ocs", "ecs", "aga", NULL };
++static const char *adm_agnus_size_names[]   = { "default", "512k", "1m", "2m", NULL };
++static const char *adm_denise_model_names[] = { "default", "velvet", "a1000_noehb", "a1000", "ocs",
++                                                "ecs", "aga", NULL };
++
++/* Index of value in names, or -1 for "auto", for index 0 where it means "none"
++ * (every table but csmode), and for anything the table does not have. */
++static int adm_option_index(const char *value, const char **names, int first)
++{
++   int i;
++   for (i = first; names[i]; i++)
++      if (!strcmp(value, names[i]))
++         return i;
++   return -1;
++}
++
++extern void (*adm_chipset_prefs_hook)(struct uae_prefs *p);
++
++/* Called by built_in_chipset_prefs() after it has reset the chip models. */
++static void adm_chipset_models_hook(struct uae_prefs *p)
++{
++   int agnus  = adm_option_index(opt_adm_agnus_model, adm_agnus_model_names, 1);
++   int size   = adm_option_index(opt_adm_agnus_size, adm_agnus_size_names, 1);
++   int denise = adm_option_index(opt_adm_denise_model, adm_denise_model_names, 1);
++
++   if (agnus > 0)
++      p->cs_agnusmodel = agnus;
++   if (size > 0)
++      p->cs_agnussize = size;
++   if (denise > 0)
++      p->cs_denisemodel = denise;
++}
++
++static void adm_machine_overrides_runtime(void)
++{
++   int compatible = adm_option_index(opt_adm_chipset_compatible, adm_compatible_names, 1);
++   int chipset    = adm_option_index(opt_adm_chipset, adm_chipset_names, 0);
++
++   if (compatible > 0)
++      changed_prefs.cs_compatible = currprefs.cs_compatible = compatible;
++   /* The "model" option has just run this with the preset's bundle; once more with the
++    * override's, which also brings the chip models back through the hook. */
++   built_in_chipset_prefs(&changed_prefs);
++   if (chipset >= 0)
++      changed_prefs.chipset_mask = (chipset == 0 ? 0
++         : chipset == 1 ? CSMASK_ECS_AGNUS
++         : chipset == 2 ? CSMASK_ECS_DENISE
++         : chipset == 3 ? CSMASK_ECS_DENISE | CSMASK_ECS_AGNUS
++         : CSMASK_AGA | CSMASK_ECS_DENISE | CSMASK_ECS_AGNUS);
++}
++
+ static void update_variables(void)
+ {
+    struct retro_variable var = {0};
+@@ -3952,6 +4130,18 @@
+       }
+    }
+ 
++   GET_VAR("chipset")
++      strlcpy(opt_adm_chipset, var.value, sizeof(opt_adm_chipset));
++   GET_VAR("chipset_compatible")
++      strlcpy(opt_adm_chipset_compatible, var.value, sizeof(opt_adm_chipset_compatible));
++   GET_VAR("agnus_model")
++      strlcpy(opt_adm_agnus_model, var.value, sizeof(opt_adm_agnus_model));
++   GET_VAR("agnus_size")
++      strlcpy(opt_adm_agnus_size, var.value, sizeof(opt_adm_agnus_size));
++   GET_VAR("denise_model")
++      strlcpy(opt_adm_denise_model, var.value, sizeof(opt_adm_denise_model));
++   adm_chipset_prefs_hook = adm_chipset_models_hook;
++
+    GET_VAR("cpu_throttle")
+    {
+       strcat(uae_config, "cpu_throttle=");
+@@ -4819,6 +5009,10 @@
+    /* Always update av_info geometry */
+    request_update_av_info = true;
+ 
++   /* PEEKaboo: after the model and CPU options have reset changed_prefs to the preset */
++   if (libretro_runloop_active)
++      adm_machine_overrides_runtime();
++
+    /* Only fix invalid combinations when running */
+    if (libretro_runloop_active)
+       fixup_prefs(&changed_prefs, false);
+@@ -6691,6 +6885,54 @@
+    }
+ }
+ 
++/* PEEKaboo: the chipset and its board bundle as config rows. Appended after the
++ * content's own rows so an override outranks the preset and a .uae alike (the .uae
++ * branch drops its chipset= rows anyway whenever a model is selected). The chip models
++ * are not rows: adm_chipset_models_hook applies them. */
++static void adm_machine_overrides_config(void)
++{
++   int compatible = adm_option_index(opt_adm_chipset_compatible, adm_compatible_names, 1);
++   int chipset    = adm_option_index(opt_adm_chipset, adm_chipset_names, 0);
++
++   if (compatible > 0)
++      retro_config_append("chipset_compatible=%s\n", adm_compatible_names[compatible]);
++   if (chipset >= 0)
++      retro_config_append("chipset=%s\n", adm_chipset_names[chipset]);
++}
++
++/* PEEKaboo: the machine the core is actually running, straight from currprefs, so the
++ * host can show what an override produced rather than what it asked for. Fills up to
++ * `count` ints in this order and returns how many it wrote:
++ *   0 chipset_mask (CSMASK_*)   1 cs_compatible (CP_*)   2 cs_agnusmodel
++ *   3 cs_agnussize               4 cs_denisemodel         5 cpu_model
++ *   6 fpu_model                  7 mmu_model              8 mmu_ec
++ *   9 address_space_24 */
++RETRO_API int adm_get_machine_config(int *out, int count)
++{
++   int values[10];
++   int i;
++
++   if (!out || count <= 0)
++      return 0;
++
++   values[0] = currprefs.chipset_mask;
++   values[1] = currprefs.cs_compatible;
++   values[2] = currprefs.cs_agnusmodel;
++   values[3] = currprefs.cs_agnussize;
++   values[4] = currprefs.cs_denisemodel;
++   values[5] = currprefs.cpu_model;
++   values[6] = currprefs.fpu_model;
++   values[7] = currprefs.mmu_model;
++   values[8] = currprefs.mmu_ec ? 1 : 0;
++   values[9] = currprefs.address_space_24 ? 1 : 0;
++
++   if (count > 10)
++      count = 10;
++   for (i = 0; i < count; i++)
++      out[i] = values[i];
++   return count;
++}
++
+ static bool retro_create_config(void)
+ {
+    char *tmp_str      = NULL;
+@@ -7442,6 +7684,9 @@
+       retro_config_append(uae_config);
+    }
+ 
++   /* PEEKaboo: chipset overrides, after the preset and the content's rows */
++   adm_machine_overrides_config();
++
+    /* Iterate global config file and append all rows to the temporary config */
+    char configfile_path[RETRO_PATH_MAX];
+    path_join(configfile_path, retro_save_directory, LIBRETRO_PUAE_PREFIX "_global.uae");
+--- a/sources/src/cfgfile.c
++++ b/sources/src/cfgfile.c
+@@ -9710,10 +9710,19 @@
+ 	return false;
+ }
+ 
++/* PEEKaboo: set by the libretro front end to put individual chip models (Agnus,
++ * Denise, Agnus size) back after the chipset_compatible bundle below has reset them.
++ * fixup_prefs() ends here too, so without it an agnusmodel= row could never outlive
++ * the config that set it. */
++void (*adm_chipset_prefs_hook)(struct uae_prefs *p) = NULL;
++
+ int built_in_chipset_prefs (struct uae_prefs *p)
+ {
+-	if (!p->cs_compatible)
++	if (!p->cs_compatible) {
++		if (adm_chipset_prefs_hook)
++			adm_chipset_prefs_hook(p);
+ 		return 1;
++	}
+ 
+ 	p->cs_a1000ram = 0;
+ 	p->cs_cd32c2p = p->cs_cd32cd = p->cs_cd32nvram = 0;
+@@ -9908,6 +9917,8 @@
+ 	}
+ 	if (p->cpu_model >= 68040)
+ 		p->cs_bytecustomwritebug = true;
++	if (adm_chipset_prefs_hook)
++		adm_chipset_prefs_hook(p);
+ 	return 1;
+ }
+ 

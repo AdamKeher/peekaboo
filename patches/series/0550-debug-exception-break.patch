@@ -1,0 +1,34 @@
+debug.c: break-on-exception hook
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/debug.c b/sources/src/debug.c
+index ac2baec..9f19fe1 100644
+--- a/sources/src/debug.c
++++ b/sources/src/debug.c
+@@ -7271,8 +7271,22 @@ static void addhistory(void)
+ 	}
+ }
+ 
++#ifdef __LIBRETRO__
++int adm_exception_hit = 0;
++int adm_exception_hit_nr = 0;
++#endif
+ void debug_exception(int nr)
+ {
++#ifdef __LIBRETRO__
++	if (debug_illegal && nr >= 0 && nr <= 63 && (debug_illegal_mask & ((uae_u64)1 << nr))) {
++		extern int adm_debug_break_pending;
++		extern bool libretro_frame_end;
++		adm_exception_hit = 1;
++		adm_exception_hit_nr = nr;
++		adm_debug_break_pending = 1;
++		libretro_frame_end = true;
++	}
++#endif
+ 	if (debug_illegal) {
+ 		if (nr <= 63 && (debug_illegal_mask & ((uae_u64)1 << nr))) {
+ 			write_log(_T("Exception %d breakpoint\n"), nr);

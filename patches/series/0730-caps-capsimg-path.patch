@@ -1,0 +1,34 @@
+caps.c: honour ADM_CAPSIMG_PATH
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/caps/caps.c b/sources/src/caps/caps.c
+index f337891..a113ba3 100644
+--- a/sources/src/caps/caps.c
++++ b/sources/src/caps/caps.c
+@@ -73,6 +73,14 @@ static int load_capslib (void)
+     /* This could be done more elegantly ;-) */
+ 
+ #ifdef __LIBRETRO__
++    /* ADM: let the host app point us straight at its bundled capsimg */
++    CAPSLIB_PATH[0] = '\0';
++    {
++        const char *adm_caps_env = getenv("ADM_CAPSIMG_PATH");
++        if (adm_caps_env && *adm_caps_env)
++            snprintf(CAPSLIB_PATH, RETRO_PATH_MAX, "%s", adm_caps_env);
++    }
++    if (!path_is_valid(CAPSLIB_PATH)) {
+ #ifdef __ANDROID__
+     snprintf(CAPSLIB_PATH, RETRO_PATH_MAX, "%s%c%s", "/data/user/0/com.retroarch/cores", DIR_SEP_CHR, CAPSLIB_NAME);
+     if (!path_is_valid(CAPSLIB_PATH))
+@@ -82,6 +90,7 @@ static int load_capslib (void)
+ #else
+     snprintf(CAPSLIB_PATH, RETRO_PATH_MAX, "%s%c%s", retro_system_directory, DIR_SEP_CHR, CAPSLIB_NAME);
+ #endif
++    }
+     if (!path_is_valid(CAPSLIB_PATH))
+         snprintf(CAPSLIB_PATH, RETRO_PATH_MAX, "%s", CAPSLIB_NAME);
+     if (!path_is_valid(CAPSLIB_PATH))

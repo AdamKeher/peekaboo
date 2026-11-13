@@ -1,0 +1,57 @@
+libretro-core.c: break-on-bootblock-entry exports
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 2e85ff2..4fa56d5 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9353,4 +9353,44 @@ RETRO_API int adm_get_oneshot_breakpoint_status(uint32_t *stop_pc, uint32_t *exe
+     if (executed) *executed = 0;
+     return 0;
+ #endif
++}
++
++// --- ADM break-on-bootblock-entry (FB) exports ---
++#ifdef __LIBRETRO__
++extern int adm_fb_armed;
++extern uint32_t adm_fb_entry;
++extern int adm_fb_hit;
++extern uint32_t adm_fb_prev_pc;
++#endif
++
++RETRO_API void adm_arm_fb(int on) {
++#ifdef __LIBRETRO__
++    adm_fb_armed = on ? 1 : 0;
++    adm_fb_prev_pc = 0xFFFFFFFF;
++    if (on) adm_fb_hit = 0;
++#endif
++}
++
++RETRO_API int adm_is_fb_armed(void) {
++#ifdef __LIBRETRO__
++    return adm_fb_armed;
++#else
++    return 0;
++#endif
++}
++
++RETRO_API uint32_t adm_get_fb_entry(void) {
++#ifdef __LIBRETRO__
++    return adm_fb_entry;
++#else
++    return 0;
++#endif
++}
++
++RETRO_API int adm_get_fb_hit(void) {
++#ifdef __LIBRETRO__
++    int h = adm_fb_hit; adm_fb_hit = 0; return h;
++#else
++    return 0;
++#endif
+ }
+\ No newline at end of file

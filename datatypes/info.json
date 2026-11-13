@@ -1,0 +1,10 @@
+{
+    "name": "Amiga Icon (INFO)",
+    "group": "Image",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "E310"
+        }
+    ]
+}

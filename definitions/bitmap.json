@@ -1,0 +1,24 @@
+{
+    "name": "BITMAPBLOCK",
+    "fields": [
+        {
+            "name": "chksum",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "Checksum",
+            "checksumType": "standard",
+            "checksumOffset": 0,
+            "color": {
+                "background": "Gray",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "map",
+            "type": "ulong",
+            "size": 127,
+            "format": "hex",
+            "comment": "Bitmap (1 = free, 0 = used)"
+        }
+    ]
+}

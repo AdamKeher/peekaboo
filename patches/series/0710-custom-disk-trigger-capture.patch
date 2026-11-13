@@ -1,0 +1,29 @@
+custom.c: disk trigger PC capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index c150afb..3f9c8b4 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -15499,6 +15499,8 @@ static uae_u32 REGPARAM2 custom_lget (uaecptr addr)
+ 		return dummy_get(addr, 4, false, 0);
+ 	return ((uae_u32)custom_wget(addr) << 16) | custom_wget (addr + 2);
+ }
++/* ADM: latch the DSKLEN writer for the disk DMA log */
++extern void adm_disk_set_trigger(uint32_t pc, uint8_t from_copper);
+ static int REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value, int noget)
+ {
+ 	uaecptr oaddr = addr;
+@@ -15523,7 +15525,7 @@ static int REGPARAM2 custom_wput_1 (int hpos, uaecptr addr, uae_u32 value, int n
+ 
+ 	case 0x020: DSKPTH(value); break;
+ 	case 0x022: DSKPTL(value); break;
+-	case 0x024: DSKLEN(value, hpos); break;
++	case 0x024: adm_disk_set_trigger(copper_access ? (uint32_t)cop_state.ip : (uint32_t)regs.instruction_pc, (uint8_t)copper_access); DSKLEN(value, hpos); break;
+ 	case 0x026: /* DSKDAT(value). Writing to DMA write registers won't do anything */; break;
+ 	case 0x028: REFPTR(hpos, value); break;
+ 	case 0x02A: VPOSW(hpos, value); break;

@@ -1,0 +1,21 @@
+libretro-dc.c: classify .scp as floppy media
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-dc.c b/libretro/libretro-dc.c
+index 373e39a..8f0ae8b 100644
+--- a/libretro/libretro-dc.c
++++ b/libretro/libretro-dc.c
+@@ -842,7 +842,8 @@ enum dc_image_type dc_get_image_type(const char* filename)
+        strendswith(filename, "fdi") ||
+        strendswith(filename, "dms") ||
+        strendswith(filename, "raw") ||
+-       strendswith(filename, "ipf"))
++       strendswith(filename, "ipf") ||
++       strendswith(filename, "scp")) /* ADM: SuperCard Pro flux */
+       return DC_IMAGE_TYPE_FLOPPY;
+ 
+    /* CD image */

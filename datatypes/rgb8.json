@@ -1,0 +1,14 @@
+{
+    "name": "Turbo Silver (RGB8)",
+    "group": "Image",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "52474238"
+        }
+    ]
+}

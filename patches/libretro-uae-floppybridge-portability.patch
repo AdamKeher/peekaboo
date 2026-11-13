@@ -1,0 +1,161 @@
+FloppyBridge driver sources: portability fixes for the GCC/MinGW libretro build.
+
+These are applied to the pristine RobSmithDev/FloppyDriveBridge sources after they
+are copied into sources/src/floppybridge/. Five unrelated problems, all of them
+"upstream only ever built this with MSVC and _UNICODE":
+
+  floppybridge_config.h    Upstream maps each ROMTYPE_ to WinUAE's ROMTYPE_FLOPYBRDGEn
+                           expansion-ROM identifier, which PuAE has no equivalent of.
+                           They are only ever tested with #ifdef, never used as a
+                           value, so they become plain enable switches - which is
+                           exactly what upstream's own windows/FloppyBridge.cpp does.
+
+  ftdi.h                   Upstream includes <Windows.h> from *inside* namespace FTDI.
+                           MSVC survives it only because windows.h is always already
+                           included by the time ftdi.h is reached. Compiling ftdi.cpp
+                           first with GCC drags the whole Win32 SDK - and the libstdc++
+                           headers behind it - into the namespace, and cstdlib then
+                           fails with "'abs' has not been declared in '::'". Pulling
+                           windows.h in at global scope first makes the in-namespace
+                           include a no-op via its own guard.
+
+  ftdi.cpp                 LoadLibrary(L"FTD2XX.DLL") - a wide literal handed to the
+  GreaseWeazleBridge.cpp   TCHAR-mapped macro, which is the -A variant here because
+  ArduinoFloppyBridge.cpp  this build is not _UNICODE. Same for six RegQueryValueEx /
+                           RegSetValueEx calls, which upstream already sits next to its
+                           own RegCreateKeyExA. Switched to the explicit -A variants
+                           with narrow literals; the registry values are unchanged.
+                           The same three RegSetValueEx calls also pass NULL for the
+                           3rd parameter, which is 'DWORD Reserved' and not a pointer -
+                           harmless under MSVC, where NULL is plain 0, but GCC's __null
+                           trips -Wconversion-null. Passed as 0.
+
+  SerialIO.cpp             SetupDiGetDeviceProperty has no TCHAR mapping macro in
+                           MinGW's SetupAPI.h. The buffer is WCHAR[128], so the -W
+                           variant is what MSVC resolved it to anyway.
+
+Do NOT define UNICODE/_UNICODE to fix these instead: floppybridge_lib.h's TCharString
+fields are shared with disk.c, which is compiled without it, so TCHAR must stay char
+across every translation unit.
+
+Pinned to FloppyDriveBridge @ 710fa15 (v1.6.0.5). See docs/floppy.md section 3c.
+
+--- a/sources/src/floppybridge/ArduinoFloppyBridge.cpp
++++ b/sources/src/floppybridge/ArduinoFloppyBridge.cpp
+@@ -140,11 +140,11 @@ bool ArduinoFloppyDiskBridge::openInterface(std::string& errorMessage) {
+ 				
+ 				HKEY key = 0;
+ 				if (SUCCEEDED(RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\RobSmithDev\\ArduinoReaderWriter", 0, NULL, 0, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_CREATE_SUB_KEY, NULL, &key, NULL)))
+-					if (!RegQueryValueEx(key, L"WarningShown", NULL, NULL, (LPBYTE)&hasBeenSeen, &dataSize)) dataSize = 0;
++					if (!RegQueryValueExA(key, "WarningShown", NULL, NULL, (LPBYTE)&hasBeenSeen, &dataSize)) dataSize = 0;
+ 
+ 				if (!hasBeenSeen) {
+ 					hasBeenSeen = 1;
+-					if (key) RegSetValueEx(key, L"WarningShown", NULL, REG_DWORD, (LPBYTE)&hasBeenSeen, sizeof(hasBeenSeen));
++					if (key) RegSetValueExA(key, "WarningShown", 0, REG_DWORD, (LPBYTE)&hasBeenSeen, sizeof(hasBeenSeen));
+ 					errorMessage = "DrawBridge aka Arduino Reader / Writer hasn't had the 'hardware mod' applied for optimal WinUAE Support.\nThis mod is highly recommended for best experience and will reduce disk access.";
+ 				}
+ 				if (key) RegCloseKey(key);
+--- a/sources/src/floppybridge/GreaseWeazleBridge.cpp
++++ b/sources/src/floppybridge/GreaseWeazleBridge.cpp
+@@ -94,21 +94,21 @@ bool GreaseWeazleDiskBridge::openInterface(std::string& errorMessage) {
+ 
+ 			if (m_io.currentBusType() == GreaseWeazle::BusType::Shugart) {
+ 				if (SUCCEEDED(RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\RobSmithDev\\GreaseWeazleSupport", 0, NULL, 0, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_CREATE_SUB_KEY, NULL, &key, NULL)))
+-					if (!RegQueryValueEx(key, L"WarningShownShugart", NULL, NULL, (LPBYTE)&hasBeenSeen, &dataSize)) dataSize = 0;
++					if (!RegQueryValueExA(key, "WarningShownShugart", NULL, NULL, (LPBYTE)&hasBeenSeen, &dataSize)) dataSize = 0;
+ 
+ 				if (!hasBeenSeen) {
+ 					hasBeenSeen = 1;
+-					if (key) RegSetValueEx(key, L"WarningShownShugart", NULL, REG_DWORD, (LPBYTE)&hasBeenSeen, sizeof(hasBeenSeen));
++					if (key) RegSetValueExA(key, "WarningShownShugart", 0, REG_DWORD, (LPBYTE)&hasBeenSeen, sizeof(hasBeenSeen));
+ 					errorMessage = "Greaseweazle boards cannot read the DiskChange pin from this type of drive and so will be simulated.\nThis is not optimal and will result in a higher amount of disk access.\nI highly recommend using an IBM/PC drive instead.";
+ 				}
+ 			}
+ 			else {
+ 				if (SUCCEEDED(RegCreateKeyExA(HKEY_CURRENT_USER, "Software\\RobSmithDev\\GreaseWeazleSupport", 0, NULL, 0, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_CREATE_SUB_KEY, NULL, &key, NULL)))
+-					if (!RegQueryValueEx(key, L"WarningShown", NULL, NULL, (LPBYTE)&hasBeenSeen, &dataSize)) dataSize = 0;
++					if (!RegQueryValueExA(key, "WarningShown", NULL, NULL, (LPBYTE)&hasBeenSeen, &dataSize)) dataSize = 0;
+ 
+ 				if (!hasBeenSeen) {
+ 					hasBeenSeen = 1;
+-					if (key) RegSetValueEx(key, L"WarningShown", NULL, REG_DWORD, (LPBYTE)&hasBeenSeen, sizeof(hasBeenSeen));
++					if (key) RegSetValueExA(key, "WarningShown", 0, REG_DWORD, (LPBYTE)&hasBeenSeen, sizeof(hasBeenSeen));
+ 					errorMessage = "The Greaseweazle board you are using does not support access to the DISK CHANGE pin and so will be simulated.\nThis is not optimal and will result in a higher amount of disk access.\nIf you are sure that it does, please update its firmware.";
+ 				}
+ 			}
+--- a/sources/src/floppybridge/SerialIO.cpp
++++ b/sources/src/floppybridge/SerialIO.cpp
+@@ -318,10 +318,10 @@ void SerialIO::enumSerialPorts(std::vector<SerialPortInformation>& serialPorts)
+ 
+ 						// Description
+ 						DWORD type;
+-						if (SetupDiGetDeviceProperty(hDevInfoSet, &devInfo, &DEVPKEY_Device_BusReportedDeviceDesc2, &type, (PBYTE)name, 128, 0, 0)) port.productName = name;
++						if (SetupDiGetDevicePropertyW(hDevInfoSet, &devInfo, &DEVPKEY_Device_BusReportedDeviceDesc2, &type, (PBYTE)name, 128, 0, 0)) port.productName = name;
+ 
+ 						// Instance
+-						if (SetupDiGetDeviceProperty(hDevInfoSet, &devInfo, &DEVPKEY_Device_InstanceId2, &type, (PBYTE)name, 128, 0, 0)) port.instanceID = name;
++						if (SetupDiGetDevicePropertyW(hDevInfoSet, &devInfo, &DEVPKEY_Device_InstanceId2, &type, (PBYTE)name, 128, 0, 0)) port.instanceID = name;
+ 
+ 						// Don't add any duplicates
+ 						if (std::find_if(serialPorts.begin(), serialPorts.end(), [&port](SerialPortInformation search)->bool {
+--- a/sources/src/floppybridge/floppybridge_config.h
++++ b/sources/src/floppybridge/floppybridge_config.h
+@@ -14,18 +14,23 @@
+ * This is free and unencumbered released into the public domain.
+ * See the file COPYING for more details, or visit <http://unlicense.org>.
+ *
++*
++* ADM: upstream maps each ROMTYPE_ to WinUAE's ROMTYPE_FLOPYBRDGEn expansion-ROM
++* identifier, which PuAE does not have. They are only ever tested with #ifdef and
++* never used as a value, so they are plain enable switches here - exactly what
++* upstream's own windows/FloppyBridge.cpp does for the same reason.
+ */
+ 
+ // DrawBridge aka Arduino floppy reader/writer
+-#define ROMTYPE_ARDUINOREADER_WRITER			ROMTYPE_FLOPYBRDGE0
++#define ROMTYPE_ARDUINOREADER_WRITER			1
+ #include "ArduinoFloppyBridge.h"
+ 
+ // GreaseWeazle floppy reader/writer
+-#define ROMTYPE_GREASEWEAZLEREADER_WRITER		ROMTYPE_FLOPYBRDGE1
++#define ROMTYPE_GREASEWEAZLEREADER_WRITER		1
+ #include "GreaseWeazleBridge.h"
+ 
+ // Supercard Pro floppy reader/writer
+-#define ROMTYPE_SUPERCARDPRO_WRITER				ROMTYPE_FLOPYBRDGE2
++#define ROMTYPE_SUPERCARDPRO_WRITER				1
+ #include "SuperCardProBridge.h"
+ 
+ #endif
+\ No newline at end of file
+--- a/sources/src/floppybridge/ftdi.cpp
++++ b/sources/src/floppybridge/ftdi.cpp
+@@ -138,7 +138,7 @@ void initFTDILibrary() {
+ 	libraryLoadCounter++;
+ 	if (libraryLoadCounter == 1) {
+ #ifdef WIN32
+-		m_dll = LoadLibrary(L"FTD2XX.DLL");
++		m_dll = LoadLibraryA("FTD2XX.DLL");
+ #else
+ 		m_dll = dlopen("libftd2xx.so", RTLD_NOW);
+ #endif
+--- a/sources/src/floppybridge/ftdi.h
++++ b/sources/src/floppybridge/ftdi.h
+@@ -26,6 +26,16 @@
+ 
+ #define FTDI_D2XX_AVAILABLE
+ 
++/* ADM: upstream includes <Windows.h> from *inside* namespace FTDI. MSVC tolerates
++   that only because windows.h is always already included by the time ftdi.h is
++   reached; compiling ftdi.cpp first with GCC puts the whole Win32 SDK - and the
++   libstdc++ headers it drags in - inside the namespace, and cstdlib then fails on
++   "'abs' has not been declared in '::'". Pulling it in here at global scope makes
++   the in-namespace include a no-op via its own include guard. */
++#ifdef _WIN32
++#include <windows.h>
++#endif
++
+ #ifdef FTDI_D2XX_AVAILABLE
+ 
+ namespace FTDI {	

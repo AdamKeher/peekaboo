@@ -1,0 +1,28 @@
+custom.c: SPRxPT write capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index 06b3f9c..c396add 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -10253,6 +10253,8 @@ static void SPRxPOS(int hpos, uae_u16 v, int num)
+ 	event2_newevent_xx_ce(1 * CYCLE_UNIT, vv, SPRxPOS_2);
+ }
+ 
++/* ADM: per-frame sprite pointer events for multiplexing detection */
++extern void adm_record_sprpt(int sprite_idx, uae_u32 ptr, int vpos_line, const uae_u16* colors);
+ static void SPRxPTH(int hpos, uae_u16 v, int num)
+ {
+ 	decide_line(hpos);
+@@ -10280,6 +10282,7 @@ static void SPRxPTL(int hpos, uae_u16 v, int num)
+ 	if (get_sprite_dma_rel(hpos, 1) != num || (!copper_access && !currprefs.cpu_memory_cycle_exact)) {
+ 		spr[num].pt &= ~0xffff;
+ 		spr[num].pt |= v & ~1;
++		adm_record_sprpt(num, (uint32_t)spr[num].pt, vpos, current_colors.color_regs_ecs + 16);
+ #if 0
+ 	} else {
+ 		write_log(_T("SPRxPTL %d\n"), num);

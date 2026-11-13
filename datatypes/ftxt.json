@@ -1,0 +1,14 @@
+{
+    "name": "IFF FTXT Formatted Text",
+    "group": "Text",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "46545854"
+        }
+    ]
+}

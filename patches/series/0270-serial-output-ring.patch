@@ -1,0 +1,48 @@
+libretro-core.c: serial/debug output ring buffer
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 2cf5913..89530f3 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9227,4 +9227,35 @@ RETRO_API int adm_get_audio_filter_state(void) {
+ static const char adm_puae_version_str[] = "1.81.0+2b0ed42";
+ RETRO_API const char* adm_get_version(void) {
+     return adm_puae_version_str;
++}
++
++// --- Emulated serial output capture (ADM) ---
++#define ADM_SERIAL_OUTPUT_CAPACITY 65536u
++static unsigned char adm_serial_output[ADM_SERIAL_OUTPUT_CAPACITY];
++static unsigned int adm_serial_output_read;
++static unsigned int adm_serial_output_write;
++static unsigned int adm_serial_output_count;
++
++void adm_capture_serial_output(int c) {
++    if (adm_serial_output_count == ADM_SERIAL_OUTPUT_CAPACITY) {
++        adm_serial_output_read = (adm_serial_output_read + 1u) % ADM_SERIAL_OUTPUT_CAPACITY;
++        adm_serial_output_count--;
++    }
++    adm_serial_output[adm_serial_output_write] = (unsigned char)c;
++    adm_serial_output_write = (adm_serial_output_write + 1u) % ADM_SERIAL_OUTPUT_CAPACITY;
++    adm_serial_output_count++;
++}
++
++RETRO_API int adm_drain_serial_output(char* out, int max_len) {
++    int count;
++    int i;
++    if (!out || max_len <= 0 || adm_serial_output_count == 0)
++        return 0;
++    count = max_len < (int)adm_serial_output_count ? max_len : (int)adm_serial_output_count;
++    for (i = 0; i < count; ++i) {
++        out[i] = (char)adm_serial_output[adm_serial_output_read];
++        adm_serial_output_read = (adm_serial_output_read + 1u) % ADM_SERIAL_OUTPUT_CAPACITY;
++    }
++    adm_serial_output_count -= (unsigned int)count;
++    return count;
+ }
+\ No newline at end of file

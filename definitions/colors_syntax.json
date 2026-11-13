@@ -1,0 +1,28 @@
+{
+    "colors": {
+        "Asm.Opcode": "#f2d98cff",
+        "Asm.Size": "#909090ff",
+        "Asm.Register": "#8cf2b3ff",
+        "Asm.Immediate": "#ffb060ff",
+        "Asm.Address": "#8cbfffff",
+        "Asm.Number": "#80d0d0ff",
+        "Asm.Punctuation": "#b0b0b0ff",
+        "Asm.Default": "#d0d0d0ff",
+        "Asm.Comment": "#808080ff",
+
+        "Src.Keyword": "#c586c0ff",
+        "Src.Type": "#4ec9b0ff",
+        "Src.Preproc": "#9b9b6aff",
+        "Src.String": "#ce9178ff",
+        "Src.Char": "#d69d85ff",
+        "Src.Number": "#b5cea8ff",
+        "Src.Comment": "#6a9955ff",
+        "Src.Identifier": "#cfd4d8ff",
+        "Src.Function": "#dcdcaaff",
+        "Src.Operator": "#b0b0b0ff",
+        "Src.Punctuation": "#909090ff",
+        "Src.Gutter": "#5a6470ff",
+        "Src.Header": "#7fa7d0ff",
+        "Src.Missing": "#a06060ff"
+    }
+}

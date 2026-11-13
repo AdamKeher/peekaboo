@@ -1,0 +1,56 @@
+libretro-core.c: disk write event exports
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 78f6351..64221b4 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -10059,3 +10059,43 @@ RETRO_API void adm_get_display_geometry(int* full_w, int* full_h,
+     if (vlb)    *vlb    = visible_left_border;
+     if (ya)     *ya     = thisframe_y_adjust;
+ }
++
++
++// --- ADM disk write event ring buffer ---
++// Records (drive, track) pairs when the Amiga writes to an ADF track and
++// write-redirect is disabled. Polled by the host after each retro_run() frame.
++#define ADM_DISK_WRITE_CAPACITY 64
++typedef struct {
++    uint8_t drive;
++    uint8_t pad[3];
++    int32_t track; // cyl*2+side, 0-159
++} adm_disk_write_ev_t;
++
++static adm_disk_write_ev_t adm_disk_write_events[ADM_DISK_WRITE_CAPACITY];
++static uint32_t adm_disk_write_pos = 0;
++
++// Called from disk.c (extern declared there) when a track write completes.
++void adm_record_disk_write(int drive_idx, int track) {
++    adm_disk_write_ev_t *ev =
++        &adm_disk_write_events[adm_disk_write_pos % ADM_DISK_WRITE_CAPACITY];
++    ev->drive    = (uint8_t)drive_idx;
++    ev->pad[0]   = ev->pad[1] = ev->pad[2] = 0;
++    ev->track    = (int32_t)track;
++    adm_disk_write_pos++;
++}
++
++extern int adm_read_disk_track_raw(int drive_idx, int track, uae_u8* buf, int buflen);
++
++RETRO_API int adm_get_disk_write_events(void* buf, int max) {
++    return adm_ring_copy(adm_disk_write_events, ADM_DISK_WRITE_CAPACITY,
++                         adm_disk_write_pos, buf, max,
++                         sizeof(adm_disk_write_ev_t), NULL);
++}
++
++RETRO_API void adm_clear_disk_write_events(void) {
++    adm_disk_write_pos = 0;
++}
++
++RETRO_API int adm_read_disk_track(int drive, int track, uint8_t* buf, int buflen) {
++    return adm_read_disk_track_raw(drive, track, buf, buflen);
++}
+\ No newline at end of file

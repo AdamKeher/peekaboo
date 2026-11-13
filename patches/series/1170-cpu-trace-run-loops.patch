@@ -1,0 +1,43 @@
+newcpu.c: trace the remaining non-JIT run loops
+
+adm_cpu_trace_pre was hooked into m68k_run_1, 1_ce, 2ce, 2p and 2_020 only, so the CPU
+trace came back silently EMPTY - not wrong, empty - in every configuration that selects
+another loop. m68k_run_2_000 is the one that bites: it is what a 68000 with
+cpu_compatible off ("Fastest possible") runs, reachable through a user .uae config.
+m68k_run_3ce and m68k_run_3p cover 68040/68060.
+
+Still untraced, deliberately: m68k_run_jit (a JIT block has no per-instruction dispatch
+to hook) and m68k_run_mmu030/040/060 (MMU faults restart an instruction, so a hook there
+would record it more than once).
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/newcpu.c b/sources/src/newcpu.c
+index e6aff05..3d5ddb4 100644
+--- a/sources/src/newcpu.c
++++ b/sources/src/newcpu.c
+@@ -6209,6 +6209,7 @@ static void m68k_run_3ce (void)
+ 					debug_trainer_match();
+ 				}
+ #endif
++				adm_cpu_trace_pre(r);
+ 				(*cpufunctbl_noret[r->opcode])(r->opcode);
+ 
+ 				if (r->spcflags) {
+@@ -6260,6 +6261,7 @@ static void m68k_run_3p(void)
+ 				}
+ #endif
+ 
++				adm_cpu_trace_pre(r);
+ 				(*cpufunctbl_noret[r->opcode])(r->opcode);
+ 
+ 				cpu_cycles = 2 * CYCLE_UNIT;
+@@ -6680,6 +6682,7 @@ static void m68k_run_2_000(void)
+ 				}
+ #endif
+ 
++				adm_cpu_trace_pre(r);
+ 				cpu_cycles = (*cpufunctbl[r->opcode])(r->opcode) & 0xffff;
+ 				cpu_cycles = adjust_cycles (cpu_cycles);
+ 				do_cycles(cpu_cycles);

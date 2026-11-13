@@ -1,0 +1,1133 @@
+Host serial and parallel ports: TCP, host serial devices, a parallel capture file
+
+retrodep/parser.c is WinUAE's win32 parser.c with every host call under #if 0 (CreateFile,
+GetAddrInfoW, WriteFile, ...) and select/accept/send/recv defined to 0, so no serial port
+could open and nothing reached a printer. The UART emulation itself (serial_host.c) is fine
+and calls openser/writeser/readser/setbaud; only the host end was missing.
+
+- retrodep/adm_hostio.c (new) implements those functions portably: Winsock or BSD sockets,
+  Win32 comm or termios. serial: "TCP://host:port" listens for one client (WinUAE's syntax),
+  "TCP://host:port/connect" connects out and keeps reconnecting, anything else opens a host
+  serial device. parallel: every byte strobed out is appended to a file. It includes no UAE
+  header, because parser.h typedefs SOCKET and the Win32 comm structures for other platforms.
+- parser.c: the stubbed printer and serial functions go under #if 0; two accessors give
+  adm_hostio.c the CTS/RTS and stop-bit prefs.
+- libretro-glue.c: serial_port= and parallel_port= in a .uae.
+- libretro-core.c: adm_serial_service() applies the host's port request on the emulation
+  thread at the top of retro_run, and re-opens it after a reload rebuilt prefs without it.
+- Exports adm_serial_set_port, adm_parallel_set_output and adm_hostio_get_status.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/Makefile.common
++++ b/Makefile.common
+@@ -163,6 +163,7 @@
+ 	$(RETRODEP)/main.c \
+ 	$(RETRODEP)/mman.c \
+ 	$(RETRODEP)/parser.c \
++	$(RETRODEP)/adm_hostio.c \
+ 	$(RETRODEP)/serial_host.c \
+ 	$(RETRODEP)/machdep/support.c \
+ 	$(RETRODEP)/sounddep/sound.c \
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -8984,10 +8984,44 @@
+    return true;
+ }
+ 
++/* PEEKaboo: the host's serial port request, applied here on the emulation thread.
++ * serial_close() also clears the UART's loopback/empty-port state, and serial_open()
++ * picks it again from sername. A reload rebuilds prefs from the config, which has no
++ * port; the port the host asked for goes back in when that happens. */
++extern int adm_hostio_take_serial_request(char *out, int len);
++extern const char *adm_hostio_wanted_serial_port(void);
++extern void adm_hostio_poll(void);
++extern void serial_open(void);
++extern void serial_close(void);
++
++static void adm_serial_service(void)
++{
++   char wanted[256];
++   const char *keep = adm_hostio_wanted_serial_port();
++   bool apply = adm_hostio_take_serial_request(wanted, sizeof(wanted)) != 0;
++
++   if (!apply && keep && strcmp(currprefs.sername, keep))
++   {
++      strlcpy(wanted, keep, sizeof(wanted));
++      apply = true;
++   }
++   if (apply)
++   {
++      serial_close();
++      strlcpy(currprefs.sername, wanted, sizeof(currprefs.sername));
++      strlcpy(changed_prefs.sername, wanted, sizeof(changed_prefs.sername));
++      currprefs.use_serial = changed_prefs.use_serial = true;
++      serial_open();
++   }
++   adm_hostio_poll();
++}
++
+ void retro_run(void)
+ {
+    static uint8_t old_frame = 0;
+ 
++   adm_serial_service();
++
+    /* Core options */
+    bool updated = false;
+    if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+--- a/libretro/libretro-glue.c
++++ b/libretro/libretro-glue.c
+@@ -616,6 +616,22 @@
+ 
+ int target_parse_option (struct uae_prefs *p, const char *option, const char *value, int type)
+ {
++   /* PEEKaboo: WinUAE's host port keys. "none" and an empty value both mean no port. */
++   if (!strcmp(option, "serial_port"))
++   {
++      if (!value || !value[0] || !strcmp(value, "none"))
++         p->sername[0] = 0;
++      else
++         strlcpy(p->sername, value, sizeof(p->sername));
++      p->use_serial = true;
++      return 1;
++   }
++   if (!strcmp(option, "parallel_port"))
++   {
++      extern int adm_parallel_set_output(const char *path);
++      adm_parallel_set_output((!value || !strcmp(value, "none")) ? "" : value);
++      return 1;
++   }
+    return 0;
+ }
+ 
+--- /dev/null
++++ b/retrodep/adm_hostio.c
+@@ -0,0 +1,981 @@
++/*
++ * PEEKaboo: host backends for the Amiga serial and parallel ports.
++ *
++ * retrodep/parser.c is WinUAE's win32 parser.c with every host call under #if 0, so no
++ * serial port could open and nothing reached a printer. This file replaces those
++ * functions with working ones:
++ *
++ *   serial   TCP://host:port          listen for one client (WinUAE's syntax)
++ *            TCP://host:port/connect  connect out, and keep reconnecting
++ *            COM3, \\.\COM10, /dev/ttyUSB0 ...  a host serial device
++ *   parallel a file every byte the Amiga strobes out is appended to
++ *
++ * It deliberately includes no UAE header: parser.h typedefs SOCKET and the Win32 comm
++ * structures for non-Windows builds, which collide with the real ones. The few prefs it
++ * needs come through adm_hostio_prefs_*(), defined in parser.c.
++ *
++ * Threads: everything here runs on the emulation thread, except adm_serial_set_port,
++ * adm_parallel_set_output and the status getters, which the host calls from its own.
++ * The setters only leave a request that adm_serial_service() (libretro-core.c, once per
++ * retro_run) applies, so a socket is never closed under the UART.
++ */
++
++#include <stdbool.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#ifdef _WIN32
++#include <winsock2.h>
++#include <ws2tcpip.h>
++#include <windows.h>
++typedef SOCKET adm_sock_t;
++#define ADM_BAD_SOCKET INVALID_SOCKET
++#define adm_closesocket closesocket
++#else
++#include <errno.h>
++#include <fcntl.h>
++#include <netdb.h>
++#include <netinet/in.h>
++#include <netinet/tcp.h>
++#include <sys/ioctl.h>
++#include <sys/socket.h>
++#include <sys/time.h>
++#include <sys/types.h>
++#include <termios.h>
++#include <unistd.h>
++typedef int adm_sock_t;
++#define ADM_BAD_SOCKET (-1)
++#define adm_closesocket close
++#endif
++
++/* parser.h's modem-status bits, which serial_host.c tests. Not the system's TIOCM_*. */
++#define ADM_TIOCM_CAR 1
++#define ADM_TIOCM_DSR 2
++#define ADM_TIOCM_RI 4
++#define ADM_TIOCM_DTR 8
++#define ADM_TIOCM_RTS 16
++#define ADM_TIOCM_CTS 32
++
++extern void write_log(const char *format, ...);
++extern int adm_hostio_prefs_hwctsrts(void);
++extern int adm_hostio_prefs_stopbits(void);
++
++/* ------------------------------------------------------------------------------------- */
++/* Status shared with the host                                                            */
++/* ------------------------------------------------------------------------------------- */
++
++enum
++{
++   ADM_SER_NONE = 0,
++   ADM_SER_TCP_LISTEN = 1,
++   ADM_SER_TCP_CONNECT = 2,
++   ADM_SER_DEVICE = 3
++};
++
++/* The layout adm_serial_get_status() copies out. Append only. */
++struct adm_hostio_status
++{
++   int32_t serial_mode;    /* ADM_SER_* */
++   int32_t serial_open;    /* listening, connecting or the device is open */
++   int32_t serial_connected;
++   uint32_t serial_tx;
++   uint32_t serial_rx;
++   uint32_t serial_dropped; /* bytes sent with nobody to receive them */
++   int32_t serial_baud;
++   char serial_name[256];
++   char serial_peer[64];
++   char serial_error[160];
++   int32_t parallel_open;
++   uint32_t parallel_bytes;
++   char parallel_path[512];
++   char parallel_error[160];
++};
++
++static struct adm_hostio_status st;
++
++static void set_serial_error(const char *text)
++{
++   snprintf(st.serial_error, sizeof(st.serial_error), "%s", text ? text : "");
++   if (text && text[0])
++      write_log("SERIAL: %s\n", text);
++}
++
++static int sock_error(void)
++{
++#ifdef _WIN32
++   return WSAGetLastError();
++#else
++   return errno;
++#endif
++}
++
++static bool sock_would_block(void)
++{
++#ifdef _WIN32
++   int e = WSAGetLastError();
++   return e == WSAEWOULDBLOCK || e == WSAEINPROGRESS || e == WSAEALREADY;
++#else
++   return errno == EWOULDBLOCK || errno == EAGAIN || errno == EINPROGRESS;
++#endif
++}
++
++static uint64_t now_ms(void)
++{
++#ifdef _WIN32
++   return GetTickCount64();
++#else
++   struct timeval tv;
++   gettimeofday(&tv, NULL);
++   return (uint64_t)tv.tv_sec * 1000u + (uint64_t)(tv.tv_usec / 1000);
++#endif
++}
++
++/* ------------------------------------------------------------------------------------- */
++/* Serial state                                                                           */
++/* ------------------------------------------------------------------------------------- */
++
++static bool wsa_started;
++static adm_sock_t listen_sock = ADM_BAD_SOCKET;
++static adm_sock_t conn_sock = ADM_BAD_SOCKET;
++static bool connect_pending;
++static struct sockaddr_storage tcp_addr;
++static int tcp_addrlen;
++static uint64_t next_connect_ms;
++
++#ifdef _WIN32
++static HANDLE com_handle = INVALID_HANDLE_VALUE;
++#else
++static int com_fd = -1;
++#endif
++static bool com_break_seen;
++
++static unsigned char rx_buf[4096];
++static int rx_len, rx_pos;
++static unsigned char tx_buf[16384];
++static int tx_len;
++
++static void set_nonblocking(adm_sock_t s)
++{
++#ifdef _WIN32
++   u_long one = 1;
++   ioctlsocket(s, FIONBIO, &one);
++#else
++   int flags = fcntl(s, F_GETFL, 0);
++   fcntl(s, F_SETFL, flags | O_NONBLOCK);
++#endif
++}
++
++static void tcp_drop_client(const char *why)
++{
++   if (conn_sock == ADM_BAD_SOCKET)
++      return;
++   adm_closesocket(conn_sock);
++   conn_sock = ADM_BAD_SOCKET;
++   connect_pending = false;
++   st.serial_connected = 0;
++   st.serial_peer[0] = 0;
++   rx_len = rx_pos = 0;
++   tx_len = 0;
++   write_log("SERIAL: %s disconnected (%s)\n",
++             st.serial_mode == ADM_SER_TCP_LISTEN ? "client" : "server", why);
++   if (st.serial_mode == ADM_SER_TCP_CONNECT)
++      next_connect_ms = now_ms() + 1000;
++}
++
++static void describe_peer(const struct sockaddr *sa)
++{
++   char host[48] = "?";
++   int port = 0;
++   if (sa->sa_family == AF_INET)
++   {
++      const struct sockaddr_in *in = (const struct sockaddr_in *)sa;
++      inet_ntop(AF_INET, (void *)&in->sin_addr, host, sizeof(host));
++      port = ntohs(in->sin_port);
++   }
++   else if (sa->sa_family == AF_INET6)
++   {
++      const struct sockaddr_in6 *in6 = (const struct sockaddr_in6 *)sa;
++      inet_ntop(AF_INET6, (void *)&in6->sin6_addr, host, sizeof(host));
++      port = ntohs(in6->sin6_port);
++   }
++   snprintf(st.serial_peer, sizeof(st.serial_peer), "%s:%d", host, port);
++}
++
++static void tcp_accept_or_connect(void)
++{
++   if (st.serial_mode == ADM_SER_TCP_LISTEN)
++   {
++      if (conn_sock != ADM_BAD_SOCKET || listen_sock == ADM_BAD_SOCKET)
++         return;
++      struct sockaddr_storage peer;
++#ifdef _WIN32
++      int len = sizeof(peer);
++#else
++      socklen_t len = sizeof(peer);
++#endif
++      adm_sock_t s = accept(listen_sock, (struct sockaddr *)&peer, &len);
++      if (s == ADM_BAD_SOCKET)
++         return;
++      set_nonblocking(s);
++      conn_sock = s;
++      st.serial_connected = 1;
++      describe_peer((struct sockaddr *)&peer);
++      write_log("SERIAL: client %s connected\n", st.serial_peer);
++      return;
++   }
++
++   if (st.serial_mode != ADM_SER_TCP_CONNECT)
++      return;
++
++   if (conn_sock != ADM_BAD_SOCKET && connect_pending)
++   {
++      /* A non-blocking connect is done when the socket turns writable. */
++      fd_set wfds, efds;
++      struct timeval tv = {0, 0};
++      FD_ZERO(&wfds);
++      FD_ZERO(&efds);
++      FD_SET(conn_sock, &wfds);
++      FD_SET(conn_sock, &efds);
++      int n = select((int)conn_sock + 1, NULL, &wfds, &efds, &tv);
++      if (n <= 0)
++         return;
++      int err = 0;
++#ifdef _WIN32
++      int errlen = sizeof(err);
++#else
++      socklen_t errlen = sizeof(err);
++#endif
++      getsockopt(conn_sock, SOL_SOCKET, SO_ERROR, (char *)&err, &errlen);
++      if (err != 0 || FD_ISSET(conn_sock, &efds))
++      {
++         adm_closesocket(conn_sock);
++         conn_sock = ADM_BAD_SOCKET;
++         connect_pending = false;
++         next_connect_ms = now_ms() + 1000;
++         char text[96];
++         snprintf(text, sizeof(text), "connect to %s failed (%d), retrying", st.serial_name, err);
++         snprintf(st.serial_error, sizeof(st.serial_error), "%s", text);
++         return;
++      }
++      connect_pending = false;
++      st.serial_connected = 1;
++      st.serial_error[0] = 0;
++      describe_peer((struct sockaddr *)&tcp_addr);
++      write_log("SERIAL: connected to %s\n", st.serial_peer);
++      return;
++   }
++
++   if (conn_sock != ADM_BAD_SOCKET || now_ms() < next_connect_ms)
++      return;
++
++   adm_sock_t s = socket(tcp_addr.ss_family, SOCK_STREAM, IPPROTO_TCP);
++   if (s == ADM_BAD_SOCKET)
++   {
++      next_connect_ms = now_ms() + 1000;
++      return;
++   }
++   set_nonblocking(s);
++   int one = 1;
++   setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (char *)&one, sizeof(one));
++   if (connect(s, (struct sockaddr *)&tcp_addr, tcp_addrlen) == 0)
++   {
++      conn_sock = s;
++      st.serial_connected = 1;
++      describe_peer((struct sockaddr *)&tcp_addr);
++      return;
++   }
++   if (!sock_would_block())
++   {
++      adm_closesocket(s);
++      next_connect_ms = now_ms() + 1000;
++      return;
++   }
++   conn_sock = s;
++   connect_pending = true;
++}
++
++static bool tcp_connected(void)
++{
++   tcp_accept_or_connect();
++   return conn_sock != ADM_BAD_SOCKET && !connect_pending;
++}
++
++static int tcp_open(const char *spec)
++{
++   char host[256];
++   char port[16] = "1234";
++   bool connect_mode = false;
++
++#ifdef _WIN32
++   if (!wsa_started)
++   {
++      WSADATA wsa;
++      if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0)
++      {
++         set_serial_error("WSAStartup failed");
++         return 0;
++      }
++      wsa_started = true;
++   }
++#endif
++
++   snprintf(host, sizeof(host), "%s", spec);
++   char *slash = strchr(host, '/');
++   if (slash)
++   {
++      *slash = 0;
++      if (!strcmp(slash + 1, "connect"))
++         connect_mode = true;
++      else if (!strcmp(slash + 1, "wait"))
++         write_log("SERIAL: '/wait' would stop the emulation until a client connects; listening "
++                   "without it\n");
++   }
++   /* The last colon splits host from port, so [::1]:1234 and ::1:1234 both work. */
++   char *colon = strrchr(host, ':');
++   if (colon)
++   {
++      *colon = 0;
++      if (colon[1])
++         snprintf(port, sizeof(port), "%s", colon + 1);
++   }
++   char *name = host;
++   size_t name_len = strlen(name);
++   if (name_len >= 2 && name[0] == '[' && name[name_len - 1] == ']')
++   {
++      name[name_len - 1] = 0;
++      name++;
++   }
++   if (!name[0])
++      name = connect_mode ? "127.0.0.1" : "0.0.0.0";
++
++   struct addrinfo hints, *res = NULL;
++   memset(&hints, 0, sizeof(hints));
++   hints.ai_family = AF_UNSPEC;
++   hints.ai_socktype = SOCK_STREAM;
++   hints.ai_flags = connect_mode ? 0 : AI_PASSIVE;
++   int err = getaddrinfo(name, port, &hints, &res);
++   if (err != 0 || !res)
++   {
++      char text[160];
++      snprintf(text, sizeof(text), "cannot resolve %s:%s (%d)", name, port, err);
++      set_serial_error(text);
++      return 0;
++   }
++   memcpy(&tcp_addr, res->ai_addr, res->ai_addrlen);
++   tcp_addrlen = (int)res->ai_addrlen;
++   freeaddrinfo(res);
++
++   if (connect_mode)
++   {
++      st.serial_mode = ADM_SER_TCP_CONNECT;
++      next_connect_ms = 0;
++      st.serial_open = 1;
++      tcp_accept_or_connect();
++      write_log("SERIAL: connecting to %s:%s\n", name, port);
++      return 1;
++   }
++
++   adm_sock_t s = socket(tcp_addr.ss_family, SOCK_STREAM, IPPROTO_TCP);
++   if (s == ADM_BAD_SOCKET)
++   {
++      set_serial_error("socket() failed");
++      return 0;
++   }
++   int one = 1;
++#ifdef _WIN32
++   /* SO_REUSEADDR on Windows lets a second listener steal the port; exclusive is the safe
++    * equivalent of the POSIX behaviour. */
++   setsockopt(s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char *)&one, sizeof(one));
++#else
++   setsockopt(s, SOL_SOCKET, SO_REUSEADDR, (char *)&one, sizeof(one));
++#endif
++   if (bind(s, (struct sockaddr *)&tcp_addr, tcp_addrlen) != 0 || listen(s, 1) != 0)
++   {
++      char text[160];
++      snprintf(text, sizeof(text), "cannot listen on %s:%s (%d)", name, port, sock_error());
++      set_serial_error(text);
++      adm_closesocket(s);
++      return 0;
++   }
++   set_nonblocking(s);
++   listen_sock = s;
++   st.serial_mode = ADM_SER_TCP_LISTEN;
++   st.serial_open = 1;
++   write_log("SERIAL: listening on %s:%s\n", name, port);
++   return 1;
++}
++
++static bool device_is_open(void)
++{
++#ifdef _WIN32
++   return com_handle != INVALID_HANDLE_VALUE;
++#else
++   return com_fd >= 0;
++#endif
++}
++
++#ifndef _WIN32
++static speed_t posix_speed(long baud)
++{
++   static const struct
++   {
++      long baud;
++      speed_t speed;
++   } table[] = {{300, B300},       {600, B600},     {1200, B1200},   {2400, B2400},
++                {4800, B4800},     {9600, B9600},   {19200, B19200}, {38400, B38400},
++                {57600, B57600},   {115200, B115200}};
++   speed_t best = B9600;
++   for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
++      if (table[i].baud <= baud)
++         best = table[i].speed;
++   return best;
++}
++#endif
++
++static int device_open(const char *name)
++{
++#ifdef _WIN32
++   char path[300];
++   /* COM10 and up only open through the device namespace; it works for COM1-9 too. */
++   if (!strncmp(name, "\\\\.\\", 4))
++      snprintf(path, sizeof(path), "%s", name);
++   else
++      snprintf(path, sizeof(path), "\\\\.\\%s", name);
++   HANDLE h = CreateFileA(path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
++   if (h == INVALID_HANDLE_VALUE)
++   {
++      char text[160];
++      snprintf(text, sizeof(text), "cannot open %s (error %lu)", name, (unsigned long)GetLastError());
++      set_serial_error(text);
++      return 0;
++   }
++   SetupComm(h, 65536, 65536);
++   PurgeComm(h, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
++   COMMTIMEOUTS timeouts;
++   memset(&timeouts, 0, sizeof(timeouts));
++   /* MAXDWORD with zero totals: ReadFile returns at once with whatever has arrived. */
++   timeouts.ReadIntervalTimeout = MAXDWORD;
++   timeouts.WriteTotalTimeoutConstant = 50;
++   SetCommTimeouts(h, &timeouts);
++   DCB dcb;
++   memset(&dcb, 0, sizeof(dcb));
++   dcb.DCBlength = sizeof(dcb);
++   GetCommState(h, &dcb);
++   dcb.fBinary = TRUE;
++   dcb.BaudRate = st.serial_baud > 0 ? (DWORD)st.serial_baud : 9600;
++   dcb.ByteSize = 8;
++   dcb.Parity = NOPARITY;
++   dcb.fParity = FALSE;
++   dcb.StopBits = adm_hostio_prefs_stopbits() ? TWOSTOPBITS : ONESTOPBIT;
++   dcb.fOutX = dcb.fInX = FALSE;
++   dcb.fDsrSensitivity = FALSE;
++   dcb.fOutxDsrFlow = FALSE;
++   dcb.fDtrControl = DTR_CONTROL_ENABLE;
++   if (adm_hostio_prefs_hwctsrts())
++   {
++      dcb.fOutxCtsFlow = TRUE;
++      dcb.fRtsControl = RTS_CONTROL_HANDSHAKE;
++   }
++   else
++   {
++      dcb.fOutxCtsFlow = FALSE;
++      dcb.fRtsControl = RTS_CONTROL_ENABLE;
++   }
++   dcb.fAbortOnError = FALSE;
++   if (!SetCommState(h, &dcb))
++   {
++      char text[160];
++      snprintf(text, sizeof(text), "%s refused the line settings (error %lu)", name,
++               (unsigned long)GetLastError());
++      set_serial_error(text);
++      CloseHandle(h);
++      return 0;
++   }
++   com_handle = h;
++#else
++   int fd = open(name, O_RDWR | O_NOCTTY | O_NONBLOCK);
++   if (fd < 0)
++   {
++      char text[160];
++      snprintf(text, sizeof(text), "cannot open %s (%s)", name, strerror(errno));
++      set_serial_error(text);
++      return 0;
++   }
++   struct termios tio;
++   if (tcgetattr(fd, &tio) == 0)
++   {
++      cfmakeraw(&tio);
++      cfsetispeed(&tio, posix_speed(st.serial_baud > 0 ? st.serial_baud : 9600));
++      cfsetospeed(&tio, posix_speed(st.serial_baud > 0 ? st.serial_baud : 9600));
++      tio.c_cflag |= CLOCAL | CREAD;
++      if (adm_hostio_prefs_stopbits())
++         tio.c_cflag |= CSTOPB;
++      else
++         tio.c_cflag &= ~CSTOPB;
++#ifdef CRTSCTS
++      if (adm_hostio_prefs_hwctsrts())
++         tio.c_cflag |= CRTSCTS;
++      else
++         tio.c_cflag &= ~CRTSCTS;
++#endif
++      tcsetattr(fd, TCSANOW, &tio);
++   }
++   com_fd = fd;
++#endif
++   st.serial_mode = ADM_SER_DEVICE;
++   st.serial_open = 1;
++   st.serial_connected = 1;
++   write_log("SERIAL: opened %s\n", name);
++   return 1;
++}
++
++static void device_close(void)
++{
++#ifdef _WIN32
++   if (com_handle != INVALID_HANDLE_VALUE)
++      CloseHandle(com_handle);
++   com_handle = INVALID_HANDLE_VALUE;
++#else
++   if (com_fd >= 0)
++      close(com_fd);
++   com_fd = -1;
++#endif
++}
++
++/* Move whatever has arrived into rx_buf. */
++static void fill_rx(void)
++{
++   if (rx_pos >= rx_len)
++      rx_pos = rx_len = 0;
++   int space = (int)sizeof(rx_buf) - rx_len;
++   if (space <= 0)
++      return;
++
++   if (st.serial_mode == ADM_SER_DEVICE)
++   {
++#ifdef _WIN32
++      DWORD errors = 0;
++      COMSTAT stat;
++      if (ClearCommError(com_handle, &errors, &stat) && (errors & CE_BREAK))
++         com_break_seen = true;
++      DWORD got = 0;
++      if (ReadFile(com_handle, rx_buf + rx_len, (DWORD)space, &got, NULL) && got > 0)
++      {
++         rx_len += (int)got;
++         st.serial_rx += got;
++      }
++#else
++      ssize_t got = read(com_fd, rx_buf + rx_len, (size_t)space);
++      if (got > 0)
++      {
++         rx_len += (int)got;
++         st.serial_rx += (uint32_t)got;
++      }
++#endif
++      return;
++   }
++
++   if (!tcp_connected())
++      return;
++   int got = recv(conn_sock, (char *)rx_buf + rx_len, space, 0);
++   if (got > 0)
++   {
++      rx_len += got;
++      st.serial_rx += (uint32_t)got;
++   }
++   else if (got == 0)
++      tcp_drop_client("closed by peer");
++   else if (!sock_would_block())
++      tcp_drop_client("receive error");
++}
++
++static void flush_tx(void)
++{
++   if (tx_len <= 0)
++      return;
++   int sent = 0;
++   if (st.serial_mode == ADM_SER_DEVICE)
++   {
++#ifdef _WIN32
++      DWORD wrote = 0;
++      if (WriteFile(com_handle, tx_buf, (DWORD)tx_len, &wrote, NULL))
++         sent = (int)wrote;
++#else
++      ssize_t wrote = write(com_fd, tx_buf, (size_t)tx_len);
++      if (wrote > 0)
++         sent = (int)wrote;
++#endif
++   }
++   else if (tcp_connected())
++   {
++      int n = send(conn_sock, (const char *)tx_buf, tx_len, 0);
++      if (n > 0)
++         sent = n;
++      else if (n < 0 && !sock_would_block())
++      {
++         tcp_drop_client("send error");
++         return;
++      }
++   }
++   else
++   {
++      st.serial_dropped += (uint32_t)tx_len;
++      tx_len = 0;
++      return;
++   }
++   if (sent > 0)
++   {
++      st.serial_tx += (uint32_t)sent;
++      memmove(tx_buf, tx_buf + sent, (size_t)(tx_len - sent));
++      tx_len -= sent;
++   }
++}
++
++/* ------------------------------------------------------------------------------------- */
++/* The functions serial_host.c calls (declared in parser.h)                               */
++/* ------------------------------------------------------------------------------------- */
++
++void closeser(void)
++{
++   if (conn_sock != ADM_BAD_SOCKET)
++      adm_closesocket(conn_sock);
++   conn_sock = ADM_BAD_SOCKET;
++   if (listen_sock != ADM_BAD_SOCKET)
++      adm_closesocket(listen_sock);
++   listen_sock = ADM_BAD_SOCKET;
++   connect_pending = false;
++   device_close();
++   if (st.serial_open)
++      write_log("SERIAL: closed %s\n", st.serial_name);
++   st.serial_mode = ADM_SER_NONE;
++   st.serial_open = 0;
++   st.serial_connected = 0;
++   st.serial_peer[0] = 0;
++   rx_len = rx_pos = 0;
++   tx_len = 0;
++   com_break_seen = false;
++}
++
++int openser(const char *sername)
++{
++   closeser();
++   st.serial_error[0] = 0;
++   st.serial_tx = st.serial_rx = st.serial_dropped = 0;
++   snprintf(st.serial_name, sizeof(st.serial_name), "%s", sername ? sername : "");
++   if (!sername || !sername[0])
++      return 0;
++   if (!strncmp(sername, "TCP://", 6) || !strncmp(sername, "tcp://", 6))
++      return tcp_open(sername + 6);
++   if (!strncmp(sername, "TCP:", 4) || !strncmp(sername, "tcp:", 4))
++      return tcp_open(sername + 4);
++   return device_open(sername);
++}
++
++void writeser_flush(void)
++{
++   flush_tx();
++}
++
++void writeser(int c)
++{
++   if (st.serial_mode == ADM_SER_NONE)
++      return;
++   if (tx_len >= (int)sizeof(tx_buf))
++   {
++      flush_tx();
++      if (tx_len >= (int)sizeof(tx_buf))
++      {
++         st.serial_dropped++;
++         return;
++      }
++   }
++   tx_buf[tx_len++] = (unsigned char)c;
++   flush_tx();
++}
++
++int checkserwrite(int spaceneeded)
++{
++   if (st.serial_mode == ADM_SER_NONE)
++      return 1;
++   flush_tx();
++   return tx_len + spaceneeded <= (int)sizeof(tx_buf);
++}
++
++void flushser(void)
++{
++   fill_rx();
++   rx_len = rx_pos = 0;
++}
++
++int readseravail(bool *breakcond)
++{
++   if (breakcond)
++      *breakcond = false;
++   if (st.serial_mode == ADM_SER_NONE)
++      return 0;
++   if (rx_pos >= rx_len)
++      fill_rx();
++   if (breakcond && com_break_seen)
++   {
++      *breakcond = true;
++      com_break_seen = false;
++   }
++   return rx_len - rx_pos;
++}
++
++int readser(int *buffer)
++{
++   if (st.serial_mode == ADM_SER_NONE)
++      return 0;
++   if (rx_pos >= rx_len)
++      fill_rx();
++   if (rx_pos >= rx_len)
++      return 0;
++   *buffer = rx_buf[rx_pos++];
++   return 1;
++}
++
++void serialuartbreak(int v)
++{
++   if (st.serial_mode != ADM_SER_DEVICE)
++      return;
++#ifdef _WIN32
++   if (v)
++      SetCommBreak(com_handle);
++   else
++      ClearCommBreak(com_handle);
++#else
++   ioctl(com_fd, v ? TIOCSBRK : TIOCCBRK);
++#endif
++}
++
++void getserstat(int *pstatus)
++{
++   int status = 0;
++   if (st.serial_mode == ADM_SER_DEVICE)
++   {
++#ifdef _WIN32
++      DWORD lines = 0;
++      if (GetCommModemStatus(com_handle, &lines))
++      {
++         if (lines & MS_CTS_ON)
++            status |= ADM_TIOCM_CTS;
++         if (lines & MS_DSR_ON)
++            status |= ADM_TIOCM_DSR;
++         if (lines & MS_RING_ON)
++            status |= ADM_TIOCM_RI;
++         if (lines & MS_RLSD_ON)
++            status |= ADM_TIOCM_CAR;
++      }
++#else
++      int lines = 0;
++      if (ioctl(com_fd, TIOCMGET, &lines) == 0)
++      {
++         if (lines & TIOCM_CTS)
++            status |= ADM_TIOCM_CTS;
++         if (lines & TIOCM_DSR)
++            status |= ADM_TIOCM_DSR;
++         if (lines & TIOCM_RI)
++            status |= ADM_TIOCM_RI;
++         if (lines & TIOCM_CAR)
++            status |= ADM_TIOCM_CAR;
++      }
++#endif
++   }
++   else if (st.serial_mode != ADM_SER_NONE)
++   {
++      /* A socket has no modem lines. Clear to send always, carrier while a peer is there:
++       * what a null-modem cable to a live machine looks like. */
++      status = ADM_TIOCM_CTS | ADM_TIOCM_DSR;
++      if (tcp_connected())
++         status |= ADM_TIOCM_CAR;
++   }
++   *pstatus = status;
++}
++
++void setserstat(int mask, int onoff)
++{
++   if (st.serial_mode != ADM_SER_DEVICE)
++      return;
++#ifdef _WIN32
++   if (mask & ADM_TIOCM_DTR)
++      EscapeCommFunction(com_handle, onoff ? SETDTR : CLRDTR);
++   if ((mask & ADM_TIOCM_RTS) && !adm_hostio_prefs_hwctsrts())
++      EscapeCommFunction(com_handle, onoff ? SETRTS : CLRRTS);
++#else
++   int bits = 0;
++   if (mask & ADM_TIOCM_DTR)
++      bits |= TIOCM_DTR;
++   if ((mask & ADM_TIOCM_RTS) && !adm_hostio_prefs_hwctsrts())
++      bits |= TIOCM_RTS;
++   if (bits)
++      ioctl(com_fd, onoff ? TIOCMBIS : TIOCMBIC, &bits);
++#endif
++}
++
++int setbaud(long baud)
++{
++   st.serial_baud = (int32_t)baud;
++   if (st.serial_mode != ADM_SER_DEVICE)
++      return 1;
++#ifdef _WIN32
++   DCB dcb;
++   memset(&dcb, 0, sizeof(dcb));
++   dcb.DCBlength = sizeof(dcb);
++   if (!GetCommState(com_handle, &dcb))
++      return 0;
++   dcb.BaudRate = (DWORD)baud;
++   if (!SetCommState(com_handle, &dcb))
++   {
++      write_log("SERIAL: %s refused %ld baud\n", st.serial_name, baud);
++      return 0;
++   }
++#else
++   struct termios tio;
++   if (tcgetattr(com_fd, &tio) != 0)
++      return 0;
++   cfsetispeed(&tio, posix_speed(baud));
++   cfsetospeed(&tio, posix_speed(baud));
++   tcsetattr(com_fd, TCSANOW, &tio);
++#endif
++   return 1;
++}
++
++/* ------------------------------------------------------------------------------------- */
++/* Parallel port: a capture file                                                          */
++/* ------------------------------------------------------------------------------------- */
++
++static FILE *prt_file;
++static bool prt_dirty;
++
++int isprinter(void)
++{
++   return st.parallel_path[0] ? 1 : 0;
++}
++
++int isprinteropen(void)
++{
++   return prt_file != NULL;
++}
++
++static void printer_close(void)
++{
++   if (prt_file)
++      fclose(prt_file);
++   prt_file = NULL;
++   prt_dirty = false;
++   st.parallel_open = 0;
++}
++
++void doprinter(unsigned char val)
++{
++   if (!st.parallel_path[0])
++      return;
++   if (!prt_file)
++   {
++      prt_file = fopen(st.parallel_path, "ab");
++      if (!prt_file)
++      {
++         snprintf(st.parallel_error, sizeof(st.parallel_error), "cannot open %s for writing",
++                  st.parallel_path);
++         return;
++      }
++      st.parallel_error[0] = 0;
++      st.parallel_open = 1;
++   }
++   fputc(val, prt_file);
++   st.parallel_bytes++;
++   prt_dirty = true;
++}
++
++void flushprinter(void)
++{
++   if (prt_file)
++      fflush(prt_file);
++   prt_dirty = false;
++}
++
++void closeprinter(void)
++{
++   printer_close();
++}
++
++/* ------------------------------------------------------------------------------------- */
++/* Host control                                                                           */
++/* ------------------------------------------------------------------------------------- */
++
++static char serial_request[256];
++static volatile int serial_request_pending;
++static bool serial_request_seen; /* the host has ever set a port */
++static char parallel_request[512];
++static volatile int parallel_request_pending;
++
++/* The serial device for the next retro_run: a name openser() takes, or "" for none. */
++int adm_serial_set_port(const char *name)
++{
++   snprintf(serial_request, sizeof(serial_request), "%s", name ? name : "");
++   serial_request_seen = true;
++   serial_request_pending = 1;
++   return 1;
++}
++
++/* The file the parallel port appends to, or "" to disconnect it. */
++int adm_parallel_set_output(const char *path)
++{
++   snprintf(parallel_request, sizeof(parallel_request), "%s", path ? path : "");
++   parallel_request_pending = 1;
++   return 1;
++}
++
++/* Copies up to `size` bytes of the status struct; returns the struct's full size. */
++int adm_hostio_get_status(void *out, int size)
++{
++   int full = (int)sizeof(st);
++   if (out && size > 0)
++      memcpy(out, &st, (size_t)(size < full ? size : full));
++   return full;
++}
++
++/* For libretro-core.c: whether a port request is waiting (copied to `out`), and the port the
++ * host last asked for, so a machine reload can re-open it. */
++int adm_hostio_take_serial_request(char *out, int len)
++{
++   if (!serial_request_pending)
++      return 0;
++   serial_request_pending = 0;
++   snprintf(out, (size_t)len, "%s", serial_request);
++   return 1;
++}
++
++const char *adm_hostio_wanted_serial_port(void)
++{
++   return serial_request_seen ? serial_request : NULL;
++}
++
++/* Once per retro_run, on the emulation thread. */
++void adm_hostio_poll(void)
++{
++   if (parallel_request_pending)
++   {
++      parallel_request_pending = 0;
++      printer_close();
++      snprintf(st.parallel_path, sizeof(st.parallel_path), "%s", parallel_request);
++      st.parallel_error[0] = 0;
++      if (st.parallel_path[0])
++         write_log("PARALLEL: output to %s\n", st.parallel_path);
++   }
++   if (prt_dirty)
++      flushprinter();
++
++   if (st.serial_mode == ADM_SER_TCP_LISTEN || st.serial_mode == ADM_SER_TCP_CONNECT)
++   {
++      tcp_accept_or_connect();
++      flush_tx();
++      /* The UART only reads while it can take a byte, so a peer that hung up would look
++       * connected until the guest next listened. Reading ahead into rx_buf notices it. */
++      if (conn_sock != ADM_BAD_SOCKET && !connect_pending)
++         fill_rx();
++   }
++}
+--- a/retrodep/parser.c
++++ b/retrodep/parser.c
+@@ -61,12 +61,18 @@
+ #define WSACleanup() 0
+ #define WSAGetLastError() 0
+ 
++/* PEEKaboo: the printer and serial port functions below are all #if 0 inside, and
++ * retrodep/adm_hostio.c implements them for real. */
++int adm_hostio_prefs_hwctsrts(void) { return currprefs.serial_hwctsrts ? 1 : 0; }
++int adm_hostio_prefs_stopbits(void) { return currprefs.serial_stopbits ? 1 : 0; }
++
+ static uae_char prtbuf[PRTBUFSIZE];
+ static int prtbufbytes,wantwrite;
+ static int prtopen;
+ static int uartbreak;
+ static int parflush;
+ 
++#if 0 /* PEEKaboo: printer, see adm_hostio.c */
+ int isprinter (void)
+ {
+ 	if (!currprefs.prtname[0])
+@@ -171,6 +177,7 @@
+ 
+ void closeprinter (void) {};
+ void doprinter (uae_u8 val) {}
++#endif /* PEEKaboo */
+ 
+ struct uaeserialdata
+ {
+@@ -196,6 +203,7 @@
+ int uaeser_open (void *vsd, void *user, int unit) { return 0; }
+ void uaeser_close (void *vsd) {}
+ 
++#if 0 /* PEEKaboo: serial port, see adm_hostio.c */
+ static HANDLE hCom = (HANDLE)INVALID_HANDLE_VALUE;
+ static DCB dcb;
+ static DWORD fDtrControl = DTR_CONTROL_DISABLE, fRtsControl = RTS_CONTROL_DISABLE;
+@@ -773,6 +781,7 @@
+ 	}
+ 	return 1;
+ }
++#endif /* PEEKaboo */
+ 
+ void initparallel (void)
+ {

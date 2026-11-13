@@ -1,0 +1,32 @@
+expansion.c: force the UAE boot ROM on (Bartman gate)
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/expansion.c b/sources/src/expansion.c
+index 3b16c4d..079c03d 100644
+--- a/sources/src/expansion.c
++++ b/sources/src/expansion.c
+@@ -175,6 +175,8 @@ uaecptr ROM_filesys_diagentry;
+ uaecptr ROM_hardfile_resname, ROM_hardfile_resid;
+ uaecptr ROM_hardfile_init;
+ int uae_boot_rom_type;
++/* ADM: when set, force the UAE boot rom on so the Bartman uaelib gate exists. */
++int adm_force_boot_rom = 0;
+ int uae_boot_rom_size; /* size = code size only */
+ static bool chipdone;
+ static int do_mount;
+@@ -2430,6 +2432,11 @@ static uaecptr check_boot_rom (struct uae_prefs *p, int *boot_rom_type)
+ 		*boot_rom_type = -1;
+ 		return b;
+ 	}
++	if (adm_force_boot_rom) {
++		/* ADM: install the boot rom (and thus the uaelib debug gate) unconditionally. */
++		*boot_rom_type = 1;
++		return b;
++	}
+ 	*boot_rom_type = 0;
+ 	return 0;
+ }

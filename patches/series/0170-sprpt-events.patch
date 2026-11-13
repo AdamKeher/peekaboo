@@ -1,0 +1,75 @@
+libretro-core.c: sprite pointer (sprpt) event capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 9ec796d..a1e5ab3 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9080,4 +9080,62 @@ RETRO_API int adm_get_bplpt_events(void *out_events, int max_events) {
+ 
+ RETRO_API void adm_clear_bplpt_events(void) {
+     adm_bplpt_write_pos = 0;
++}
++
++// --- Sprite pointer event capture (ADM) ---
++typedef struct {
++    uint16_t vpos;
++    uint8_t  sprite_idx;
++    uint8_t  pad;
++    uint32_t ptr;
++    uint32_t cycle;
++} adm_sprpt_event_t;
++
++// Parallel color snapshot — COLOR16-31 at the moment each SPRxPTL was written.
++// Stored separately so adm_sprpt_event_t ABI is unchanged.
++typedef struct {
++    uint16_t colors[16]; // COLOR16-COLOR31
++} adm_sprpt_color_snap_t;
++
++#define ADM_MAX_SPRPT_EVENTS 256
++static adm_sprpt_event_t      adm_sprpt_events[ADM_MAX_SPRPT_EVENTS];
++static adm_sprpt_color_snap_t adm_sprpt_color_snaps[ADM_MAX_SPRPT_EVENTS];
++static uint32_t               adm_sprpt_write_pos = 0;
++
++// Called from custom.c SPRxPTL write handler (see custom.c patch).
++// colors points to color_regs_ecs[16] (16 OCS sprite color words, COLOR16-31).
++void adm_record_sprpt(int sprite_idx, uint32_t ptr, int vpos_line, const uint16_t* colors) {
++    uint32_t idx = adm_sprpt_write_pos % ADM_MAX_SPRPT_EVENTS;
++    adm_sprpt_event_t *ev = &adm_sprpt_events[idx];
++    ev->vpos       = (uint16_t)vpos_line;
++    ev->sprite_idx = (uint8_t)sprite_idx;
++    ev->pad        = 0;
++    ev->ptr        = ptr;
++    ev->cycle      = (uint32_t)(get_cycles() / 512);
++    if (colors) {
++        int ci;
++        for (ci = 0; ci < 16; ci++)
++            adm_sprpt_color_snaps[idx].colors[ci] = colors[ci];
++    } else {
++        int ci;
++        for (ci = 0; ci < 16; ci++)
++            adm_sprpt_color_snaps[idx].colors[ci] = 0;
++    }
++    adm_sprpt_write_pos++;
++}
++
++RETRO_API int adm_get_sprpt_events(adm_sprpt_event_t* out, int max) {
++    return adm_ring_copy(adm_sprpt_events, ADM_MAX_SPRPT_EVENTS,
++                         adm_sprpt_write_pos, out, max,
++                         sizeof(adm_sprpt_event_t), NULL);
++}
++
++RETRO_API int adm_get_sprpt_color_snaps(adm_sprpt_color_snap_t* out, int max) {
++    return adm_ring_copy(adm_sprpt_color_snaps, ADM_MAX_SPRPT_EVENTS,
++                         adm_sprpt_write_pos, out, max,
++                         sizeof(adm_sprpt_color_snap_t), NULL);
++}
++
++RETRO_API void adm_clear_sprpt_events(void) {
++    adm_sprpt_write_pos = 0;
+ }
+\ No newline at end of file

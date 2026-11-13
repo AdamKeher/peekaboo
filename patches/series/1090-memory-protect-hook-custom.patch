@@ -1,0 +1,33 @@
+custom.c: memory protection copper hook
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index 190269c..6885d99 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -10800,6 +10800,21 @@ static int custom_wput_copper(int hpos, uaecptr pt, uaecptr addr, uae_u32 value,
+ 	if (adm_is_copper_line_blocked(vpos)) {
+ 		return 0;
+ 	}
++	/* ADM memory protection: the copper reaches the chipset through here, NOT through
++	   memory_put_word, so without this a lock on a $DFFxxx register would only ever
++	   catch CPU writes - useless for the registers a copper list actually drives
++	   (BPLCON1, the colours, the bitplane pointers). Placement follows the same rule as
++	   the copper block above: ahead of debug_putpeekdma_chipset, so a blocked write is
++	   invisible to DMA debug and memory watchpoints too. Timing is untouched - the
++	   copper still runs, its DMA cycles are still consumed and its PC still advances.
++	   Declared extern because adm_protect.inc is included by memory.c, not here. */
++	{
++		extern int adm_protect_count;
++		extern int adm_protect_check(uaecptr addr, int width, uae_u32 *v);
++		if (adm_protect_count && adm_protect_check(0xdff000 + addr, 2, &value)) {
++			return 0;
++		}
++	}
+ 
+ #ifdef DEBUGGER
+ 	value = debug_putpeekdma_chipset(0xdff000 + addr, value, MW_MASK_COPPER, 0x08c);

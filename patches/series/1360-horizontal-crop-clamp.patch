@@ -1,0 +1,38 @@
+Horizontal centring can no longer push the crop window past the end of the row
+
+update_video_center_horizontal() centres the picture on the program's display window by moving
+retrox_crop, the offset into each row that video_cb() starts reading from. It never checked that
+retrox_crop + retrow_crop still fits inside the retrow-wide row. With cropping off, retrow_crop
+equals retrow, so any rightward centring reads past the end of every row into the start of the
+next one.
+
+Seen in Peekaboo on an OCS A500 with a full-screen demo effect: geometry fullW=720 cropX=16. The
+last 16 pixels of each line were the next line's first 16, so a strip of border colour sat right
+of the 2-pixel black band where the hardwired OCS horizontal blank starts (colour clock 234).
+The raster overlay then widened its beam to 239 clocks to fit a picture that seemed to reach
+clock 238.5.
+
+retrox_crop is now clamped to retrow - retrow_crop, which is 0 for an uncropped frame. The
+vertical code already has the matching guard: update_video_center_vertical() does not centre
+at all when retroh_crop == retroh.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -8258,6 +8258,14 @@ static void update_video_center_horizontal(void)
+    visible_left_border_new -= visible_left_border;
+    visible_left_border_new = (visible_left_border_new < 0) ? 0 : visible_left_border_new;
+ 
++   /* ADM: the crop window must stay inside the row. video_cb() is handed retrow_crop pixels
++    * starting retrox_crop into a row that is retrow wide, so anything past retrow - retrow_crop
++    * reads the start of the NEXT row: an uncropped frame (retrow_crop == retrow) centred 16
++    * pixels right showed the next line's first 16 pixels as a strip down the right-hand edge.
++    * update_video_center_vertical() already refuses to centre when retroh_crop == retroh. */
++   if (visible_left_border_new > retrow - retrow_crop)
++      visible_left_border_new = (retrow > retrow_crop) ? (retrow - retrow_crop) : 0;
++
+    /* Change value only if altered */
+    if (retrox_crop != visible_left_border_new)
+       retrox_crop = visible_left_border_new;

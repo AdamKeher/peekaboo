@@ -1,0 +1,66 @@
+libretro-core.c: copper execution event ring
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index a0fa272..da0906b 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9771,4 +9771,53 @@ RETRO_API int adm_get_idle_events(adm_idle_event_t* out, int max) {
+ 
+ RETRO_API void adm_clear_idle_events(void) {
+     adm_idle_write_pos = 0;
++}
++
++// --- Copper execution event capture (ADM) ---
++typedef struct {
++    uint16_t vpos;    /* @ 0  — scanline when instruction executed */
++    uint16_t hpos;    /* @ 2  — horizontal CCK position */
++    uint32_t addr;    /* @ 4  — chip-mem address of instruction word1 */
++    uint16_t word1;   /* @ 8  */
++    uint16_t word2;   /* @ 10 */
++    uint8_t  list;    /* @ 12 — 1=COP1, 2=COP2 */
++    uint8_t  pad[3];  /* @ 13 — explicit padding */
++    uint32_t cycle;   /* @ 16 — absolute CCK at execution (get_cycles()/512) */
++} adm_copper_exec_event_t;  /* 20 bytes */
++
++#define ADM_MAX_COPPER_EVENTS 16384
++static adm_copper_exec_event_t adm_copper_events[ADM_MAX_COPPER_EVENTS];
++static uint32_t adm_copper_write_pos = 0;
++static int adm_active_copper_list = 1;
++
++void adm_record_copper_exec(uint16_t vpos_v, uint16_t hpos_v, uint32_t addr_v,
++                            uint16_t word1_v, uint16_t word2_v) {
++    adm_copper_exec_event_t *ev =
++        &adm_copper_events[adm_copper_write_pos % ADM_MAX_COPPER_EVENTS];
++    ev->vpos   = vpos_v;
++    ev->hpos   = hpos_v;
++    ev->addr   = addr_v;
++    ev->word1  = word1_v;
++    ev->word2  = word2_v;
++    ev->list   = (uint8_t)adm_active_copper_list;
++    ev->pad[0] = ev->pad[1] = ev->pad[2] = 0;
++    ev->cycle  = (uint32_t)(get_cycles() / 512);
++    adm_copper_write_pos++;
++    /* Update active list for next instruction: MOVE to $0088=COPJMP1, $008A=COPJMP2 */
++    if ((word1_v & 1) == 0) {
++        uint16_t reg = word1_v & 0x01FE;
++        if (reg == 0x0088) adm_active_copper_list = 1;
++        else if (reg == 0x008A) adm_active_copper_list = 2;
++    }
++}
++
++RETRO_API int adm_get_copper_events(void* buf, int maxCount, int* overflow) {
++    return adm_ring_copy(adm_copper_events, ADM_MAX_COPPER_EVENTS,
++                         adm_copper_write_pos, buf, maxCount,
++                         sizeof(adm_copper_exec_event_t), overflow);
++}
++
++RETRO_API void adm_clear_copper_events(void) {
++    adm_copper_write_pos = 0;
++    adm_active_copper_list = 1;
+ }
+\ No newline at end of file

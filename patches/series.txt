@@ -1,0 +1,190 @@
+# Ordered list of everything scripts/build_puae.ps1 and scripts/build_puae.sh do to
+# external/libretro-uae between extracting it and running make. Both scripts read this
+# file, so a change here reaches every platform at once.
+#
+# An entry is either:
+#   <path>    a patch file, relative to patches/, applied with `git apply` in this order
+#   @<phase>  a named step implemented in both build scripts (a file copy, an append or
+#             a substitution - things a patch cannot express)
+# Blank lines and lines starting with '#' are ignored.
+#
+# Patches are applied against libretro-uae 2b0ed42 with exact context, so ORDER MATTERS:
+# a patch's context includes every earlier patch's output. Add new work at the end
+# unless it has to interleave. The numeric prefixes leave gaps for that.
+
+# --- upstream fixes and host-integration patches -----------------------------
+libretro-uae-multidrive.patch
+libretro-uae-filesys-comm-pipe.patch
+libretro-uae-vfs-readonly.patch
+libretro-uae-hd-unit-activity.patch
+libretro-uae-active-filesystems.patch
+libretro-uae-kickstart-path.patch
+
+# --- debugger, chipset telemetry and disk instrumentation --------------------
+series/0080-drawing-sprite-mask.patch
+series/0090-cpu-state-export.patch
+series/0100-disasm-export.patch
+series/0110-assembler-export.patch
+series/0120-display-mask-exports.patch
+series/0130-palette-exports.patch
+series/0140-blitter-writes-exports.patch
+series/0150-redraw-frame-export.patch
+series/0160-bplpt-ring-buffer-events.patch
+series/0170-sprpt-events.patch
+series/0180-paula-audio-telemetry.patch
+series/0190-audio-paula-tap.patch
+series/0200-custom-sprpt-capture.patch
+series/0210-custom-bplpt-capture.patch
+series/0220-custom-blit-event-capture.patch
+series/0230-cia-state-export.patch
+series/0240-adm-get-version.patch
+series/0250-serial-host-capture.patch
+series/0260-uaelib-kprintf-capture.patch
+series/0270-serial-output-ring.patch
+series/0280-sysdeps-debug-capture.patch
+series/0290-writelog-debug-capture.patch
+series/0300-adm-debug-command.patch
+series/0310-adm-debug-break-arm.patch
+series/0320-oneshot-checkpoint-exports.patch
+series/0330-bootblock-break-exports.patch
+series/0340-expansion-force-boot-rom.patch
+series/0350-bartman-resource-registry.patch
+series/0360-uaelib-bartman-case88.patch
+series/0370-uaelib-bartman-gate.patch
+series/0380-debug-step-over-nextpc.patch
+series/0390-debug-console-out-format-safety.patch
+series/0400-debug-arm-trace.patch
+series/0410-debug-bpnode-skip.patch
+series/0420-debug-early-return-trace-mode.patch
+series/0430-blit-events.patch
+series/0440-frame-start-cycle-anchor.patch
+series/0450-frame-start-state-capture.patch
+series/0460-newcpu-instruction-boundary-capture.patch
+series/0470-disk-dma-savestate-chunk.patch
+series/0480-idle-events.patch
+series/0490-copper-exec-events.patch
+series/0500-register-write-events.patch
+series/0510-cpu-trace-events.patch
+series/0520-blitter-record-blit-end.patch
+series/0530-custom-frame-start-cycle.patch
+series/0540-custom-beam-break.patch
+series/0550-debug-exception-break.patch
+series/0560-exception-beam-break-exports.patch
+series/0570-newcpu-cpu-trace.patch
+series/0580-newcpu-bootblock-break.patch
+series/0590-newcpu-oneshot-checkpoint.patch
+series/0600-newcpu-skip-bp-check.patch
+series/0610-newcpu-m68k-go-no-preloop-debug.patch
+series/0620-newcpu-exact-restore.patch
+series/0630-core-exact-restore-unserialize.patch
+series/0640-custom-copper-exec-capture.patch
+series/0650-adm-get-display-geometry.patch
+series/0660-debug-dma-exports.patch
+series/0670-disk-write-events.patch
+series/0680-disk-write-event-exports.patch
+series/0690-disk-dma-log-exports.patch
+series/0700-disk-dma-log-hooks.patch
+series/0710-custom-disk-trigger-capture.patch
+series/0720-makefile-caps-ipf.patch
+series/0730-caps-capsimg-path.patch
+
+# --- FloppyBridge: real drivers compiled in ---------------------------------
+@vendor-floppybridge
+libretro-uae-floppybridge-portability.patch
+libretro-uae-floppybridge-latency.patch
+libretro-uae-floppybridge-overlap.patch
+@install-floppybridge-lib
+series/0790-disk-floppybridge-linkage.patch
+series/0800-zfile-drop-z-stream-decl.patch
+series/0810-makefile-floppybridge-sources.patch
+series/0820-makefile-floppybridge-flags.patch
+series/0830-disk-floppybridge-config.patch
+series/0840-core-floppybridge-config-exports.patch
+series/0850-disk-floppybridge-teardown.patch
+series/0860-core-deinit-bridge-teardown.patch
+series/0870-disk-write-protect.patch
+series/0880-core-write-protect-exports.patch
+series/0890-debug-memwatch-capture.patch
+series/0900-debug-memwatch-accessor.patch
+series/0910-debug-memwatch-accessor-ext.patch
+series/0920-thread-sem-init-fd-leak.patch
+series/0930-thread-sem-destroy-zero.patch
+series/0940-commpipe-init-fd-leak.patch
+series/0950-thread-sem-unpost-drain.patch
+
+# --- blitter destination provenance (blitter-vis) ---------------------------
+@append-blitvis
+series/0970-blitvis-hooks-blitter.patch
+series/0980-blitvis-hooks-custom.patch
+series/0990-blitvis-hooks-drawing.patch
+
+# --- chipset debug toggles that #include a shared .inc -----------------------
+@install-adm-includes
+series/1010-palette-vis-hooks-drawing.patch
+series/1020-bplcon1-scroll-hooks-custom.patch
+series/1040-chipset-blocks-hooks-custom.patch
+series/1050-blitter-writes-hook-blitter.patch
+series/1060-register-log-hook-custom.patch
+series/1080-memory-protect-hooks-memory.patch
+series/1090-memory-protect-hook-custom.patch
+
+# --- SuperCard Pro (.scp) flux images ---------------------------------------
+series/1100-disk-crc32-memoise.patch
+series/1110-scp-header.patch
+series/1120-scp-sysconfig.patch
+series/1130-makefile-scp-source.patch
+series/1140-libretro-dc-scp-extension.patch
+series/1150-core-scp-valid-extension.patch
+
+# --- CPU trace fidelity ------------------------------------------------------
+series/1160-cpu-trace-stop-spin.patch
+series/1170-cpu-trace-run-loops.patch
+
+# --- host-generated media boots (WHDLoad, CD) ----------------------------------
+series/1180-peekaboo-media-exports.patch
+
+# --- machine configuration below the model preset ---------------------------
+series/1190-chipset-revision-options.patch
+series/1200-mmu-model-option.patch
+
+# --- host serial and parallel ports -------------------------------------------
+series/1210-serial-parallel-host-backend.patch
+series/1220-midi-host-devices.patch
+
+# --- networking ----------------------------------------------------------------
+series/1230-bsdsocket-library.patch
+series/1240-a2065-uaenet-slirp.patch
+
+# --- sound cards ---------------------------------------------------------------
+series/1250-sound-cards.patch
+
+# --- robustness ------------------------------------------------------------------
+series/1260-kickstart-cpu-mismatch.patch
+series/1270-serial-poll-batching-midi-sysex-pool.patch
+
+# --- ROM identification -----------------------------------------------------------
+series/1280-adm-identify-rom.patch
+series/1290-kickstart-ext-option.patch
+
+# --- RTG / Picasso96 (uaegfx) -------------------------------------------------------
+# 1300 turns PICASSO96 on; @vendor-picasso96 then replaces libretro-uae's stale UAE 0.8.x
+# picasso96.c with WinUAE 5.3.1's, which is what the rest of the tree was written against,
+# and 1310 adapts it. The order matters: 1310's context is the vendored file, not the one
+# libretro-uae ships.
+series/1300-picasso96-enable.patch
+@vendor-picasso96
+series/1310-picasso96-winuae-port.patch
+series/1320-misc-rtg-display-list.patch
+series/1330-gfxboard-uaegfx-only.patch
+series/1340-mman-rtg-write-watch.patch
+@install-picasso-host
+series/1350-libretro-rtg.patch
+
+# --- video geometry --------------------------------------------------------------
+series/1360-horizontal-crop-clamp.patch
+series/1370-dma-record-hdiw-units.patch
+series/1380-cpu-ext-state-export.patch
+
+# --- finishing steps ---------------------------------------------------------
+@install-link-t
+@set-version

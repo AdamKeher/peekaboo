@@ -1,0 +1,189 @@
+savestate.c: disk DMA engine state (ADSK chunk)
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/disk.c b/sources/src/disk.c
+index f987bba..dacb3e3 100644
+--- a/sources/src/disk.c
++++ b/sources/src/disk.c
+@@ -6467,3 +6467,132 @@ void disk_reserved_reset_disk_change(int num)
+ 		drv->dskchange = false;
+ 	}
+ }
++
++#ifdef SAVESTATE
++
++/* --- Disk DMA engine state (ADM) -------------------------------------------------
++   UAE saves the drives (DSKx: rotational position; DSDx: the decoded MFM track) and the
++   registers (CHIP: DSKPT, DSKLEN, DSKSYNC, DSKBYTR), and the pending event_DISK_handler
++   rides along in CHPD. What nothing saves is the disk *controller* pipeline, which lives
++   in file-static variables here: dskdmaen, dsklength, dma_enable, bitoffset, the MFM
++   shift register and the write FIFO.
++
++   That is fatal to a trackloader. A custom loader spends most of its time with a read
++   already armed and waiting for its sync word - dskdmaen == DSKDMA_READ with dma_enable
++   still 0 - and a round trip forgets the whole thing: dskdmaen comes back 0, so the read
++   is never performed, DSKBLK never fires and the loader's buffer is never filled. The
++   program carries on off what is already in RAM and dies later, jumping into the chunk
++   that never arrived. Measured on enchantedglitch-cosmicorbs.adf, which streams a
++   non-standard 13,886-byte track roughly every 17 frames: at the save point, DSKEN was
++   on and DSKBLK enabled but not pending, i.e. exactly that armed-and-waiting state.
++
++   Its own chunk rather than an extension of DSKx/DISK, so a state file written before
++   this existed still restores (the pipeline is simply left reset, as it was), and an
++   emulator built without it skips the chunk with a log line instead of misparsing.
++
++   Orthogonal to FloppyBridge, despite the adjacency: this captures the DMA *controller*
++   pipeline - dskdmaen, bitoffset, the shift register, the write FIFO - not the drive
++   backend, so it needs no change for a live physical drive and does nothing to make one
++   restorable. A save state cannot capture a spinning platter; see docs/floppy.md M5. */
++
++uae_u8 *save_disk_dma(size_t *len, uae_u8 *dstptr)
++{
++	uae_u8 *dstbak, *dst;
++
++	if (dstptr)
++		dstbak = dst = dstptr;
++	else
++		dstbak = dst = xmalloc(uae_u8, 128);
++
++	save_u32(2);					/* chunk version */
++	save_u32((uae_u32)dskdmaen);
++	save_u32((uae_u32)dsklength);
++	save_u32((uae_u32)dsklength2);
++	save_u32((uae_u32)dsklen2);
++	save_u32(dskpt_start);
++	save_u16(dskbytr_val_prev);
++	save_u8(dskbytr_delay ? 1 : 0);
++	save_u8(fifo_filled ? 1 : 0);
++	for (int i = 0; i < 3; i++) {
++		save_u16(fifo[i]);
++		save_u32((uae_u32)fifo_inuse[i]);
++	}
++	save_u32((uae_u32)dma_enable);
++	save_u32((uae_u32)bitoffset);
++	save_u32((uae_u32)syncoffset);
++	save_u16(word);
++	save_u8(dsksync_on ? 1 : 0);
++	save_u32((uae_u32)disk_hpos);
++	save_u32((uae_u32)disk_jitter);
++	save_u32((uae_u32)indexdecay);
++	save_u8(prev_data);
++	save_u32((uae_u32)prev_step);
++	save_u8(disk_strobe ? 1 : 0);
++	/* v2: hpos at the capture instant. The capture is deferred to a CPU instruction
++	   boundary, so it no longer lands exactly on hpos 0, and restore_cycles() ->
++	   clear_events() forces hpos to 0 unless this is put back. */
++	save_u32((uae_u32)current_hpos());
++
++	*len = dst - dstbak;
++	return dstbak;
++}
++
++/* hpos to re-establish once the restore has finished, or -1 for "leave it alone". */
++int adm_restore_hpos = -1;
++
++/* Called at the end of savestate_restore_finish(), AFTER init_hz_normal(), which would
++   otherwise overwrite it. Puts the beam back where the captured CPU state belongs: both the
++   hsync event's base and its deadline move together, so hpos reads correctly and the current
++   scanline still ends on the right cycle. */
++void adm_apply_restore_hpos(void)
++{
++	int hp = adm_restore_hpos;
++	adm_restore_hpos = -1;
++	if (hp <= 0)
++		return;
++	{
++		evt_t bias = (evt_t)hp * CYCLE_UNIT;
++		eventtab[ev_hsync].oldcycles -= bias;
++		eventtab[ev_hsync].evtime -= bias;
++		events_schedule();
++	}
++}
++
++uae_u8 *restore_disk_dma(uae_u8 *src)
++{
++	uae_u32 adsk_version = restore_u32();
++	if (adsk_version != 1 && adsk_version != 2) {
++		/* A version this build does not know. Leaving the pipeline as the rest of the
++		   restore left it is the old behaviour, which is wrong but not worse. */
++		write_log(_T("ADSK chunk version not understood - disk DMA state not restored\n"));
++		return src;
++	}
++	dskdmaen = (int)restore_u32();
++	dsklength = (int)restore_u32();
++	dsklength2 = (int)restore_u32();
++	dsklen2 = (int)restore_u32();
++	dskpt_start = restore_u32();
++	dskbytr_val_prev = restore_u16();
++	dskbytr_delay = restore_u8() != 0;
++	fifo_filled = restore_u8() != 0;
++	for (int i = 0; i < 3; i++) {
++		fifo[i] = restore_u16();
++		fifo_inuse[i] = (int)restore_u32();
++	}
++	dma_enable = (int)restore_u32();
++	bitoffset = (int)restore_u32();
++	syncoffset = (int)restore_u32();
++	word = restore_u16();
++	dsksync_on = restore_u8() != 0;
++	disk_hpos = (int)restore_u32();
++	disk_jitter = (int)restore_u32();
++	indexdecay = (int)restore_u32();
++	prev_data = restore_u8();
++	prev_step = (int)restore_u32();
++	disk_strobe = restore_u8() != 0;
++	if (adsk_version >= 2)
++		adm_restore_hpos = (int)restore_u32();
++	return src;
++}
++
++#endif /* SAVESTATE */
+diff --git a/sources/src/include/savestate.h b/sources/src/include/savestate.h
+index 90b0c13..9e47232 100644
+--- a/sources/src/include/savestate.h
++++ b/sources/src/include/savestate.h
+@@ -94,6 +94,8 @@ extern uae_u8 *save_disk2(int num, size_t *len, uae_u8 *dstptr);
+ extern uae_u8 *restore_disk2(int num, uae_u8 *src);
+ extern void DISK_save_custom (uae_u32 *pdskpt, uae_u16 *pdsklen, uae_u16 *pdsksync, uae_u16 *pdskbytr);
+ extern void DISK_restore_custom (uae_u32 pdskpt, uae_u16 pdsklength, uae_u16 pdskbytr);
++extern uae_u8 *save_disk_dma (size_t *len, uae_u8 *dstptr);
++extern uae_u8 *restore_disk_dma (uae_u8 *src);
+ extern void restore_disk_finish(void);
+ 
+ extern uae_u8 *restore_custom(uae_u8 *);
+diff --git a/sources/src/savestate.c b/sources/src/savestate.c
+index 8dfc916..cc724b8 100644
+--- a/sources/src/savestate.c
++++ b/sources/src/savestate.c
+@@ -761,6 +761,8 @@ void restore_state (const TCHAR *filename)
+ 			end = restore_blitter_new (chunk);
+ 		else if (!_tcscmp (name, _T("DISK")))
+ 			end = restore_floppy (chunk);
++		else if (!_tcscmp (name, _T("ADSK")))
++			end = restore_disk_dma (chunk);
+ 		else if (!_tcscmp (name, _T("DSK0")))
+ 			end = restore_disk (0, chunk);
+ 		else if (!_tcscmp (name, _T("DSK1")))
+@@ -941,6 +943,7 @@ bool savestate_restore_finish(void)
+ 	savestate_state = 0;
+ 	init_hz_normal();
+ 	audio_activate();
++	{ extern void adm_apply_restore_hpos(void); adm_apply_restore_hpos(); }
+ 	return true;
+ }
+ 
+@@ -1073,6 +1076,10 @@ static int save_state_internal (struct zfile *f, const TCHAR *description, int c
+ 	save_chunk (f, dst, len, _T("DISK"), 0);
+ 	xfree (dst);
+ 
++	dst = save_disk_dma (&len, 0);
++	save_chunk (f, dst, len, _T("ADSK"), 0);
++	xfree (dst);
++
+ 	dst = save_custom (&len, 0, 0);
+ 	save_chunk (f, dst, len, _T("CHIP"), 0);
+ 	xfree (dst);

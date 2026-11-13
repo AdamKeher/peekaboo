@@ -1,0 +1,18 @@
+diff --git a/sources/src/filesys.c b/sources/src/filesys.c
+index 1597315..d497ab8 100644
+--- a/sources/src/filesys.c
++++ b/sources/src/filesys.c
+@@ -3306,8 +3306,11 @@ static void filesys_start_thread (UnitInfo *ui, int nr)
+ 	}
+ #ifdef UAE_FILESYS_THREADS
+ 	if (is_virtual (nr)) {
+-		ui->unit_pipe = xmalloc (smp_comm_pipe, 1);
+-		ui->back_pipe = xmalloc (smp_comm_pipe, 1);
++		/* init_comm_pipe() may release resources from an earlier initialization.
++		 * Start dynamically allocated pipes at a known-empty state so that cleanup
++		 * never observes indeterminate handles or data pointers. */
++		ui->unit_pipe = xcalloc (smp_comm_pipe, 1);
++		ui->back_pipe = xcalloc (smp_comm_pipe, 1);
+ 		init_comm_pipe (ui->unit_pipe, 400, 3);
+ 		init_comm_pipe (ui->back_pipe, 100, 1);
+ 		uae_start_thread (_T("filesys"), filesys_thread, (void *)ui, &ui->tid);

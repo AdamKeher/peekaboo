@@ -1,0 +1,38 @@
+Turn Picasso96 (uaegfx) RTG on
+
+PICASSO96 was commented out in retrodep/sysconfig.h, so picasso96.c and gfxboard.c each
+compiled to an empty object and the core had no graphics card of any kind. Turning it on is one
+line; everything else in this part of the series is what has to be true for that line to build
+and work.
+
+UAEGFX_INTERNAL stays off. It makes filesys.c serve libs:picasso96/uaegfx.card out of the
+emulator, which only matters for a guest that has no Picasso96 installed at all - and such a
+guest has no Picasso96 libraries either, so the card alone gets it nowhere.
+
+The new source is retrodep/picasso_host.c: the libretro side of the Picasso96 platform layer,
+installed by the @install-picasso-host phase. See patches/picasso96/picasso_host.c.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/retrodep/sysconfig.h
++++ b/retrodep/sysconfig.h
+@@ -50,7 +50,7 @@
+ #define CPUEMU_40 /* generic 680x0 with JIT direct memory access */
+ #define CPUEMU_50 /* generic 680x0 with indirect memory access */
+ #define ACTION_REPLAY /* Action Replay 1/2/3 support */
+-//#define PICASSO96 /* Picasso96 display card emulation */
++#define PICASSO96 /* Picasso96 display card emulation */ /* PEEKaboo: on, uaegfx RTG */
+ //#define UAEGFX_INTERNAL /* built-in libs:picasso96/uaegfx.card */
+ #define BSDSOCKET /* bsdsocket.library emulation */ /* PEEKaboo: on, POSIX and Winsock */
+ #define CAPS /* CAPS-image support */
+--- a/Makefile.common
++++ b/Makefile.common
+@@ -165,6 +165,7 @@
+ 	$(RETRODEP)/parser.c \
+ 	$(RETRODEP)/adm_hostio.c \
+ 	$(RETRODEP)/serial_host.c \
++	$(RETRODEP)/picasso_host.c \
+ 	$(RETRODEP)/machdep/support.c \
+ 	$(RETRODEP)/sounddep/sound.c \
+ 	$(RETRODEP)/threaddep/thread.c

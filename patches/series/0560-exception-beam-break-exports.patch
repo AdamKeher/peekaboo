@@ -1,0 +1,75 @@
+libretro-core.c: break-on-exception / break-on-beam exports
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 98cd861..2783326 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9983,4 +9983,62 @@ RETRO_API void adm_clear_cpu_trace(void) {
+     adm_cpu_ring_index = 0;
+     adm_cpu_frame_begin_pos = 0;
+     adm_cpu_frame_end_pos = 0;
++}
++
++// --- ADM break-on-CPU-exception (EB) exports ---
++#ifdef DEBUGGER
++extern int adm_exception_hit;
++extern int adm_exception_hit_nr;
++extern int debug_illegal;
++extern uae_u64 debug_illegal_mask;
++#endif
++
++RETRO_API void adm_arm_exception(uint32_t mask_lo, uint32_t mask_hi) {
++#ifdef DEBUGGER
++    debug_illegal_mask = ((uae_u64)mask_hi << 32) | (uae_u64)mask_lo;
++    debug_illegal_mask &= ~((uae_u64)255 << 24);
++    debug_illegal = debug_illegal_mask ? 1 : 0;
++    adm_exception_hit = 0;
++#endif
++}
++
++RETRO_API int adm_get_exception_hit(int* nr) {
++#ifdef DEBUGGER
++    if (!adm_exception_hit) return 0;
++    adm_exception_hit = 0;
++    if (nr) *nr = adm_exception_hit_nr;
++    return 1;
++#else
++    (void)nr;
++    return 0;
++#endif
++}
++
++// --- ADM break-on-beam-position (BL) ---
++static int adm_beam_break_armed = 0;
++static int adm_beam_break_vpos = -1;
++static int adm_beam_break_hpos = -1;
++static int adm_beam_hit = 0;
++
++void adm_check_beam_break(int vp, int hp) {
++    (void)hp;
++    if (!adm_beam_break_armed) return;
++    if (vp != adm_beam_break_vpos) return;
++    adm_beam_break_armed = 0;
++    adm_beam_hit = 1;
++#ifdef DEBUGGER
++    { extern int adm_debug_break_pending; adm_debug_break_pending = 1; }
++#endif
++    { extern bool libretro_frame_end; libretro_frame_end = true; }
++}
++
++RETRO_API void adm_arm_beam_break(int vpos, int hpos) {
++    adm_beam_break_vpos = vpos;
++    adm_beam_break_hpos = hpos;
++    adm_beam_break_armed = (vpos >= 0) ? 1 : 0;
++    adm_beam_hit = 0;
++}
++
++RETRO_API int adm_get_beam_hit(void) {
++    int h = adm_beam_hit; adm_beam_hit = 0; return h;
+ }
+\ No newline at end of file

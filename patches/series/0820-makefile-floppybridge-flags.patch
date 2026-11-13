@@ -1,0 +1,48 @@
+Makefile: enable FLOPPYBRIDGE
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/Makefile b/Makefile
+index 31a3bcb..2fc282c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -476,3 +476,36 @@ gen/compemu.c: sources/gen/gencomp$(EXEEXT)
+ 
+ # ADM: native IPF/CAPS support (runtime dlopen of capsimg)
+ CFLAGS += -DCAPS
++
++# ADM: FloppyBridge - live physical floppy drives (Greaseweazle/DrawBridge/SCP).
++# disk.c holds C++ under #ifdef FLOPPYBRIDGE, so that one object is built with
++# $(CXX). The -include list pre-parses the C++ standard headers sysdeps.h and
++# libretro-core.h pull in, so none of them land inside disk.c's extern "C" block.
++CFLAGS   += -DFLOPPYBRIDGE
++CXXFLAGS += -DFLOPPYBRIDGE -std=gnu++17
++# The .cpp rule uses CXXFLAGS only, which carries no optimisation level at all.
++# That was survivable for a stub, but the bridge drivers run a real-time MFM
++# decoder on a worker thread, so match what the C sources are built with.
++ifeq ($(DEBUG), 1)
++CXXFLAGS += -O0 -g
++else
++CXXFLAGS += -O3
++endif
++ADM_FB_PREINC := cstddef cstdbool cstdio cstdlib cerrno cassert cstdarg climits cmath cwchar string vector functional algorithm limits
++$(OBJDIR)/$(EMU)/disk.o: CC := $(CXX)
++$(OBJDIR)/$(EMU)/disk.o: CFLAGS := $(filter-out -std=gnu99,$(CFLAGS)) -std=gnu++17 $(addprefix -include ,$(ADM_FB_PREINC))
++# The C++ runtime has to be on the link line, and 'override' is required: this
++# script passes LDFLAGS on make's command line, which otherwise wins outright.
++# Windows links it statically so the DLL gains no new C++ import.
++ifneq (,$(findstring osx,$(platform))$(findstring ios,$(platform))$(findstring tvos,$(platform)))
++override LDFLAGS += -lc++
++else ifneq (,$(findstring win,$(platform)))
++# setupapi: SerialIO's COM-port enumeration. ws2_32: SuperCardProInterface's
++# byte-order helpers. uuid: GUID_DEVINTERFACE_COMPORT - SerialIO.cpp's guarded
++# DEFINE_GUID only *declares* it (no INITGUID), so the definition has to be
++# linked in. None of the three is on the base link line, and the MSVC
++# '#pragma comment(lib, ...)' in those sources does nothing under GCC.
++override LDFLAGS += -Wl,-Bstatic -lstdc++ -lwinpthread -Wl,-Bdynamic -lsetupapi -lws2_32 -luuid
++else
++override LDFLAGS += -lstdc++
++endif

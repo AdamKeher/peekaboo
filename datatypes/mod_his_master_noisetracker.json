@@ -1,0 +1,10 @@
+{
+    "name": "His Master's NoiseTracker Module",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "4D264B21"
+        }
+    ]
+}

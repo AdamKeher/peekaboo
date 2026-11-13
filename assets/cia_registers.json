@@ -1,0 +1,273 @@
+{
+    "BFE001": {
+        "name": "pra",
+        "full_name": "CIAA Peripheral Data Register A",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Port A pins: /FIR1, /FIR0, /RDY, /TK0, /WPRO, /CHNG, /LED, OVL",
+        "doc_name": "cia_pra_a",
+        "address": "0xBFE001"
+    },
+    "BFE101": {
+        "name": "prb",
+        "full_name": "CIAA Peripheral Data Register B",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Port B pins: Parallel port data (8 bits)",
+        "doc_name": "cia_prb_a",
+        "address": "0xBFE101"
+    },
+    "BFE201": {
+        "name": "ddra",
+        "full_name": "CIAA Data Direction Register A",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Direction for port A (0xBFE001); 1=output. Typical value: 0x03 (/LED, OVL outputs)",
+        "doc_name": "cia_ddr",
+        "address": "0xBFE201"
+    },
+    "BFE301": {
+        "name": "ddrb",
+        "full_name": "CIAA Data Direction Register B",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Direction for port B (0xBFE101); 1=output. Configures parallel port pin directions",
+        "doc_name": "cia_ddr",
+        "address": "0xBFE301"
+    },
+    "BFE401": {
+        "name": "talo",
+        "full_name": "CIAA Timer A Low Byte",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Timer A low byte counter/latch (0.715909 MHz NTSC; 0.709379 MHz PAL)",
+        "doc_name": "cia_timer",
+        "address": "0xBFE401"
+    },
+    "BFE501": {
+        "name": "tahi",
+        "full_name": "CIAA Timer A High Byte",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Timer A high byte counter/latch",
+        "doc_name": "cia_timer",
+        "address": "0xBFE501"
+    },
+    "BFE601": {
+        "name": "tblo",
+        "full_name": "CIAA Timer B Low Byte",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Timer B low byte counter/latch (0.715909 MHz NTSC; 0.709379 MHz PAL)",
+        "doc_name": "cia_timer",
+        "address": "0xBFE601"
+    },
+    "BFE701": {
+        "name": "tbhi",
+        "full_name": "CIAA Timer B High Byte",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Timer B high byte counter/latch",
+        "doc_name": "cia_timer",
+        "address": "0xBFE701"
+    },
+    "BFE801": {
+        "name": "todlo",
+        "full_name": "CIAA Time of Day Low",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "50/60 Hz VSync event counter bits 7-0",
+        "doc_name": "cia_tod",
+        "address": "0xBFE801"
+    },
+    "BFE901": {
+        "name": "todmid",
+        "full_name": "CIAA Time of Day Mid",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "50/60 Hz VSync event counter bits 15-8",
+        "doc_name": "cia_tod",
+        "address": "0xBFE901"
+    },
+    "BFEA01": {
+        "name": "todhi",
+        "full_name": "CIAA Time of Day High",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "50/60 Hz VSync event counter bits 23-16",
+        "doc_name": "cia_tod",
+        "address": "0xBFEA01"
+    },
+    "BFEC01": {
+        "name": "sdr",
+        "full_name": "CIAA Serial Data Register",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Serial data register (8-bit shift register, connected to keyboard)",
+        "doc_name": "cia_sdr",
+        "address": "0xBFEC01"
+    },
+    "BFED01": {
+        "name": "icr",
+        "full_name": "CIAA Interrupt Control Register",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Read: interrupt flags (IR, FLG, S_P, TOD, B, A). Write: interrupt mask (SET/CLR). CIAA generates INT2",
+        "doc_name": "cia_icr",
+        "address": "0xBFED01"
+    },
+    "BFEE01": {
+        "name": "cra",
+        "full_name": "CIAA Control Register A",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Configures Timer A: START, PBON, OUTMODE, RUNMODE, LOAD, INMODE, SPMODE",
+        "doc_name": "cia_cra",
+        "address": "0xBFEE01"
+    },
+    "BFEF01": {
+        "name": "crb",
+        "full_name": "CIAA Control Register B",
+        "chip": "ciaa",
+        "rw": "RW",
+        "description": "Configures Timer B: START, PBON, OUTMODE, RUNMODE, LOAD, INMODE0/1, ALARM",
+        "doc_name": "cia_crb",
+        "address": "0xBFEF01"
+    },
+
+    "BFD000": {
+        "name": "pra",
+        "full_name": "CIAB Peripheral Data Register A",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Port A pins: /DTR, /RTS, /CD, /CTS, /DSR, SEL, POUT, BUSY (serial/parallel control)",
+        "doc_name": "cia_pra_b",
+        "address": "0xBFD000"
+    },
+    "BFD100": {
+        "name": "prb",
+        "full_name": "CIAB Peripheral Data Register B",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Port B pins: /MTR, /SEL3, /SEL2, /SEL1, /SEL0, /SIDE, DIR, /STEP (floppy drive control)",
+        "doc_name": "cia_prb_b",
+        "address": "0xBFD100"
+    },
+    "BFD200": {
+        "name": "ddra",
+        "full_name": "CIAB Data Direction Register A",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Direction for port A (0xBFD000); 1=output. Typical value: 0xFF (all outputs)",
+        "doc_name": "cia_ddr",
+        "address": "0xBFD200"
+    },
+    "BFD300": {
+        "name": "ddrb",
+        "full_name": "CIAB Data Direction Register B",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Direction for port B (0xBFD100); 1=output. Typical value: 0xFF (all outputs)",
+        "doc_name": "cia_ddr",
+        "address": "0xBFD300"
+    },
+    "BFD400": {
+        "name": "talo",
+        "full_name": "CIAB Timer A Low Byte",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Timer A low byte counter/latch (0.715909 MHz NTSC; 0.709379 MHz PAL)",
+        "doc_name": "cia_timer",
+        "address": "0xBFD400"
+    },
+    "BFD500": {
+        "name": "tahi",
+        "full_name": "CIAB Timer A High Byte",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Timer A high byte counter/latch",
+        "doc_name": "cia_timer",
+        "address": "0xBFD500"
+    },
+    "BFD600": {
+        "name": "tblo",
+        "full_name": "CIAB Timer B Low Byte",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Timer B low byte counter/latch (0.715909 MHz NTSC; 0.709379 MHz PAL)",
+        "doc_name": "cia_timer",
+        "address": "0xBFD600"
+    },
+    "BFD700": {
+        "name": "tbhi",
+        "full_name": "CIAB Timer B High Byte",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Timer B high byte counter/latch",
+        "doc_name": "cia_timer",
+        "address": "0xBFD700"
+    },
+    "BFD800": {
+        "name": "todlo",
+        "full_name": "CIAB Time of Day Low",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Horizontal sync (HSync) event counter bits 7-0",
+        "doc_name": "cia_tod",
+        "address": "0xBFD800"
+    },
+    "BFD900": {
+        "name": "todmid",
+        "full_name": "CIAB Time of Day Mid",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Horizontal sync event counter bits 15-8",
+        "doc_name": "cia_tod",
+        "address": "0xBFD900"
+    },
+    "BFDA00": {
+        "name": "todhi",
+        "full_name": "CIAB Time of Day High",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Horizontal sync event counter bits 23-16",
+        "doc_name": "cia_tod",
+        "address": "0xBFDA00"
+    },
+    "BFDC00": {
+        "name": "sdr",
+        "full_name": "CIAB Serial Data Register",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Serial data register (unused in standard Amiga)",
+        "doc_name": "cia_sdr",
+        "address": "0xBFDC00"
+    },
+    "BFDD00": {
+        "name": "icr",
+        "full_name": "CIAB Interrupt Control Register",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Read: interrupt flags (IR, FLG, S_P, TOD, B, A). Write: interrupt mask (SET/CLR). CIAB generates INT6",
+        "doc_name": "cia_icr",
+        "address": "0xBFDD00"
+    },
+    "BFDE00": {
+        "name": "cra",
+        "full_name": "CIAB Control Register A",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Configures Timer A: START, PBON, OUTMODE, RUNMODE, LOAD, INMODE, SPMODE",
+        "doc_name": "cia_cra",
+        "address": "0xBFDE00"
+    },
+    "BFDF00": {
+        "name": "crb",
+        "full_name": "CIAB Control Register B",
+        "chip": "ciab",
+        "rw": "RW",
+        "description": "Configures Timer B: START, PBON, OUTMODE, RUNMODE, LOAD, INMODE0/1, ALARM",
+        "doc_name": "cia_crb",
+        "address": "0xBFDF00"
+    }
+}

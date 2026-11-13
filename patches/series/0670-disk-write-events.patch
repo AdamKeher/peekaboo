@@ -1,0 +1,48 @@
+disk.c: write-event capture and raw track read-back
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/disk.c b/sources/src/disk.c
+index dacb3e3..6f64132 100644
+--- a/sources/src/disk.c
++++ b/sources/src/disk.c
+@@ -2833,6 +2833,25 @@ static int drive_write_pcdos (drive *drv, struct zfile *zf, bool count)
+ 	return secwritten;
+ }
+ 
++/* ADM: Read back one ADF track's decoded sector data from the drive's diskfile.
++ * drive_idx: 0-3, track: cyl*2+side (0-159), buf: output buffer >= buflen bytes.
++ * Returns bytes read, or -1 on error. */
++int adm_read_disk_track_raw(int drive_idx, int track, uae_u8* buf, int buflen)
++{
++    if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES || track < 0 || track >= MAX_TRACKS)
++        return -1;
++    if (!buf || buflen <= 0) return -1;
++    drive *drv = &floppy[drive_idx];
++    if (!drv->diskfile) return -1;
++    trackid *tid = &drv->trackdata[track];
++    if (tid->offs < 0) return -1;
++    int num = (drv->num_secs > 0) ? drv->num_secs : 11;
++    int toread = 512 * num;
++    if (toread > buflen) toread = buflen;
++    zfile_fseek(drv->diskfile, (long)tid->offs, SEEK_SET);
++    return (int)zfile_fread(buf, 1, (size_t)toread, drv->diskfile);
++}
++extern void adm_record_disk_write(int drive_idx, int track);
+ static int drive_write_adf_amigados (drive *drv)
+ {
+ 	int drvsec;
+@@ -2853,6 +2872,10 @@ static int drive_write_adf_amigados (drive *drv)
+ 	}
+ 	zfile_fseek (drv->diskfile, tid->offs, SEEK_SET);
+ 	zfile_fwrite (writebuffer, sizeof (uae_u8), drvsec * 512, drv->diskfile);
++#ifdef __LIBRETRO__
++	if (!opt_floppy_write_redirect)
++		adm_record_disk_write((int)(drv - &floppy[0]), drv->cyl * 2 + side);
++#endif
+ 	return 0;
+ }
+ 

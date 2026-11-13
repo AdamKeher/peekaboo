@@ -1,0 +1,23 @@
+{
+    "colors_blocks": {
+        "T_HEADER": "#0000FFFF",
+        "T_DATA": "#FF0000FF",
+        "T_LIST": "#800080FF",
+        "T_DIRC": "#FFA500FF",
+        "ST_ROOT": "#FF00FFFF",
+        "ST_USERDIR": "#FFA500FF",
+        "ST_FILE": "#0000FFFF",
+        "ST_LFILE": "#00CED1FF",
+        "ST_LDIR": "#4682B4FF",
+        "ST_LSOFT": "#9370DBFF",
+        "BootBlock": "#9932CCFF",
+        "BitmapBlock": "#FFFF00FF",
+        "Unknown": "#808080FF",
+        "Free": "#00FF00FF",
+        "Bad": "#555555FF",
+        "NDOS_Empty": "#00FF00FF",
+        "NDOS_Used": "#FF0000FF",
+        "Bitmap_Free": "#00FF00FF",
+        "Bitmap_Used": "#FF0000FF"
+    }
+}

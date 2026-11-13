@@ -1,0 +1,169 @@
+libretro-core.c: blit event ring buffer
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 7543413..84410b3 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9492,4 +9492,154 @@ RETRO_API void adm_clear_debug_resources(void) {
+    effect at the next machine reset / game load, when rtarea is (re)installed. */
+ extern int adm_force_boot_rom;
+ RETRO_API void adm_set_force_boot_rom(int on) { adm_force_boot_rom = on ? 1 : 0; }
+-RETRO_API int adm_get_force_boot_rom(void) { return adm_force_boot_rom; }
+\ No newline at end of file
++RETRO_API int adm_get_force_boot_rom(void) { return adm_force_boot_rom; }
++
++// --- Blitter event capture (ADM) ---
++typedef struct {
++    uint16_t vpos;
++    uint16_t hpos;
++    uint32_t bltapt, bltbpt, bltcpt, bltdpt;
++    uint16_t bltcon0, bltcon1;
++    uint16_t bltsize;
++    uint16_t vblitsize, hblitsize;
++    uint16_t bltafwm, bltalwm;
++    uint16_t bltamod, bltbmod, bltcmod, bltdmod;
++    uint16_t bltadat, bltbdat, bltcdat;
++    uint8_t  fromCopper;
++    uint8_t  pad;
++    uint32_t start_cycle;  /* absolute CCK at blit start (get_cycles()/512) */
++    uint32_t end_cycle;    /* absolute CCK at blit end   (get_cycles()/512) */
++    uint32_t blitId;       /* provenance id; joins onto blitter-vis spans, 0 = unset */
++    uint32_t data_off;     /* first D-write arena slot for this blit (monotonic cursor) */
++    uint32_t data_words;   /* D writes captured; 0 when capture was off */
++} adm_blit_event_t;
++
++#define ADM_MAX_BLIT_EVENTS 512
++static adm_blit_event_t adm_blit_events[ADM_MAX_BLIT_EVENTS];
++static adm_blit_event_t adm_pending_blit;
++static uint32_t adm_blit_write_pos = 0;
++
++/* --- Blitter destination data capture (ADM) ---
++   Every word the blitter writes through blit_chipmem_agnus_wput is copied here with
++   its address, so the host can reconstruct the bitmap the blit actually produced.
++   Storing the address rather than relying on write order is what makes descending
++   blits, line mode and fill mode all reconstruct without geometry guesswork.
++   The arena is only allocated while capture is on -- 4 MB is a lot to hold for a
++   feature nobody has switched on. */
++#define ADM_BLITDATA_SLOTS        (1u << 19)  /* 512K slots x 8 bytes = 4 MB */
++#define ADM_BLITDATA_MAX_PER_BLIT 131072u     /* one blit cannot eat the whole ring */
++
++typedef struct {
++    uint32_t addr;  /* chip address written */
++    uint16_t val;   /* the word written */
++    uint16_t pad;   /* explicit padding -- keeps the slot at 8 bytes */
++} adm_blit_word_t;
++
++/* Non-static: the blitter.c hook tests this directly so the cost when capture is
++   off is one global load and a branch, not a call. */
++int adm_blit_data_enabled = 0;
++static adm_blit_word_t *adm_blit_data_arena = NULL;
++static uint32_t adm_blit_data_pos = 0; /* monotonic slot cursor, wraps the ring by mask */
++
++/* Called from blitter.c for every blitter D write while capture is enabled. */
++void adm_record_blit_write(uaecptr addr, uae_u16 w) {
++    adm_blit_word_t *slot;
++    if (!adm_blit_data_arena) return;
++    if (adm_pending_blit.data_words >= ADM_BLITDATA_MAX_PER_BLIT) return;
++    slot = &adm_blit_data_arena[adm_blit_data_pos & (ADM_BLITDATA_SLOTS - 1)];
++    slot->addr = (uint32_t)addr;
++    slot->val  = (uint16_t)w;
++    slot->pad  = 0;
++    adm_blit_data_pos++;
++    adm_pending_blit.data_words++;
++}
++
++// Called from custom.c BLTSIZE/BLTSIZH write handlers right before do_blitter().
++void adm_record_blit(uint16_t vpos_v, uint16_t hpos_v,
++                     uint32_t bltapt_v, uint32_t bltbpt_v,
++                     uint32_t bltcpt_v, uint32_t bltdpt_v,
++                     uint16_t bltcon0_v, uint16_t bltcon1_v,
++                     uint16_t bltsize_v,
++                     uint16_t vblitsize_v, uint16_t hblitsize_v,
++                     uint16_t bltafwm_v, uint16_t bltalwm_v,
++                     uint16_t bltamod_v, uint16_t bltbmod_v,
++                     uint16_t bltcmod_v, uint16_t bltdmod_v,
++                     uint16_t bltadat_v, uint16_t bltbdat_v, uint16_t bltcdat_v,
++                     uint8_t from_copper) {
++    adm_blit_event_t *ev = &adm_pending_blit;
++    /* Allocate the provenance id the blitter-vis map stamps chip RAM with.
++       Runs whether or not the visualiser is on, so blitId is always valid. */
++    { extern uint32_t adm_blitvis_begin_blit(void); ev->blitId = adm_blitvis_begin_blit(); }
++    ev->vpos      = vpos_v;   ev->hpos      = hpos_v;
++    ev->bltapt    = bltapt_v; ev->bltbpt    = bltbpt_v;
++    ev->bltcpt    = bltcpt_v; ev->bltdpt    = bltdpt_v;
++    ev->bltcon0   = bltcon0_v; ev->bltcon1  = bltcon1_v;
++    ev->bltsize   = bltsize_v;
++    ev->vblitsize = vblitsize_v; ev->hblitsize = hblitsize_v;
++    ev->bltafwm   = bltafwm_v; ev->bltalwm  = bltalwm_v;
++    ev->bltamod   = bltamod_v; ev->bltbmod  = bltbmod_v;
++    ev->bltcmod   = bltcmod_v; ev->bltdmod  = bltdmod_v;
++    ev->bltadat   = bltadat_v; ev->bltbdat  = bltbdat_v; ev->bltcdat = bltcdat_v;
++    ev->fromCopper = from_copper;
++    ev->pad = 0;
++    ev->start_cycle = (uint32_t)(get_cycles() / 512);
++    ev->end_cycle = 0;
++    /* Open this blit's window into the D-write arena. Recorded whether or not capture
++       is on, so data_words == 0 unambiguously means "nothing captured". */
++    ev->data_off = adm_blit_data_pos;
++    ev->data_words = 0;
++}
++
++// UAE's blitter is single-instance, so one pending_blit works perfectly.
++// Called from blitter_done_all() and blitter_done_except_d() in blitter.c.
++void adm_record_blit_end(void) {
++    adm_pending_blit.end_cycle = (uint32_t)(get_cycles() / 512);
++    adm_blit_events[adm_blit_write_pos % ADM_MAX_BLIT_EVENTS] = adm_pending_blit;
++    adm_blit_write_pos++;
++}
++
++RETRO_API int adm_get_blit_events(void* buf, int maxCount) {
++    return adm_ring_copy(adm_blit_events, ADM_MAX_BLIT_EVENTS,
++                         adm_blit_write_pos, buf, maxCount,
++                         sizeof(adm_blit_event_t), NULL);
++}
++
++RETRO_API void adm_clear_blit_events(void) {
++    adm_blit_write_pos = 0;
++    adm_blit_data_pos = 0;
++}
++
++RETRO_API void adm_set_blit_data_enabled(int enabled) {
++    if (enabled) {
++        if (!adm_blit_data_arena)
++            adm_blit_data_arena = (adm_blit_word_t *)calloc(ADM_BLITDATA_SLOTS,
++                                                            sizeof(adm_blit_word_t));
++        adm_blit_data_enabled = adm_blit_data_arena ? 1 : 0;
++    } else {
++        adm_blit_data_enabled = 0;
++        free(adm_blit_data_arena);
++        adm_blit_data_arena = NULL;
++        adm_blit_data_pos = 0;
++    }
++}
++
++RETRO_API int adm_get_blit_data_enabled(void) {
++    return adm_blit_data_enabled;
++}
++
++/* Copies one blit's captured D writes back to the host, oldest first. Returns the number
++   of 8-byte slots written, or 0 when the window has already been overwritten by later
++   blits -- the ring is deliberately allowed to lose the oldest data rather than stall. */
++RETRO_API int adm_get_blit_data(uint32_t off, uint32_t count, void* out) {
++    adm_blit_word_t *dst = (adm_blit_word_t *)out;
++    uint32_t behind, i;
++    if (!out || !adm_blit_data_arena || count == 0) return 0;
++    if (count > ADM_BLITDATA_SLOTS) count = ADM_BLITDATA_SLOTS;
++    /* Unsigned wrap-safe: how far back off sits from the cursor. */
++    behind = adm_blit_data_pos - off;
++    if (behind > ADM_BLITDATA_SLOTS) return 0; /* evicted */
++    if (count > behind) count = behind;
++    for (i = 0; i < count; i++)
++        dst[i] = adm_blit_data_arena[(off + i) & (ADM_BLITDATA_SLOTS - 1)];
++    return (int)count;
++}
+\ No newline at end of file

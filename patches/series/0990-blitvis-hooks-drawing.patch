@@ -1,0 +1,74 @@
+drawing.c: blitter-vis span projection
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/drawing.c b/sources/src/drawing.c
+index cf70ab9..5218488 100644
+--- a/sources/src/drawing.c
++++ b/sources/src/drawing.c
+@@ -2295,6 +2295,7 @@ static call_linetoscrb pfield_do_linetoscr_spriteonly;
+ 
+ static void pfield_do_linetoscr(int start, int stop, int blank)
+ {
++	int adm_src_start = src_pixel; /* ADM blitter-vis */
+ 	int pixel = pfield_do_linetoscr_normal(src_pixel, start, stop);
+ 	if (exthblank || exthblank_force) {
+ 		pfield_do_fill_line(start, stop, 1);
+@@ -2306,10 +2307,19 @@ static void pfield_do_linetoscr(int start, int stop, int blank)
+ #endif
+ 		pfield_do_fill_line(start, stop, bb ? 1 : 0);
+ 	}
++	/* ADM blitter-vis: project tagged source pixels onto native output. */
++	{
++		extern int adm_blitvis_enabled;
++		extern void adm_blitvis_project(int, int, int, int, int);
++		if (adm_blitvis_enabled && !exthblank && !exthblank_force) {
++			adm_blitvis_project(adm_src_start, pixel, start, stop, linetoscr_x_adjust_pixels);
++		}
++	}
+ 	src_pixel = pixel;
+ }
+ static void pfield_do_linetoscr_spr(int start, int stop, int blank)
+ {
++	int adm_src_start = src_pixel; /* ADM blitter-vis */
+ 	int pixel;
+ 	if (extborder) {
+ #if EXTBORDER_BLANK
+@@ -2325,6 +2335,14 @@ static void pfield_do_linetoscr_spr(int start, int stop, int blank)
+ 			pfield_do_fill_line(start, stop, 1);
+ 		}
+ 	}
++	/* ADM blitter-vis: project tagged source pixels onto native output. */
++	{
++		extern int adm_blitvis_enabled;
++		extern void adm_blitvis_project(int, int, int, int, int);
++		if (adm_blitvis_enabled && !exthblank && !exthblank_force) {
++			adm_blitvis_project(adm_src_start, pixel, start, stop, linetoscr_x_adjust_pixels);
++		}
++	}
+ 	src_pixel = pixel;
+ }
+ static int pfield_do_nothing(int a, int b, int c)
+@@ -3925,6 +3943,9 @@ static void pfield_draw_line(struct vidbuffer *vb, int lineno, int gfx_ypos, int
+ 	case LINE_AS_PREVIOUS:
+ 		dp_for_drawing--;
+ 		dip_for_drawing--;
++		/* ADM blitter-vis: this line re-displays an earlier line's decoded
++		   data, so its tags live under that earlier line's index. */
++		{ extern void adm_blitvis_note_as_previous(void); adm_blitvis_note_as_previous(); }
+ 		linestate[lineno] = LINE_DONE_AS_PREVIOUS;
+ 		if (dp_for_drawing->plfleft < 0)
+ 			border = 1;
+@@ -3950,6 +3971,9 @@ static void pfield_draw_line(struct vidbuffer *vb, int lineno, int gfx_ypos, int
+ 		break;
+ 	}
+ 
++	/* ADM blitter-vis: install this line's source/native line context. */
++	{ extern void adm_blitvis_begin_line(int, int); adm_blitvis_begin_line(lineno, gfx_ypos); }
++
+ 	have_color_changes = is_color_changes(dip_for_drawing);
+ 	if (vb_state != dp_for_drawing->vb) {
+ 		vb_state = dp_for_drawing->vb;

@@ -1,0 +1,115 @@
+newcpu.c: adm_get_cpu_ext_state() - every register beyond D/A/PC/SR
+
+Peekaboo's CPU window, the console's RC/RF/RM and the MCP register tools used to scrape the
+text of UAE's `r` dump. This hands them one fixed-layout block instead: the three stack
+pointers (USP/ISP/MSP, with A7 folded into the active one), every MOVEC register with a
+validity bit taken from movec_illg() for the configured CPU, FP0-FP7 (raw 96-bit extended and
+UAE's decimal text) with FPCR/FPSR/FPIAR, and the 68030 PMOVE registers. With the MMU switched
+off a 68030 keeps those in the file-static fake_*_030 shadows, which is why the function is
+here and not in libretro-core.c. Nothing is written back into regs (m68k_dumpstate does).
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/sources/src/newcpu.c
++++ b/sources/src/newcpu.c
+@@ -7173,6 +7173,99 @@ void m68k_disasm (uaecptr addr, uaecptr *nextpc, uaecptr lastpc, int cnt)
+ 	xfree (buf);
+ }
+ 
++/* PEEKaboo: every register beyond D/A/PC/SR, as one flat block, for the CPU window, the
++ * console's RC/RF/RM and the MCP tools. It lives here rather than in libretro-core.c because
++ * a 68030 with the MMU switched off keeps its PMOVE registers in the file-static fake_*_030
++ * shadows above. Layout is fixed: uae_u32 words, then text; the host mirrors it and checks
++ * struct_size. Unlike m68k_dumpstate() nothing is written back into regs. */
++#define ADM_CPU_EXT_MOVEC 18
++struct adm_cpu_ext_state {
++	uae_u32 struct_size;
++	uae_u32 cpu_model, fpu_model, mmu_model, mmu_ec;
++	uae_u32 s, m, intmask, stopped;
++	uae_u32 usp, isp, msp;
++	uae_u32 movec_valid;                 /* bit i: m2cregs[i] exists on this CPU */
++	uae_u32 movec[ADM_CPU_EXT_MOVEC];    /* val_move2c(), in m2cregs order */
++	uae_u32 fpu_present;
++	uae_u32 fp_ext[8][3];                /* 96-bit extended, FMOVEM layout */
++	uae_u32 fpcr, fpsr, fpiar;
++	uae_u32 mmu030_present;
++	uae_u32 crp_hi, crp_lo, srp_hi, srp_lo;
++	uae_u32 tc_030, tt0_030, tt1_030, mmusr_030;
++	char fp_text[8][40];                 /* fpp_print(mode 0): decimal */
++};
++
++int adm_get_cpu_ext_state(struct adm_cpu_ext_state *out, int size)
++{
++	uae_u32 a7;
++	int i;
++
++	if (!out || size < (int)sizeof(struct adm_cpu_ext_state))
++		return 0;
++	memset(out, 0, sizeof(*out));
++	out->struct_size = sizeof(*out);
++	out->cpu_model = currprefs.cpu_model;
++	out->fpu_model = currprefs.fpu_model;
++	out->mmu_model = currprefs.mmu_model;
++	out->mmu_ec = currprefs.mmu_ec ? 1 : 0;
++
++	MakeSR();
++	out->s = regs.s ? 1 : 0;
++	out->m = regs.m ? 1 : 0;
++	out->intmask = regs.intmask;
++	out->stopped = regs.stopped ? 1 : 0;
++
++	/* A7 is whichever stack is active; the others sit in their shadows. */
++	a7 = m68k_areg(regs, 7);
++	out->usp = regs.s ? regs.usp : a7;
++	out->isp = (regs.s && !regs.m) ? a7 : regs.isp;
++	out->msp = (regs.s && regs.m) ? a7 : regs.msp;
++
++	for (i = 0; i < ADM_CPU_EXT_MOVEC && m2cregs[i].regno >= 0; i++) {
++		int regno = m2cregs[i].regno;
++		uae_u32 v = val_move2c(regno);
++		if (regno == 0x800)
++			v = out->usp;
++		else if (regno == 0x803)
++			v = out->msp;
++		else if (regno == 0x804)
++			v = out->isp;
++		out->movec[i] = v;
++		if (currprefs.cpu_model > 68000 && !movec_illg(regno))
++			out->movec_valid |= 1u << i;
++	}
++
++#ifdef FPUEMU
++	if (currprefs.fpu_model && fpp_from_exten_fmovem && fpp_print) {
++		out->fpu_present = 1;
++		for (i = 0; i < 8; i++) {
++			fpp_from_exten_fmovem(&regs.fp[i], &out->fp_ext[i][0], &out->fp_ext[i][1],
++				&out->fp_ext[i][2]);
++			strncpy(out->fp_text[i], fpp_print(&regs.fp[i], 0), sizeof(out->fp_text[i]) - 1);
++		}
++		out->fpcr = regs.fpcr;
++		out->fpsr = fpp_get_fpsr();
++		out->fpiar = regs.fpiar;
++	}
++#endif
++
++	if (currprefs.cpu_model == 68030) {
++		bool real = currprefs.mmu_model == 68030;
++		uae_u64 crp = real ? crp_030 : fake_crp_030;
++		uae_u64 srp = real ? srp_030 : fake_srp_030;
++		out->mmu030_present = 1;
++		out->crp_hi = (uae_u32)(crp >> 32);
++		out->crp_lo = (uae_u32)crp;
++		out->srp_hi = (uae_u32)(srp >> 32);
++		out->srp_lo = (uae_u32)srp;
++		out->tc_030 = real ? tc_030 : fake_tc_030;
++		out->tt0_030 = real ? tt0_030 : fake_tt0_030;
++		out->tt1_030 = real ? tt1_030 : fake_tt1_030;
++		out->mmusr_030 = real ? mmusr_030 : fake_mmusr_030;
++	}
++	return (int)sizeof(*out);
++}
++
+ void m68k_dumpstate(uaecptr *nextpc, uaecptr prevpc)
+ {
+ 	int i, j;

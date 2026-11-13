@@ -1,0 +1,14 @@
+{
+    "name": "Sliced HAM (SHAM)",
+    "group": "Image",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "5348414D"
+        }
+    ]
+}

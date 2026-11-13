@@ -1,0 +1,65 @@
+writelog.c: route write_log through the ADM capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/writelog.c b/sources/src/writelog.c
+index 9306140..a4e54dd 100644
+--- a/sources/src/writelog.c
++++ b/sources/src/writelog.c
+@@ -16,12 +16,15 @@
+ #include "uae/string.h"
+ #include "uae/types.h"
+ 
++static char *console_buffer;
++static int console_buffer_size;
++
+ #ifdef __LIBRETRO__
+ #include "libretro.h"
+ extern retro_log_printf_t log_cb;
+ void write_log (const char *fmt, ...)
+ {
+-    char text[512];
++    static char text[65536];
+     va_list ap;
+     int n;
+ 
+@@ -35,11 +38,20 @@ void write_log (const char *fmt, ...)
+     if (n < 0)
+         return;
+ 
++    if (console_buffer && console_buffer_size > 0) {
++       size_t used = strlen(console_buffer);
++       if (used < (size_t)console_buffer_size - 1) {
++          size_t remain = (size_t)console_buffer_size - used - 1;
++          strncat(console_buffer, text, remain);
++       }
++    }
++
+     size_t len = strlen(text);
+     if (len > 0 && text[len - 1] == '\n')
+         text[len - 1] = '\0';
+ 
+-    log_cb(RETRO_LOG_INFO, "%s\n", text);
++    if (log_cb && !console_buffer)
++        log_cb(RETRO_LOG_INFO, "%s\n", text);
+ }
+ #else
+ void write_log (const char *fmt, ...)
+@@ -106,9 +118,12 @@ char *setconsolemode (char *buffer, int maxlen)
+ 	if (buffer) {
+ 		console_buffer = buffer;
+ 		console_buffer_size = maxlen;
+-	} else {
++        if (console_buffer_size > 0)
++            console_buffer[0] = 0;
++    } else {
+ 		ret = console_buffer;
+ 		console_buffer = NULL;
+-	}
++        console_buffer_size = 0;
++    }
+ 	return ret;
+ }

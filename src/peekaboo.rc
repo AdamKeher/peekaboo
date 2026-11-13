@@ -1,0 +1,30 @@
+GLFW_ICON ICON "../assets/logo/peekaboo_icon.ico"
+1 ICON "../assets/logo/peekaboo_icon.ico"
+
+#include "PeekabooVersion.h"
+
+// What Explorer's Properties > Details and a code signature's dialog show.
+1 VERSIONINFO
+FILEVERSION PEEKABOO_VERSION_RC
+PRODUCTVERSION PEEKABOO_VERSION_RC
+FILEOS 0x40004
+FILETYPE 0x1
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "PEEKaboo"
+            VALUE "FileVersion", PEEKABOO_VERSION
+            VALUE "InternalName", "peekaboo"
+            VALUE "OriginalFilename", "peekaboo.exe"
+            VALUE "ProductName", "PEEKaboo"
+            VALUE "ProductVersion", PEEKABOO_VERSION
+            VALUE "LegalCopyright", "GNU General Public License, version 2"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END

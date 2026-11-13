@@ -1,0 +1,10 @@
+{
+    "name": "TakeTracker Module (2 channel)",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "54445A32"
+        }
+    ]
+}

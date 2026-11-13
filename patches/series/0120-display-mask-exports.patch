@@ -1,0 +1,39 @@
+libretro-core.c: adm_set_bitplane_mask / adm_set_sprite_mask
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 9c14d3a..0d434de 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -8969,4 +8969,26 @@ RETRO_API int adm_asm_one(const char* src, uint32_t pc, uint16_t* outWords, int
+             outWords[i] = words[i];
+     }
+     return n; /* >0 word count, 0 syntax error, -1 line too long */
++}
++
++#ifndef UAE_DRAWING_H
++#include "drawing.h"
++#endif
++
++RETRO_API void adm_set_bitplane_mask(uint8_t mask) {
++    extern int debug_bpl_mask;
++    extern int debug_bpl_mask_one;
++    debug_bpl_mask = (int)mask;
++    debug_bpl_mask_one = 0;
++}
++
++RETRO_API void adm_set_sprite_mask(uint8_t mask) {
++    extern int adm_sprite_mask_expanded;
++    int expanded = 0;
++    int i;
++    for (i = 0; i < 8; i++) {
++        if (mask & (1 << i))
++            expanded |= (3 << (2 * i));
++    }
++    adm_sprite_mask_expanded = expanded;
+ }
+\ No newline at end of file

@@ -1,0 +1,6067 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<!-- saved from url=(0044)http://oscomp.hu/depot/amiga_memory_map.html -->
+<!-- 
+Manually converted http://oscomp.hu/depot/amiga_memory_map.html to ChipRegisters XML:
+- Fix all unmatched tags (add trailing /)
+- Delete unused elements; just keep the main set of chip register docs
+- Used regex to remove <br/> from within <td> text: (?<!\t)<br\/> Note "negative lookbehind" https://regex101.com/r/NGjYA0/1
+- Manually remove all &nbsp;
+- Manually remove all <strong></strong>
+- Manually remove all <b></b>
+- Manually add all colour values to "colorx" entry
+- Rename "colorx" to "colorxx"
+- Replace <th colspan="N"> with N individual <th> elements
+- Update INTENA docs
+- Remove all <a href="http://oscomp.hu/depot/amiga_memory_map.html#chip_registers">Back to the list</a>
+- Use JS + regex to replace HTML <a href="...> hyperlinks with Markdown, for imgui_markdown. See https://stackoverflow.com/a/68782732
+  - Replaced backticks with apostrophes to allow Javascript template literals to process entire file as string.
+-->
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+		<title>Amiga Custom Chip Registers</title>
+	</head>
+	<body vlink="3b67a2" link="3b67a2" text="000000" bgcolor="959595">
+		<a name="adkconr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF010</td>
+				<td>ADKCONR</td>
+				<td>Audio, Disk, UART Control Read</td>
+			</tr>
+			<tr>
+				<td>DFF09E</td>
+				<td>ADKCON</td>
+				<td>Audio, Disk, UART Control Write</td>
+			</tr>
+			</tbody>
+		</table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>SET/CLEAR</td>
+				<td>
+					Set/clear control bit.determines if bits
+					written with a 1 get set or cleared.bits
+					written with a zero are always unchanged.
+			</td>
+			</tr>
+			<tr>
+				<td>14-13</td>
+				<td>PRECOMP 1-0</td>
+				<td>
+					00 : none
+					01 : 140 ns
+					10 : 280 ns
+					11 : 560 ns
+				</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>MFMPREC</td>
+				<td>(1 = MFM precomp / 0 = GCR precomp)</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>UARTBRK</td>
+				<td>Forces a UART break (clears TXD) if true</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>WORDSYNC</td>
+				<td>
+					Enables disk read synchronizing on a word
+					equal to DISK SYNC CODE, Located in
+					address DSKSYNC (7E).
+				</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>MSBSYNC</td>
+				<td>
+					Enables disk read synchronizing on the
+					MSB (most significant bit) appl type GCR
+				</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>FAST</td>
+				<td>
+					Disk data clock rate control :
+					
+					1 : fast(2us)
+					0 : slow(4us)
+					
+					(Fast for MFM or 2us,slow for 4us GCR)
+				</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>USE3PN</td>
+				<td>Use audio channel 3 to modulate nothing</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>USE2P3</td>
+				<td>Use audio channel 2 to modulate period of channel 3</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>USE1P2</td>
+				<td>Use audio channel 1 to modulate period of channel 2</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>USE0P1</td>
+				<td>Use audio channel 0 to modulate period of channel 1</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>USE3VN</td>
+				<td>Use audio channel 3 to modulate nothing</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>USE2V3</td>
+				<td>Use audio channel 2 to modulate volume of channel 3</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>USE1V2</td>
+				<td>Use audio channel 1 to modulate volume of channel 2</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>USE0V1</td>
+				<td>Use audio channel 0 to modulate volume of channel 1</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<blockquote>
+			<p>
+				Note:
+				If both period and volume are modulated on the same channel,
+				the period and volume will be alternated. First AUDxDAT word
+				is used for V6-V0 of UDxVOL. Second AUDxDAT word is used for
+				P15-P0 of AUDxPER. This alternating sequence is repeated.
+			</p>
+		</blockquote>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="audxdat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF0AA</td>
+				<td>AUD0DAT</td>
+				<td>Audio Channel 0 data</td>
+			</tr>
+			<tr>
+				<td>DFF0BA</td>
+				<td>AUD1DAT</td>
+				<td>Audio Channel 1 data</td>
+			</tr>
+			<tr>
+				<td>DFF0CA</td>
+				<td>AUD2DAT</td>
+				<td>Audio Channel 2 data</td>
+			</tr>
+			<tr>
+				<td>DFF0DA</td>
+				<td>AUD3DAT</td>
+				<td>Audio Channel 3 data</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This reg is the audio channel x (x=0,1,2,3) DMA data buffer. It
+			contains 2 bytes of data (each byte is a twos complement signed
+			integer) that are outputted sequentially (with digital to analog
+			conversion)to the audio output pins. With maximum volume, each
+			byte can drive the audio outputs with 0.8 volts (peak to peak,type).
+			The audio DMA channel controller automatically transfers data
+			to this reg from RAM. The processor can also write directly to
+			this reg. When the DMA data is finished (words outputted = length)
+			and the data in this reg has been used, an audio channel interrupt
+			request is set.
+		</p>
+		<hr size="2"/>
+		<a name="audxlch"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF0A0</td>
+				<td>AUD0LCH</td>
+				<td>Audio Channel 0 Location (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0A2</td>
+				<td>AUD0LCL</td>
+				<td>Audio Channel 0 Location (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0B0</td>
+				<td>AUD1LCH</td>
+				<td>Audio Channel 1 Location (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0B2</td>
+				<td>AUD1LCL</td>
+				<td>Audio Channel 1 Location (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0C0</td>
+				<td>AUD2LCH</td>
+				<td>Audio Channel 2 Location (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0C2</td>
+				<td>AUD2LCL</td>
+				<td>Audio Channel 2 Location (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0D0</td>
+				<td>AUD3LCH</td>
+				<td>Audio Channel 3 Location (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0D2</td>
+				<td>AUD3LCL</td>
+				<td>Audio Channel 3 Location (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This pair of registers contains the 20 bit starting
+			address (location) of audio channel x (x = 0,1,2,3) DMA data.
+			This is not a pointer reg and therefore only needs to be
+			reloaded if a different memory location is to be outputted.
+		</p>
+		<hr size="2"/>
+		<a name="audxlen"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF0A4</td>
+				<td>AUD0LEN</td>
+				<td>Audio Channel 0 length</td>
+			</tr>
+			<tr>
+				<td>DFF0B4</td>
+				<td>AUD1LEN</td>
+				<td>Audio Channel 1 length</td>
+			</tr>
+			<tr>
+				<td>DFF0C4</td>
+				<td>AUD2LEN</td>
+				<td>Audio Channel 2 length</td>
+			</tr>
+			<tr>
+				<td>DFF0D4</td>
+				<td>AUD3LEN</td>
+				<td>Audio Channel 3 length</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register contains the length (number of words) of audio
+			channel x DMA data.
+		</p>
+		<hr size="2"/>
+		<a name="audxper"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF0A6</td>
+				<td>AUD0PER</td>
+				<td>Audio channel 0 period</td>
+			</tr>
+			<tr>
+				<td>DFF0B6</td>
+				<td>AUD1PER</td>
+				<td>Audio channel 1 period</td>
+			</tr>
+			<tr>
+				<td>DFF0C6</td>
+				<td>AUD2PER</td>
+				<td>Audio channel 2 period</td>
+			</tr>
+			<tr>
+				<td>DFF0D6</td>
+				<td>AUD3PER</td>
+				<td>Audio channel 3 period</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This reg contains the period (rate) of audio channel x DMA data
+			transfer. The minimum period is 124 clocks. This means that the
+			smallest number that should be placed in this reg is 124.
+		</p>
+		<hr size="2"/>
+		<a name="audxvol"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF0A8</td>
+				<td>AUD0VOL</td>
+				<td>Audio channel 0 volume</td>
+			</tr>
+			<tr>
+				<td>DFF0B8</td>
+				<td>AUD1VOL</td>
+				<td>Audio channel 1 volume</td>
+			</tr>
+			<tr>
+				<td>DFF0C8</td>
+				<td>AUD2VOL</td>
+				<td>Audio channel 2 volume</td>
+			</tr>
+			<tr>
+				<td>DFF0D8</td>
+				<td>AUD3VOL</td>
+				<td>Audio channel 3 volume</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This reg contains the volume setting for audio channel x.
+			Bits 6,5,4,3,2,1,0 specify 65 linear volume levels as shown below.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+			</tr>
+			<tr>
+				<td>15-07</td>
+				<td>Not used</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>Forces volume to max (64 ones, no zeros)</td>
+			</tr>
+			<tr>
+				<td>05-00</td>
+				<td>Sets one of the 64 levels (000000 = no output,
+			111111 = 63 ones, one zero)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="beamcon0"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1DC</td>
+				<td>BEAMCON0</td>
+				<td>Beam Counter Control Bits</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>Unused</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>HARDDIS</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>LPENDIS</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>VARVBEN</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>LOLDIS</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>CSCBEN</td>
+			</tr>
+			<tr>
+				<td>9</td>
+				<td>VARVSYEN</td>
+			</tr>
+			<tr>
+				<td>8</td>
+				<td>VARHSYEN</td>
+			</tr>
+			<tr>
+				<td>7</td>
+				<td>VARBEAMEN</td>
+			</tr>
+			<tr>
+				<td>6</td>
+				<td>DUAL</td>
+			</tr>
+			<tr>
+				<td>5</td>
+				<td>PAL</td>
+			</tr>
+			<tr>
+				<td>4</td>
+				<td>VARCSYEN</td>
+			</tr>
+			<tr>
+				<td>3</td>
+				<td>(unused, formerly BLANKEN)</td>
+			</tr>
+			<tr>
+				<td>2</td>
+				<td>CSYTRUE</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>VSYTRUE</td>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>HSYTRUE</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			HARDDIS
+			This bit is used to disable the hardwired vertical horizontal
+			window limits. It is cleared upon reset.
+		</p>
+		<p>
+			LPENDIS
+			When this bit is a low and LPE ([BPLCON0](#bplcon0), bit 3) is enabled, the
+			light-pen latched value(beam hit position) will be read by
+			[VHPOSR](#vhposr), [VPOSR](#vposr) and [HHPOSR](#hhposw). When the bit is a high the light-pen
+			latched value is ignored and the actual beam counter position is
+			read by [VHPOSR](#vhposr), [VPOSR](#vposr), and [HHPOSR](#hhposw).
+		</p>
+		<p>
+			VARVBEN
+			Use the comparator generated vertical blank (from [VBSTRT](#vbstrt), [VBSTOP](#vbstrt))
+			to run the internal chip stuff-sending RGA signals to Denise,
+			starting sprites,resetting light pen. It also disables the hard
+			stop on the vertical display window.
+		</p>
+		<p>
+			LOLDIS
+			Disable long line/short toggle. This is useful for DUAL mode
+			where even multiples are wanted, or in any single display
+			where this toggling is not desired.
+		</p>
+		<p>
+			CSCBEN
+			The variable composite sync comes out on the HSY pin, and the
+			variable composite blank comes out on the VSY pin. The idea is
+			to allow all the information to come out of the chip for a
+			DUAL mode display. The normal monitor uses the normal composite
+			sync, and the variable composite sync &amp;blank come out the HSY &amp;
+			VSY pins. The bits VARVSTEN &amp; VARHSYEN (below) have priority over
+			this control bit.
+		</p>
+		<p>
+			VARVSYEN
+			Comparator VSY -&gt; VSY pin. The variable VSY is set vertically on
+			[VSSTRT](#vsstrt), reset vertically on [VSSTOP](#vtotal), with the horizontal position
+			for set set &amp; reset [HSSTRT](#hsstrt) on short fields (all fields are short
+			if LACE = 0) and [HCENTER](#hcenter) on long fields (every other field if LACE = 1).
+		</p>
+		<p>
+			VARHSYEN
+			Comparator HSY -&gt; HSY pin. Set on [HSSTRT](#hsstrt) value, reset on [HSSTOP](#hsstrt) value.
+		</p>
+		<p>
+			VARBEAMEN
+			Enables the variable beam counter comparators to operate
+			(allowing different beam counter total values) on the main horiz
+			counter. It also disables hard display stops on both horizontal
+			and vertical.
+		</p>
+		<p>
+			DUAL
+			Run the horizontal comparators with the alternate horizontal beam
+			counter, and starts the UHRES pointer chain with the reset of
+			this counter rather than the normal one. This allows the UHRES
+			pointers to come out more than once in a horizontal line,
+			assuming there is some memory bandwidth left (it doesn't work in
+			640*400*4 interlace mode) also, to keep the two displays synced,
+			the horizontal line lengths should be multiples of each other.
+			If you are amazingly clever, you might not need to do this.
+		</p>
+		<p>
+			PAL
+			Set appropriate decodes (in normal mode) for PAL. In variable
+			beam counter mode this bit disables the long line/short line
+			toggle- ends up short line.
+		</p>
+		<p>
+			VARCSYEN
+			Enables CSY from the variable decoders to come out the CSY
+			(VARCSY is set on [HSSTRT](#hsstrt) match always, and also on [HCENTER](#hcenter)
+			match when in vertical sync. It is reset on [HSSTOP](#hsstop) match when VSY
+			and on both [HBSTRT](#hbstrt) &amp; [HBSTOP](#hbstrt) matches during VSY. A reasonable
+			composite can be generated by setting [HCENTER](#hcenter) half a horizontal line
+			from [HSSTRT](#hsstrt), and [HBSTOP](#hbstrt) at ([HSSTOP](#hsstop)-[HSSTRT](#hsstrt)) before [HCENTER](#hcenter), with
+			[HBSTRT](#hbstrt) at ( [HSSTOP](#hsstop)-[HSSTRT](#hsstrt)) before [HSSTRT](#hsstrt).
+		</p>
+		<p>
+			HSYTRUE, VSYTRUE, CSYTRUE
+			These change the polarity of the HSY*, VSY*, &amp; CSY* pins
+			to HSY, VSY, &amp; CSY respectively for input and output.
+		</p>
+		<p>
+			[Hcenter](#hcenter)
+			[HSSTRT](#hsstrt)
+			[VBSTRT/VBSTOP](#vbstrt)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="bltafwm"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF044</td>
+				<td>BLTAFWM</td>
+				<td>Blitter first word mask for source A</td>
+			</tr>
+			<tr>
+				<td>DFF046</td>
+				<td>BLTALWM</td>
+				<td>Blitter last word mask for source A</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			The patterns in the two registers are "anded" with the first and
+			last words of each line of data from Source A into the Blitter.
+			A zero in any bit overrides data from Source A. These registers
+			should be set to all "ones" for fill mode or for line drawing mode.
+		</p>
+		<hr size="2"/>
+		<a name="bltcon0"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF040</td>
+				<td>BLTCON0</td>
+				<td>Blitter control register 0</td>
+			</tr>
+			<tr>
+				<td>DFF042</td>
+				<td>BLTCON1</td>
+				<td>
+					Blitter control register 0
+					(lower 8 bits) This is to speed up software - the upper bits are often the same.
+				</td>
+			</tr>
+			<tr>
+				<td>DFF05A</td>
+				<td>BLTCON0L</td>
+				<td>Pot pin data read</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These two control registers are used together to control blitter
+			operations. There are 2 basic modes, are and line, which are
+			selected by bit 0 of BLTCON1, as show below.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<!-- ImGui does not currently support table headers that span multiple columns https://github.com/ocornut/imgui/issues/3565
+				<th colspan="3">AREA MODE</th>
+				<th colspan="3">LINE MODE</th>
+				-->
+				<th></th>
+				<th>AREA MODE</th>
+				<th></th>
+				<th></th>
+				<th>LINE MODE</th>
+				<th></th>				
+			</tr>
+			<tr>
+				<th>Bit</th>
+				<th>BLTCON0</th>
+				<th>BLTCON1</th>
+				<th>Bit</th>
+				<th>BLTCON0</th>
+				<th>BLTCON1</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>ASH3</td>
+				<td>BSH3</td>
+				<td>15</td>
+				<td>ASH3</td>
+				<td>BSH3</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>ASH2</td>
+				<td>BSH2</td>
+				<td>14</td>
+				<td>ASH2</td>
+				<td>BSH2</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>ASH1</td>
+				<td>BSH1</td>
+				<td>13</td>
+				<td>ASH1</td>
+				<td>BSH1</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>ASH0</td>
+				<td>BSH0</td>
+				<td>12</td>
+				<td>ASH0</td>
+				<td>BSH0</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>USEA</td>
+				<td>0</td>
+				<td>11</td>
+				<td>1</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>USEB</td>
+				<td>0</td>
+				<td>10</td>
+				<td>0</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>USEC</td>
+				<td>0</td>
+				<td>09</td>
+				<td>1</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>USED</td>
+				<td>0</td>
+				<td>08</td>
+				<td>1</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>LF7</td>
+				<td>DOFF</td>
+				<td>07</td>
+				<td>LF7</td>
+				<td>DPFF</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>LF6</td>
+				<td>0</td>
+				<td>06</td>
+				<td>LF6</td>
+				<td>SIGN</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>LF5</td>
+				<td>0</td>
+				<td>05</td>
+				<td>LF5</td>
+				<td>OVF</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>LF4</td>
+				<td>EFE</td>
+				<td>04</td>
+				<td>LF4</td>
+				<td>SUD</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>LF3</td>
+				<td>IFE</td>
+				<td>03</td>
+				<td>LF3</td>
+				<td>SUL</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>LF2</td>
+				<td>FCI</td>
+				<td>02</td>
+				<td>LF2</td>
+				<td>AUL</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>LF1</td>
+				<td>DESC</td>
+				<td>01</td>
+				<td>LF1</td>
+				<td>SING</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>LF0</td>
+				<td>LINE(=0)</td>
+				<td>00</td>
+				<td>LF0</td>
+				<td>LINE(=1)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>ASH3-0</td>
+				<td>Shift value of A source</td>
+			</tr>
+			<tr>
+				<td>BSH3-0</td>
+				<td>Shift value of B source and line texture</td>
+			</tr>
+			<tr>
+				<td>USEA</td>
+				<td>Mode control bit to use source A</td>
+			</tr>
+			<tr>
+				<td>USEB</td>
+				<td>Mode control bit to use source B</td>
+			</tr>
+			<tr>
+				<td>USEC</td>
+				<td>Mode control bit to use source C</td>
+			</tr>
+			<tr>
+				<td>USED</td>
+				<td>Mode control bit to use destination D</td>
+			</tr>
+			<tr>
+				<td>LF7-0</td>
+				<td>Logic function minterm select lines</td>
+			</tr>
+			<tr>
+				<td>EFE</td>
+				<td>Exclusive fill enable</td>
+			</tr>
+			<tr>
+				<td>IFE</td>
+				<td>Inclusive fill enable</td>
+			</tr>
+			<tr>
+				<td>FCI</td>
+				<td>Fill carry input</td>
+			</tr>
+			<tr>
+				<td>DESC</td>
+				<td>Descending (dec address) control bit</td>
+			</tr>
+			<tr>
+				<td>LINE</td>
+				<td>Line mode control bit</td>
+			</tr>
+			<tr>
+				<td>SIGN</td>
+				<td>Line draw sign flag</td>
+			</tr>
+			<tr>
+				<td>OVF</td>
+				<td>Line/draw r/l word overflow flag</td>
+			</tr>
+			<tr>
+				<td>SUD</td>
+				<td>Line draw, Sometimes up or down (=AUD)</td>
+			</tr>
+			<tr>
+				<td>SUL</td>
+				<td>Line draw, Sometimes up or left</td>
+			</tr>
+			<tr>
+				<td>AUL</td>
+				<td>Line draw, Always up or left</td>
+			</tr>
+			<tr>
+				<td>SING</td>
+				<td>Line draw, Single bit per horiz line</td>
+			</tr>
+			<tr>
+				<td>DOFF</td>
+				<td>
+					Disables the D output- for external ALUs
+					The cycle occurs normally, but the data
+					bus is tristate (hires chips only)
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="bltddat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF000</td>
+				<td>BLTDDAT</td>
+				<td>Blitter destination data register</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register holds the data resulting from each word of Blitter
+			operation until it is sent to a RAM destination. This is a dummy
+			address and cannot be read by the microprocessor. The transfer is
+			automatic during Blitter operation.
+		</p>
+		<hr size="2"/>
+		<a name="bltsize"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF058</td>
+				<td>BLTSIZE</td>
+				<td>Blitter start and size (width, height)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register contains the width and height of the blitter operation
+			(in line mode width must = 2, height = line length). Writing
+			to this register will start the Blitter, and should be done last,
+			after all pointers and control registers have been initialized.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>H9</td>
+				<td>H8</td>
+				<td>H7</td>
+				<td>H6</td>
+				<td>H5</td>
+				<td>H4</td>
+				<td>H3</td>
+				<td>H2</td>
+				<td>H1</td>
+				<td>H0</td>
+				<td>W5</td>
+				<td>W4</td>
+				<td>W3</td>
+				<td>W2</td>
+				<td>W1</td>
+				<td>W0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			H = Height = Vertical lines (10 bits = 1024 lines max)
+			W = Width = Horiz pixels (6 bits = 64 words = 1024 pixels max)
+		</p>
+		<hr size="2"/>
+		<a name="bltsizh"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF05E</td>
+				<td>BLTSIZH</td>
+				<td>Blitter horizontal size &amp; start (11 bit width)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>W10</td>
+				<td>W9</td>
+				<td>W8</td>
+				<td>W7</td>
+				<td>W6</td>
+				<td>W5</td>
+				<td>W4</td>
+				<td>W3</td>
+				<td>W2</td>
+				<td>W1</td>
+				<td>W0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="bltsizv"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF05C</td>
+				<td>BLTSIZV</td>
+				<td>Blitter vertical size (15 bit height)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>H14</td>
+				<td>H13</td>
+				<td>H12</td>
+				<td>H11</td>
+				<td>H10</td>
+				<td>H9</td>
+				<td>H8</td>
+				<td>H7</td>
+				<td>H6</td>
+				<td>H5</td>
+				<td>H4</td>
+				<td>H3</td>
+				<td>H2</td>
+				<td>H1</td>
+				<td>H0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These are the blitter size regs for blits larger than the earlier
+			chips could accept. The original commands are retained for
+			compatibility. BLTSIZV should be written first, followed by BLTSIZH,
+			which starts the blitter. BLTSIZV need not be rewritten for
+			subsequent bits if the vertical size is the same.
+			Max size of blit 32k pixels * 32k lines.
+		</p>
+		<hr size="2"/>
+		<a name="bltxdat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF070</td>
+				<td>BLTCDAT</td>
+				<td>Blitter source C data register</td>
+			</tr>
+			<tr>
+				<td>DFF072</td>
+				<td>BLTBDAT</td>
+				<td>Blitter source B data register</td>
+			</tr>
+			<tr>
+				<td>DFF074</td>
+				<td>BLTADAT</td>
+				<td>Blitter source A data register</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register hold Source x (x=A,B,C) data for use by the Blitter.
+			It is normally loaded by the Blitter DMA channel, however it may
+			also be preloaded by the microprocessor.
+		</p>
+		<hr size="2"/>
+		<a name="bltxmod"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF060</td>
+				<td>BLTCMOD</td>
+				<td>Blitter modulo for source C</td>
+			</tr>
+			<tr>
+				<td>DFF062</td>
+				<td>BLTBMOD</td>
+				<td>Blitter modulo for source B</td>
+			</tr>
+			<tr>
+				<td>DFF064</td>
+				<td>BLTAMOD</td>
+				<td>Blitter modulo for source A</td>
+			</tr>
+			<tr>
+				<td>DFF066</td>
+				<td>BLTDMOD</td>
+				<td>Blitter modulo for destination D</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register contains the Modulo for Blitter source (x=A,B,C) or
+			Dest (x=D). A modulo is a number that is automatically added to the
+			address at the end of each line, in order that the address then
+			points to the start of the next line. Each source or destination has
+			it's own Modulo, allowing each to be different in size, while an
+			identical area of each is used in the Blitter operation.
+		</p>
+		<hr size="2"/>
+		<a name="bltxpth"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF048</td>
+				<td>BLTCPTH</td>
+				<td>Blitter pointer to source C (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF04A</td>
+				<td>BLTCPTL</td>
+				<td>Blitter pointer to source C (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF04C</td>
+				<td>BLTBPTH</td>
+				<td>Blitter pointer to source B (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF04E</td>
+				<td>BLTBPTL</td>
+				<td>Blitter pointer to source B (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF050</td>
+				<td>BLTAPTH</td>
+				<td>Blitter pointer to source A (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF052</td>
+				<td>BLTAPTL</td>
+				<td>Blitter pointer to source A (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF054</td>
+				<td>BLTDPTH</td>
+				<td>Blitter pointer to destination D (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF056</td>
+				<td>BLTDPTL</td>
+				<td>Blitter pointer to destination D (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This pair of registers contains the 20 bit address of Blitter source
+			(x=A,B,C) or dest. (x=D) DMA data. This pointer must be preloaded
+			with the starting address of the data to be processed by the blitter.
+			After the Blitter is finished, it will contain the last data address
+			(plus increment and modulo).
+		</p>
+		<hr size="2"/>
+		<a name="bplcon0"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF100</td>
+				<td>BPLCON0</td>
+				<td>Bit Plane Control Register 0 (misc, control bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>HIRES</td>
+				<td>
+					HIRES = High resolution (640*200/640*400 interlace)
+					mode
+				</td>
+			</tr>
+			<tr>
+				<td>14-12</td>
+				<td>BPUx</td>
+				<td>Bit planes use</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>HAM</td>
+				<td>
+					Hold and modify mode, now using either 6 or 8 bit
+					planes.
+				</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>DPF</td>
+				<td>
+					Double playfield (PF1 = odd &amp; PF2 = even bit planes)
+					now available in all resolutions.
+					(If BPU = 6 and HAM = 0 and DPF = 0 a special mode is
+					defined that allows bitplane 6 to cause an intensity
+					reduction of the other 5 bitplanes. The color
+					register output selected by 5 bitplanes is shifted
+					to half intensity by the 6th bit plane. This is
+					called EXTRA-HALFBRITE Mode.
+				</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>COLOR</td>
+				<td>Enables color burst output signal</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>GAUD</td>
+				<td>
+					Genlock audio enable. This level appears on the ZD
+					pin on denise during all blanking periods, unless ZDCLK
+					bit is set.
+				</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>UHRES</td>
+				<td>
+					Ultrahi res enables the UHRES pointers (for 1k*1k) also
+					needs bits in DMACON (hires chips only).
+					Disables hard stops for vert, horiz display windows.
+				</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>SHRES</td>
+				<td>Super hi-res mode (35ns pixel width)</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>BYPASS=0</td>
+				<td>
+					Bit planes are scrolled and prioritized normally, but
+					bypass color table and 8 bit wide data appear on R(7:0).
+				</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>BPU3=0</td>
+				<td>See above (BPUx)</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>LPEN</td>
+				<td>Light pen enable (reset on power up)</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>LACE</td>
+				<td>Interlace enable (reset on power up)</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>ERSY</td>
+				<td>
+					External resync (HSYNC, VSYNC pads become inputs)
+					(reset on power up)
+				</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>ECSENA=0</td>
+				<td>
+					When low (default), the following bits in BPLCON3 are
+					disabled: BRDRBLNK,BRDNTRAN,ZDCLKEN,BRDSPRT, and
+					EXTBLKEN. These 5 bits can always be set by writing
+					to BPLCON3, however there effects are inhibited until
+					ECSENA goes high. This allows rapid context switching
+					between pre-ECS viewports and new ones.
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			[BEAMCON0](#beamcon0) [VTOTAL/VSSTOP](#vtotal)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="bplcon1"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF102</td>
+				<td>BPLCON1</td>
+				<td>Bit Plane Control Register (horizontal, scroll counter)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>PF2H7</td>
+				<td>(PF2Hx =) Playfield 2 horizontal scroll code, x=0-7</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>PF2H6</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>PF2H1</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>PF2H0</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>PF1H7</td>
+				<td>
+					(PF1Hx =) Playfield 1 horizontal scroll code, x=0-7
+					where PFyH0 = LSB = 35ns SHRES pixel (bits have been
+					renamed, old PFyH0 now PFyH2, etc). Now that the scroll
+					range has been quadrupled to allow for wider
+					(32 or 64 bits) bitplanes.
+				</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>PF1H6</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>PF1H1</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>PF1H0</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>PF2H5</td>
+				<td>OCS/ECS</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>PF2H4</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>PF2H3</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>PF2H2</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>PF1H5</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>PF1H4</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>PF1H3</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>PF1H2</td>
+				<td></td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="bplcon2"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF104</td>
+				<td>BPLCON2</td>
+				<td>Bit Plane Control Register (new control bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>x</td>
+				<td>don't care- but drive to 0 for upward compatibility</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>ZDBPSEL2</td>
+				<td>
+					3 bit field which selects which bitplane is to be used
+					for ZD when ZDBBPEN is set- 000 selects BB1 and 111
+					selects BP8.
+				</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>ZDBPSEL1</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>ZDBPSEL0</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>ZDBPEN</td>
+				<td>
+					Causes ZD pin to mirror bitplane selected by ZDBPSELx
+					bits. This does not disable the ZD mode defined by
+					ZDCTEN, but rather is "ored" with it.
+				</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>ZDCTEN</td>
+				<td>
+					Causes ZD pin to mirror bit #15 of the active entry in
+					high color table. When ZDCTEN is reset ZD reverts to
+					mirroring color (0).
+				</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>KILLEHB</td>
+				<td>Disables extra halfbrite mode.</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>RDRAM=0</td>
+				<td>
+					Causes color table address to read the color table
+					instead of writing to it.
+				</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>SOGEN=0</td>
+				<td>When set causes SOG output pin to go high</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>PF2PRI</td>
+				<td>Gives playfield 2 priority over playfield 1.</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>PF2P2</td>
+				<td>Playfield 2 (or single playfield) priority code (with resp. to sprites).</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>PF2P1</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>PF2P0</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>PF1P2</td>
+				<td>Playfield 1 priority code (with resp. to sprites).</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>PF1P1</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>PF1P0</td>
+				<td></td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="bplcon3"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF106</td>
+				<td>BPLCON3</td>
+				<td>Bit Plane Control Register (enhanced bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15-13</td>
+				<td>BANKx</td>
+				<td>Selects one of eight color banks, x = 0-2.</td>
+			</tr>
+			<tr>
+				<td>12-10</td>
+				<td>PF2OFx</td>
+				<td>
+					Determine bit plane color table offset when playfield 2
+					has priority in dual playfield mode :
+					
+					000 : none
+					001 : 2 (plane 2 affected)
+					010 : 4 (plane 3 affected)
+					011 : 8 (plane 3 affected) (default)
+					100 : 16 (plane 5 affected)
+					101 : 32 (plane 6 affected)
+					110 : 64 (plane 7 affected)
+					111 : 128 (plane 8 affected)
+				</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>LOCT=0</td>
+				<td>
+					Dictates that subsequent color palette values will be
+					written to a second 12-bit color palette, constituting
+					the RGB low minus order bits. Writes to the normal hi
+					minus order color palette automattically copied to the
+					low order for backwards compatibility.
+				</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>x</td>
+				<td>Don't care but drive to 0 for upward compatibility</td>
+			</tr>
+			<tr>
+				<td>07-06</td>
+				<td>SPRESx=0</td>
+				<td>
+					Determine resolution of all 8 sprites (x = 0,1):
+					00 : ECS defaults (LORES, HIRES=140ns, SHRES=70ns)
+					01 : LORES (140ns)
+					10 : HIRES (70ns)
+					11 : SHRES (35ns)
+				</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>BRDRBLNK=0</td>
+				<td>
+					"Border area" is blanked instead of color (0).
+					Disabled when ECSENA low.
+				</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>BRDNTRAN=0</td>
+				<td>
+					"Border area" is non minus transparant (ZD pin is low
+					when border is displayed). Disabled when ECSENA low.
+				</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>x</td>
+				<td>Don't care but drive to 0 for upward compatibility</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>ZDCLKEN=0</td>
+				<td>
+					ZD pin outputs a 14 MHz clock whose falling edge
+					coincides with hires (7 MHz) video data. this bit when
+					set disables all other ZD functions.
+					Disabled when ESCENA low.
+				</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>BRDSPRT=0</td>
+				<td>
+					Enables sprites outside the display window.
+					disabled when ESCENA low.
+				</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>EXTBLKEN=0</td>
+				<td>
+					Causes BLANK output to be programmable instead of
+					reflecting internal fixed decodes.
+					Disabled when ESCENA low.
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="bplcon4"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF10C</td>
+				<td>BPLCON4</td>
+				<td>Bit Plane Control Register (display masks)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15-08</td>
+				<td>BPLAMx=0</td>
+				<td>
+					This 8 bit field is XOR'ed with the 8 bit plane color
+					address, thereby altering the color address sent to the
+					color table. Default value is 00000000 binary. (x=0-7)
+				</td>
+			</tr>
+			<tr>
+				<td>07-04</td>
+				<td>ESPRMx=1</td>
+				<td>
+					4 Bit field provides the 4 high order color table address
+					bits for even sprites: SPR0,SPR2,SPR4,SPR6. Default value
+					is 0001 binary. (x=7-4)
+				</td>
+			</tr>
+			<tr>
+				<td>03-00</td>
+				<td>OSPRM7=1</td>
+				<td>
+					4 Bit field provides the 4 high order color table address
+					bits for odd sprites: SPR1,SPR3,SPR5,SPR7. Default value
+					is 0001 binary. (x=7-4)
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="bplhmod"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF07A</td>
+				<td>BPLHDAT</td>
+				<td>Ext. logic UHRES bit plane identifier</td>
+			</tr>
+			<tr>
+				<td>DFF1E6</td>
+				<td>BPLHMOD</td>
+				<td>UHRES bit plane modulo</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This is the number (sign extended) that is added to the UHRES bitplane
+			pointer ([BPLHPTx](#bplhpth)) every line, and then another 2 is added,
+			just like the other modulos.
+		</p>
+		<p>
+			[BPLHPTH/BPLHPTL](#bplhpth)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="bplhpth"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1EC</td>
+				<td>BPLHPTH</td>
+				<td>UHRES (VRAM) bit plane pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF1EE</td>
+				<td>BPLHPTL</td>
+				<td>UHRES (VRAM) bit plane pointer (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			When UHRES is enabled, this pointer comes out on the 2nd 'free' cycle
+			after the start of each horizontal line. It's modulo is added every
+			time it comes out. 'free' means priority above the copper and below
+			the fixed stuff (audio,sprites....).
+			[BPLHDAT](#bplhmod) comes out as an identifier on the RGA lines when the pointer
+			address is valid so that external detectors can use this to do the
+			special cycle for the VRAMs, The [SPRHDAT](#sprhdat) gets the first and third
+			free cycles.
+		</p>
+		<p>
+			[BPLHDAT/BPLHMOD](#bplhmod)
+			[BPLHSTRT](#bplhstrt) [SPRHPTH/SPRHPTL](#sprhpth)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="bplhstop"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1D6</td>
+				<td>BPLHSTOP</td>
+				<td>UHRES bit plane vertical stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Name</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>BPLHWRM</td>
+			</tr>
+			<tr>
+				<td>14-11</td>
+				<td>Unused</td>
+			</tr>
+			<tr>
+				<td>10-0</td>
+				<td>V10-V0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			BPLHWRM = Swaps the polarity of ARW* when the BPLHDAT comes out so
+			that external devices can detect the RGA and put things into memory
+			(ECS and later versions).
+		</p>
+		<hr size="2"/>
+		<a name="bplhstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1D4</td>
+				<td>BLTHSTRT</td>
+				<td>UHRES bit plane vertical stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This controls the line when the data fetch starts for the [BPLHPTx](#bplhpth)
+			pointers. V10-V0 on DB10-0.
+		</p>
+		<hr size="2"/>
+		<a name="bplxdat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF110</td>
+				<td>BPL1DAT</td>
+				<td>Bit plane 1 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF112</td>
+				<td>BPL2DAT</td>
+				<td>Bit plane 2 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF114</td>
+				<td>BPL3DAT</td>
+				<td>Bit plane 3 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF116</td>
+				<td>BPL4DAT</td>
+				<td>Bit plane 4 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF118</td>
+				<td>BPL5DAT</td>
+				<td>Bit plane 5 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF11A</td>
+				<td>BPL6DAT</td>
+				<td>Bit plane 6 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF11C</td>
+				<td>BPL7DAT</td>
+				<td>Bit plane 7 data (parallel to serial convert)</td>
+			</tr>
+			<tr>
+				<td>DFF11E</td>
+				<td>BPL8DAT</td>
+				<td>Bit plane 8 data (parallel to serial convert)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers receive the DMA data fetched from RAM by the bit
+			plane address pointers described above. They may also be rewritten
+			by either micro. They act as an 8 word parallel to serial buffer
+			for up to 8 memory 'bit planes'. x=1-8 the parallel to serial
+			conversion ID triggered whenever bitplane #1 is written, inducing
+			the completion of all bit planes for that word (16/32/64 pixels).
+			The MSB is output first, and is therefore always on the left.
+		</p>
+		<hr size="2"/>
+		<a name="bplxmod"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF108</td>
+				<td>BPL1MOD</td>
+				<td>Bit plane modulo (odd planes)</td>
+			</tr>
+			<tr>
+				<td>DFF10A</td>
+				<td>BPL2MOD</td>
+				<td>Bit plane modulo (even planes)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers contain the modulos for the odd and even bit planes.
+			A modulo is a number that is automatically added to the address at
+			the end of each line, in order that the address then points to the
+			start of the next line. Since they have separate modulos, the odd
+			and even bit planes may have sizes that are different from each
+			other, as well as different from the display window size.
+		</p>
+		<p>
+			If scan-doubling is enabled, BPL1MOD serves as the primary bitplane
+			modulos and BPL2MOD serves as the alternate. Lines whose LSBs of
+			beam counter and DIWSTRT match are designated primary, whereas lines
+			whose LSBs don't match are designated alternate.
+		</p>
+		<hr size="2"/>
+		<a name="bplxpth"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF0E0</td>
+				<td>BPL1PTH</td>
+				<td>Bit plane 1 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0E2</td>
+				<td>BPL1PTL</td>
+				<td>Bit plane 1 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0E4</td>
+				<td>BPL2PTH</td>
+				<td>Bit plane 2 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0E6</td>
+				<td>BPL2PTL</td>
+				<td>Bit plane 2 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0E8</td>
+				<td>BPL3PTH</td>
+				<td>Bit plane 3 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0EA</td>
+				<td>BPL3PTL</td>
+				<td>Bit plane 3 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0EC</td>
+				<td>BPL4PTH</td>
+				<td>Bit plane 4 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0EE</td>
+				<td>BPL4PTL</td>
+				<td>Bit plane 4 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0F0</td>
+				<td>BPL5PTH</td>
+				<td>Bit plane 5 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0F2</td>
+				<td>BPL5PTL</td>
+				<td>Bit plane 5 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0F4</td>
+				<td>BPL6PTH</td>
+				<td>Bit plane 6 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0F6</td>
+				<td>BPL6PTL</td>
+				<td>Bit plane 6 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0F8</td>
+				<td>BPL7PTH</td>
+				<td>Bit plane 7 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0FA</td>
+				<td>BPL7PTL</td>
+				<td>Bit plane 7 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0FC</td>
+				<td>BPL8PTH</td>
+				<td>Bit plane 8 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF0FE</td>
+				<td>BPL8PTL</td>
+				<td>Bit plane 8 pointer (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Address of bit plane DMA data. These pointers
+			must be reinitialized by the processor or coprocessor to point
+			in the beginning of bit plane date very vertical blank time.
+		</p>
+		<hr size="2"/>
+		<a name="clxcon"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF098</td>
+				<td>CLXCON</td>
+				<td>Collision control</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register controls which bitplanes are included (enabled) in
+			collision detection, and their required state if included. It also
+			controls the individual inclusion of odd numbered sprites in the
+			collision detection, by logically ORing them with their correspond-
+			ing even numbered sprite. Writing to this register resets the bits
+			in [CLXCON2](#clxcon2).
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>ENSP7</td>
+				<td>Enable Sprite 7 (ORed with Sprite 6)</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>ENSP5</td>
+				<td>Enable Sprite 5 (ORed with Sprite 4)</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>ENSP3</td>
+				<td>Enable Sprite 3 (ORed with Sprite 2)</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>ENSP1</td>
+				<td>Enable Sprite 1 (ORed with Sprite 0)</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>ENBP6</td>
+				<td>Enable bit plane 6 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>ENBP5</td>
+				<td>Enable bit plane 5 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>ENBP4</td>
+				<td>Enable bit plane 4 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>ENBP3</td>
+				<td>Enable bit plane 3 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>ENBP2</td>
+				<td>Enable bit plane 2 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>ENBP1</td>
+				<td>Enable bit plane 1 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>MVBP6</td>
+				<td>Match value for bit plane 6 collision</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>MVBP5</td>
+				<td>Match value for bit plane 5 collision</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>MVBP4</td>
+				<td>Match value for bit plane 4 collision</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>MVBP3</td>
+				<td>Match value for bit plane 3 collision</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>MVBP2</td>
+				<td>Match value for bit plane 2 collision</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>MVBP1</td>
+				<td>Match value for bit plane 1 collision</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			[CLXCON2](#clxcon2)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="clxcon2"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF10E</td>
+				<td>CLXCON2</td>
+				<td>Extended Collision Control</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This reg controls when bit planes 7 and 8 are included in collision
+			detection, and there required state if included. Contents of this
+			register are reset by a write to [CLXCON](#clxcon).
+		</p>
+		<p>
+			*BITS INITIALIZED BY RESET*
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15-08</td>
+				<td></td>
+				<td>Unused</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>ENBP8</td>
+				<td>Enable bit plane 8 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>ENBP7</td>
+				<td>Enable bit plane 7 (match reqd. for collision)</td>
+			</tr>
+			<tr>
+				<td>05-02</td>
+				<td></td>
+				<td>Unused</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>MVBP8</td>
+				<td>Match value for bit plane 8 collision</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>MVBP7</td>
+				<td>Match value for bit plane 7 collision</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<blockquote>
+			<p>
+				Note:
+				Disable bit planes cannot prevent collisions. Therefore if all
+				bitplanes are disabled, collision will be continuous, regardless
+				of the match values.
+			</p>
+		</blockquote>
+		<p>
+			[CLXCON](#clxcon)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="clxdat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF00E</td>
+				<td>CLXDAT</td>
+				<td>Collision detection register (read and clear)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This address reads (and clears) the collision detection reg.
+			The bit assignments are :
+		</p>
+		<blockquote>
+			<p>
+				Note:
+				Playfield 1 is all odd numbered enabled bit planes.
+				Playfield 2 is all even numbered enabled bit planes.
+			</p>
+		</blockquote>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Collision registered</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>Not used</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>Sprite 4 (or 5) to Sprite 6 (or 7)</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>Sprite 2 (or 3) to Sprite 6 (or 7)</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>Sprite 2 (or 3) to Sprite 4 (or 5)</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>Sprite 0 (or 1) to Sprite 6 (or 7)</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>Sprite 0 (or 1) to Sprite 4 (or 5)</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>Sprite 0 (or 1) to Sprite 2 (or 3)</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>Playfield 2 to Sprite 6 (or 7)</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>Playfield 2 to Sprite 4 (or 5)</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>Playfield 2 to Sprite 2 (or 3)</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>Playfield 2 to Sprite 0 (or 1)</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>Playfield 1 to Sprite 6 (or 7)</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>Playfield 1 to Sprite 4 (or 5)</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>Playfield 1 to Sprite 2 (or 3)</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>Playfield 1 to Sprite 0 (or 1)</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>Playfield 1 to Playfield 2</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="colorxx"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF180</td>
+				<td>COLOR00</td>
+				<td>Color table 0</td>
+			</tr>
+			<tr>
+				<td>DFF182</td>
+				<td>COLOR01</td>
+				<td>Color table 1</td>
+			</tr>
+			<tr>
+				<td>DFF184</td>
+				<td>COLOR02</td>
+				<td>Color table 2</td>
+			</tr>
+			<tr>
+				<td>DFF186</td>
+				<td>COLOR03</td>
+				<td>Color table 3</td>
+			</tr>
+			<tr>
+				<td>DFF188</td>
+				<td>COLOR04</td>
+				<td>Color table 4</td>
+			</tr>
+			<tr>
+				<td>DFF18A</td>
+				<td>COLOR05</td>
+				<td>Color table 5</td>
+			</tr>
+			<tr>
+				<td>DFF18C</td>
+				<td>COLOR06</td>
+				<td>Color table 6</td>
+			</tr>
+			<tr>
+				<td>DFF18E</td>
+				<td>COLOR07</td>
+				<td>Color table 7</td>
+			</tr>
+			<tr>
+				<td>DFF190</td>
+				<td>COLOR08</td>
+				<td>Color table 8</td>
+			</tr>
+			<tr>
+				<td>DFF192</td>
+				<td>COLOR09</td>
+				<td>Color table 9</td>
+			</tr>
+			<tr>
+				<td>DFF194</td>
+				<td>COLOR10</td>
+				<td>Color table 10</td>
+			</tr>
+			<tr>
+				<td>DFF196</td>
+				<td>COLOR11</td>
+				<td>Color table 11</td>
+			</tr>
+			<tr>
+				<td>DFF198</td>
+				<td>COLOR12</td>
+				<td>Color table 12</td>
+			</tr>
+			<tr>
+				<td>DFF19A</td>
+				<td>COLOR13</td>
+				<td>Color table 13</td>
+			</tr>
+			<tr>
+				<td>DFF19C</td>
+				<td>COLOR14</td>
+				<td>Color table 14</td>
+			</tr>
+			<tr>
+				<td>DFF19E</td>
+				<td>COLOR15</td>
+				<td>Color table 15</td>
+			</tr>
+			<tr>
+				<td>DFF1A0</td>
+				<td>COLOR16</td>
+				<td>Color table 16</td>
+			</tr>
+			<tr>
+				<td>DFF1A2</td>
+				<td>COLOR17</td>
+				<td>Color table 17</td>
+			</tr>
+			<tr>
+				<td>DFF1A4</td>
+				<td>COLOR18</td>
+				<td>Color table 18</td>
+			</tr>
+			<tr>
+				<td>DFF1A6</td>
+				<td>COLOR19</td>
+				<td>Color table 19</td>
+			</tr>
+			<tr>
+				<td>DFF1A8</td>
+				<td>COLOR20</td>
+				<td>Color table 20</td>
+			</tr>
+			<tr>
+				<td>DFF1AA</td>
+				<td>COLOR21</td>
+				<td>Color table 21</td>
+			</tr>
+			<tr>
+				<td>DFF1AC</td>
+				<td>COLOR22</td>
+				<td>Color table 22</td>
+			</tr>
+			<tr>
+				<td>DFF1AE</td>
+				<td>COLOR23</td>
+				<td>Color table 23</td>
+			</tr>
+			<tr>
+				<td>DFF1B0</td>
+				<td>COLOR24</td>
+				<td>Color table 24</td>
+			</tr>
+			<tr>
+				<td>DFF1B2</td>
+				<td>COLOR25</td>
+				<td>Color table 25</td>
+			</tr>
+			<tr>
+				<td>DFF1B4</td>
+				<td>COLOR26</td>
+				<td>Color table 26</td>
+			</tr>
+			<tr>
+				<td>DFF1B6</td>
+				<td>COLOR27</td>
+				<td>Color table 27</td>
+			</tr>
+			<tr>
+				<td>DFF1B8</td>
+				<td>COLOR28</td>
+				<td>Color table 28</td>
+			</tr>
+			<tr>
+				<td>DFF1BA</td>
+				<td>COLOR29</td>
+				<td>Color table 29</td>
+			</tr>
+			<tr>
+				<td>DFF1BC</td>
+				<td>COLOR30</td>
+				<td>Color table 30</td>
+			</tr>
+			<tr>
+				<td>DFF1BE</td>
+				<td>COLOR31</td>
+				<td>Color table 31</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			There are 32 of these registers (xx = 00-31) and together with the banking
+			bits they address the 256 locations in the color palette. There are
+			actually two sets of color regs, selection of which is controlled by
+			the LOCT reg bit. When LOCT = 0 the 4 MSB of red, green and blue
+			video data are selected along with the T bit for genlocks the low
+			order set of registers is also selected as well, so that the 4 bits-
+			values are automatically extended to 8 bits.This provides
+			compatibility with old software. If the full range of palette values
+			are desired, then LOCT can be set high and independent values for
+			the 4 LSB of red, green and blue can be written. The low order
+			color registers do not contain a transparency (T) bit.
+		</p>
+		<p>
+			The table below shows the color register bit usage.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td>LOCT=0</td>
+				<td>T</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>R7</td>
+				<td>R6</td>
+				<td>R5</td>
+				<td>R4</td>
+				<td>G7</td>
+				<td>G6</td>
+				<td>G5</td>
+				<td>G4</td>
+				<td>B7</td>
+				<td>B6</td>
+				<td>B5</td>
+				<td>B4</td>
+			</tr>
+			<tr>
+				<td>LOCT=1</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>R3</td>
+				<td>R2</td>
+				<td>R1</td>
+				<td>R0</td>
+				<td>G3</td>
+				<td>G2</td>
+				<td>G1</td>
+				<td>G0</td>
+				<td>B3</td>
+				<td>B2</td>
+				<td>B1</td>
+				<td>B0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			T = TRANSPARENCY,
+			R = RED,
+			G = GREEN,
+			B = BLUE
+		</p>
+		<p>
+			T bit of COLOR00 thru COLOR31 sets ZD_pin HI, When that color is
+			selected in all video modes.
+		</p>
+		<hr size="2"/>
+		<a name="cop1lch"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF080</td>
+				<td>COP1LCH</td>
+				<td>Coprocessor first location register (high 5 bits (OCS: 3 bits))</td>
+			</tr>
+			<tr>
+				<td>DFF082</td>
+				<td>COP1LCL</td>
+				<td>Coprocessor first location register (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers contain a jump address.
+			See [COPINS](#copins) for a complete description.
+		</p>
+		<hr size="2"/>
+		<a name="cop2lch"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF084</td>
+				<td>COP2LCH</td>
+				<td>Coprocessor second location register (high 5 bits (OCS: 3 bits))</td>
+			</tr>
+			<tr>
+				<td>DFF086</td>
+				<td>COP2LCL</td>
+				<td>Coprocessor second location register (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers contain a jump address.
+			See [COPINS](#copins) for a complete description.
+		</p>
+		<hr size="2"/>
+		<a name="copcon"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF02E</td>
+				<td>COPCON</td>
+				<td>Coprocessor control register</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This is a-1 bit register that when set true, allows the coprocessor
+			to access the blitter hardware. This bit is cleared power on reset,
+			so that the coprocessor cannot access the blitter hardware.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>BIT#</th>
+				<th>NAME</th>
+				<th>FUNCTION</th>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>CDANG</td>
+				<td>
+					Coprocessor danger mode. Allows coprocessor
+					access to all RGA registers if true.
+					(if 0, access to RGA&gt;DFF07E)
+					(On old chips access to only RGA&gt;DFF03E if CDANG=1)
+					(see VPOSR)
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="copins"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF08C</td>
+				<td>COPINS</td>
+				<td>Coprocessor instruction fetch identity</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This is a dummy address that is generated by the coprocessor whenever
+			it is loading instructions into its own instruction register.
+			This actually occurs every coprocessor cycle except for the second
+			(IR2) cycle of the MOVE instruction. The three types of instructions
+			are shown below.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>MOVE</th>
+				<td>Move immediate to dest</td>
+			</tr>
+			<tr>
+				<th>WAIT</th>
+				<td>
+					Wait until beam counter is equal to, or greater than.
+					(Keeps coprocessor off of bus until beam position has
+					been reached)
+				</td>
+			</tr>
+			<tr>
+				<th>SKIP</th>
+				<td>
+					Skip if beam counter is equal to, or greater than.
+					(Skips following MOVE inst. unless beam position has been
+					reached)
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<td></td>
+				<th>MOVE</th>
+				<th></th>
+				<th>WAIT</th>
+				<th>UNTIL</th>
+				<th>SKIP</th>
+				<th>IF</th>
+			</tr>
+			<tr>
+				<th>Bit</th>
+				<th>IR1</th>
+				<th>IR2</th>
+				<th>IR1</th>
+				<th>IR2</th>
+				<th>IR1</th>
+				<th>IR2</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>0</td>
+				<td>RD15</td>
+				<td>VP7</td>
+				<td>BFD</td>
+				<td>VP7</td>
+				<td>BFD</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>0</td>
+				<td>RD14</td>
+				<td>VP6</td>
+				<td>VE6</td>
+				<td>VP6</td>
+				<td>VE6</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>0</td>
+				<td>RD13</td>
+				<td>VP5</td>
+				<td>VE5</td>
+				<td>VP5</td>
+				<td>VE5</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>0</td>
+				<td>RD12</td>
+				<td>VP4</td>
+				<td>VE4</td>
+				<td>VP4</td>
+				<td>VE4</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>0</td>
+				<td>RD11</td>
+				<td>VP3</td>
+				<td>VE3</td>
+				<td>VP3</td>
+				<td>VE3</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>0</td>
+				<td>RD10</td>
+				<td>VP2</td>
+				<td>VE2</td>
+				<td>VP2</td>
+				<td>VE2</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>0</td>
+				<td>RD09</td>
+				<td>VP1</td>
+				<td>VE1</td>
+				<td>VP1</td>
+				<td>VE1</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>DA8</td>
+				<td>RD08</td>
+				<td>VP0</td>
+				<td>VE0</td>
+				<td>VP0</td>
+				<td>VE0</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>DA7</td>
+				<td>RD07</td>
+				<td>HP8</td>
+				<td>HE8</td>
+				<td>HP8</td>
+				<td>HE8</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>DA6</td>
+				<td>RD06</td>
+				<td>HP7</td>
+				<td>HE7</td>
+				<td>HP7</td>
+				<td>HE7</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>DA5</td>
+				<td>RD05</td>
+				<td>HP6</td>
+				<td>HE6</td>
+				<td>HP6</td>
+				<td>HE6</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>DA4</td>
+				<td>RD04</td>
+				<td>HP5</td>
+				<td>HE5</td>
+				<td>HP5</td>
+				<td>HE5</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>DA3</td>
+				<td>RD03</td>
+				<td>HP4</td>
+				<td>HE4</td>
+				<td>HP4</td>
+				<td>HE4</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>DA2</td>
+				<td>RD02</td>
+				<td>HP3</td>
+				<td>HE3</td>
+				<td>HP3</td>
+				<td>HE3</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>DA1</td>
+				<td>RD01</td>
+				<td>HP2</td>
+				<td>HE2</td>
+				<td>HP2</td>
+				<td>HE2</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>0</td>
+				<td>RD00</td>
+				<td>1</td>
+				<td>0</td>
+				<td>1</td>
+				<td>1</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>IR1</th>
+				<td>First instruction register</td>
+			</tr>
+			<tr>
+				<th>IR2</th>
+				<td>Second instruction register</td>
+			</tr>
+			<tr>
+				<th>DA</th>
+				<td>
+					Destination address for MOVE instruction.Fetched during
+					IR1 time,used during IR2 time on RGA bus
+				</td>
+			</tr>
+			<tr>
+				<th>RD</th>
+				<td>
+					RAM Data moved by MOVE instruction at IR2 time
+					directly from RAM to the address given by the DA field
+				</td>
+			</tr>
+			<tr>
+				<th>VP</th>
+				<td>Vertical beam position comparison bit</td>
+			</tr>
+			<tr>
+				<th>HP</th>
+				<td>Horizontal beam position comparison bit</td>
+			</tr>
+			<tr>
+				<th>VE</th>
+				<td>Enable comparison (mask bit)</td>
+			</tr>
+			<tr>
+				<th>HE</th>
+				<td>Enable comparison (mask bit)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<blockquote>
+			<p>
+				Note:
+				BFD = Blitter finished disable. When this bit is true, the blitter
+				finished flag will have no effect on the coprocessor. When this
+				bit is zero the blitter finished flag must be true (in addition
+				to the rest of the bit comparisons) before the coprocessor can
+				exit from its wait state, or skip over an instruction. Note
+				that the V7 comparison cannot be masked.
+			</p>
+		</blockquote>
+		<p>
+			The coprocessor is basically a 2 cycle machine that requests
+			the bus only during odd memory cycles. (4 memory cycles per in)
+		</p>
+		<p>
+			It has priority over the blitter and microprocessor.
+		</p>
+		<p>
+			There are only three types of instructions, MOVE immediate,
+			WAIT UNTIL, and SKIP IF. All instructions require 2 bus cycles
+			(and two instruction words). Since only the odd bus cycles are
+			requested, 4 memory cycle times are required per instruction.
+			(memory cycles are 280 ns).
+		</p>
+		<p>
+			There are two indirect jump registers COP1LC and COP2LC.
+			These are 20 bit pointer registers whose contents are used to modify
+			program counter for initialization or jumps.
+		</p>
+		<p>
+			They are transfered to the program counter whenever strobe address
+			COPJMP1 or COPJMP2 are written. In addition COP1LC is automatically
+			used at the beginning of each vertical blank time.
+		</p>
+		<p>
+			It is important that one of the jump registers be initialized and its
+			jump strobe address hit, after power up but before coprocessor DMA is
+			initialized. This insures a determined startup address, and state.
+		</p>
+		<p>
+			[COP1LCH/COP1LCL](#cop1lch)
+			[COP2LCH/COP2LCL](#cop2lch)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="copjmp"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF088</td>
+				<td>COPJMP1</td>
+				<td>Coprocessor restart at first location</td>
+			</tr>
+			<tr>
+				<td>DFF08A</td>
+				<td>COPJMP2</td>
+				<td>Coprocessor restart at second location</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These address are strobe address, that when written to cause the
+			coprocessor to jump indirect using the address contained in the
+			first or second location regs described below. The coprocessor itself
+			can write to these address, causing its own jump indirect.
+		</p>
+		<hr size="2"/>
+		<a name="ddfstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF092</td>
+				<td>DDFSTRT</td>
+				<td>Display data fetch start (horizontal position)</td>
+			</tr>
+			<tr>
+				<td>DFF094</td>
+				<td>DDFSTOP</td>
+				<td>Display data fetch stop (horizontal position)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers control the horizontal timing of the beginning and
+			end of the bit plane DMA timing display data fetch. The vertical bit
+			plane DMA timing is identical to the display windows described in the
+			DIWSTRT/DIWSTOP docs.
+			The bit plane Modulos are dependent on the bit plane horizontal size,
+			and on this data fetch window size.
+			They are stored in Agnus.
+		</p>
+		<p>
+			Register bit assignment :
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>H8</td>
+				<td>H7</td>
+				<td>H6</td>
+				<td>H5</td>
+				<td>H4</td>
+				<td>H3</td>
+				<td>H2</td>
+				<td>0</td>
+			</tr>
+		</tbody></table>
+		<p>
+			Units are 280 ns color clocks = 2 lores pixels
+			OCS only uses bits 7:2 (bit 1 is ignored). All other bits are unused.
+		</p>
+		<br/>
+		<p>
+			The tables below show the start and stop timing for different register contents
+		</p>
+		<p>
+			DDFSTRT (Left edge of display data fetch) :
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>PURPOSE</th>
+				<th>H8</th>
+				<th>H7</th>
+				<th>H6</th>
+				<th>H5</th>
+				<th>H4</th>
+			</tr>
+			<tr>
+				<td>Extra wide (max)</td>
+				<td>0</td>
+				<td>0</td>
+				<td>1</td>
+				<td>0</td>
+				<td>1</td>
+			</tr>
+			<tr>
+				<td>wide</td>
+				<td>0</td>
+				<td>0</td>
+				<td>1</td>
+				<td>1</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>normal</td>
+				<td>0</td>
+				<td>0</td>
+				<td>1</td>
+				<td>1</td>
+				<td>1</td>
+			</tr>
+			<tr>
+				<td>narrow</td>
+				<td>0</td>
+				<td>1</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+			</tr>
+		</tbody></table>
+		<p>
+			Normal low resolution DDFSTRT: 0038 (same for PAL and NTSC)
+			Normal high resolution DDFSTRT: 003C (same for PAL and NTSC)
+			Minimum DDFSTRT is 0018
+		</p>
+		<br/>
+		<p>
+			DDFSTOP (Right edge of display data fetch) :
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>PURPOSE</th>
+				<th>H8</th>
+				<th>H7</th>
+				<th>H6</th>
+				<th>H5</th>
+				<th>H4</th>
+			</tr>
+			<tr>
+				<td>narrow</td>
+				<td>1</td>
+				<td>1</td>
+				<td>0</td>
+				<td>0</td>
+				<td>1</td>
+			</tr>
+			<tr>
+				<td>normal</td>
+				<td>1</td>
+				<td>1</td>
+				<td>0</td>
+				<td>1</td>
+				<td>0</td>
+			</tr>
+			<tr>
+				<td>wide (max)</td>
+				<td>1</td>
+				<td>1</td>
+				<td>0</td>
+				<td>1</td>
+				<td>1</td>
+			</tr>
+		</tbody></table>
+		<p>
+			Normal low resolution DDFSTOP: 00D0 (same for PAL and NTSC)
+			Normal high resolution DDFSTOP: 00D4 (same for PAL and NTSC)
+			Maximum DDFSTOP: 00D8
+		</p>
+		<br/>
+		<p>
+			Note that these numbers will vary with variable beam counter mode
+			set: (The maxes and mins, that is).
+		</p>
+		<p>
+			The lores bitplane fetch period is 8 CCKs in order: 8, 4, 6, 2, 7, 3, 5, 1 (7 and 8 are unused on OCS).
+			Two lores pixels are output per CCK.
+			One word (16-bits) fetched per CCK, so 16 pixels fetched for each bitplane each period\n"
+		</p>
+		<p>
+			The hires bitplane fetch period is also 8 CCKs during which each bitplane is fetched twice: 4, 2, 3, 1, 4, 2, 3, 1
+			Four hires pixels are output per CCK.
+			One word (16-bits) fetched per CCK, so 32 pixels fetched for each bitplane each period\n"
+		</p>
+		<p>
+			The DMA cycle values encoded are the adjusted values from the Hardware Reference Manual Figure 6-11 Time Slot Allocation. The true DMA slot value = (DDFSTOP/DDFSTART value &amp; mask) + 4 where mask is $FC for OCS and $FE for ECS/AGA and +4 to undo Hardware Reference Manual timing slot diagram adjustment.
+		</p>
+		<p>
+			DDFSTRT encodes the first bitplane fetch period start DMA slot. 
+			This is the first DMA cycle at which a complete bitplane fetch period (up to 8 lores bitplanes) will commence.
+			First bitplane fetch period start DMA slot = (DDFSTRT &amp; mask) + 4
+			For example: for "normal" DDFSTRT 0038, First bitplane fetch period start = ($38 &amp; FC) + 4 = 3C CCK (OCS)
+			Fetches start at DDFSTRT, no matter what.
+		</p>
+		<p>
+			DDFSTOP encodes the final bitplane fetch period start DMA slot.
+			This is the final DMA cycle at which a complete bitplane fetch period (up to 8 lores bitplanes) will commence.
+			Final bitplane fetch period start DMA slot = (DDFSTOP) &amp; mask) + 4
+			For example: for "normal" DDFSTOP 00D0, final bitplane fetch period start = ($D0 &amp; FC) + 4 = D4 CCK (OCS). The final DMA fetch slot is DB (BPL1DAT is fetched last)
+			Hardware data fetch stop to prevent bitplane data fetch overlapping memory refresh or disk DMA cycles: Final bitplane fetch period start slot is clamped to $D8 + 4
+			The fetch stopping condition is evaulated when a bitplane fetch period (8 CCKs) completes.
+			When DDFSTOP matches, one final period (8 CCKs) of bitplane data is fetched.
+		</p>
+		<p>
+			[DIWSTRT/DIWSTOP](#diwstrt)
+		</p>
+		<hr size="2"/>
+		<a name="deniseid"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF07C</td>
+				<td>DENISEID</td>
+				<td>Denise/Lisa (video out chip) revision level</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			The original Denise (8362) does not have this register, so whatever
+			value is left over on the bus from the last cycle will be there.
+			ECS Denise (8373) returns hex (fc) in the lower 8 bits.Lisa returns
+			hex (f8). The upper 8 bits of this Register are loaded from the
+			serial mouse bus, and are reserved for future hardware implentation.
+		</p>
+		<p>
+			The 8 low-order bits are encoded as follows :
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>7-4</td>
+				<td>
+					Lisa/Denise/ECS Denise Revision level(decrement to
+					bump revision level, hex F represents 0th rev. level).
+				</td>
+			</tr>
+			<tr>
+				<td>3</td>
+				<td>Maintain as a 1 for future generation</td>
+			</tr>
+			<tr>
+				<td>2</td>
+				<td>When low indicates AA feature set (LISA)</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>When low indicates ECS feature set (LISA or ECS DENISE)</td>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>Maintain as a 1 for future generation</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			A proposed way to detect chip's revision through hardware poking :
+		</p>
+		<blockquote>
+			<pre>is_AGA:
+    move.w 0xdff07c,d0    
+    moveq  #31-1,d2
+    and.w  #0xff,d0
+check_loop:
+    move.w 0xdff07C,d1
+    and.w  #0xff,d1
+    cmp.b  d0,d1
+    bne.b  not_AGA
+    dbf    d2,check_loop
+    or.b   #0xf0,d0
+    cmp.b  #0xf8,d0
+    bne.b  not_AGA
+    moveq  #1,d0
+    rts
+not_AGA:
+    moveq  #0,d0
+    rts
+			</pre>
+		</blockquote>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="diwhigh"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1E4</td>
+				<td>DIWHIGH</td>
+				<td>Display window upper bits for start, stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This is an added register for Hires chips, and allows larger start
+			&amp; stop ranges. If it is not written, ([DIWSTRT](#diwstrt), [DIWSTOP](#diwstrt))
+			description holds. If this register is written, direct start &amp; stop
+			positions anywhere on the screen. It doesn't affect the UHRES
+			pointers.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>0</td>
+				<td>H10</td>
+				<td>H1</td>
+				<td>H0</td>
+				<td>V10</td>
+				<td>V9</td>
+				<td>V8</td>
+				<td>0</td>
+				<td>0</td>
+				<td>H10</td>
+				<td>H1</td>
+				<td>H0</td>
+				<td>V10</td>
+				<td>V9</td>
+				<td>V8</td>
+			</tr>
+			<tr>
+				<td></td>
+				<td>(stop)</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td>(start)</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			H1 and H0 values define 70ns and 35ns increments respectively, and new LISA bits.
+		</p>
+		<blockquote>
+			<p>
+				Note:
+				In all 3 display window registers, horizontal bit positions have been
+				renamed to reflect HIRES pixel increments, e.g. what used to be
+				called H0 is now referred to as H2.
+			</p>
+		</blockquote>
+		<p>
+			[DIWSTRT/DIWSTOP](#diwstrt)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="diwstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF08E</td>
+				<td>DIWSTRT</td>
+				<td>Display window start (upper left vertical-horizontal position)</td>
+			</tr>
+			<tr>
+				<td>DFF090</td>
+				<td>DIWSTOP</td>
+				<td>Display window stop (lower right vertical-horizontal position)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers control the display window size and position,
+			by locating the upper left and lower right corners.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>V7</td>
+				<td>V6</td>
+				<td>V5</td>
+				<td>V4</td>
+				<td>V3</td>
+				<td>V2</td>
+				<td>V1</td>
+				<td>V0</td>
+				<td>H7</td>
+				<td>H6</td>
+				<td>H5</td>
+				<td>H4</td>
+				<td>H3</td>
+				<td>H2</td>
+				<td>H1</td>
+				<td>H0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Bits 15-8 - VSTART (V7-V0)
+			Bits 7-0 - HSTART (H7-H0)
+		</p>
+		<p>
+			HSTART is measured in lowres 140ns (7 MHz) system clock cycles, not 280ns colour clock cycles.
+		</p>
+		<p>
+			DIWSTRT is vertically restricted to the upper 2/3 of the display (V8=0),
+			and horizontally restricted to the left 3/4 of the display (H8=0).
+		</p>
+		<p>
+			See [DIWHIGH](#diwhigh) for exceptions.
+		</p>
+		<p>
+			[DIWHIGH](#diwhigh)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="dmaconr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF002</td>
+				<td>DMACONR</td>
+				<td>DMA Control (and blitter status) read</td>
+			</tr>
+			<tr>
+				<td>DFF096</td>
+				<td>DMACON</td>
+				<td>DMA Control write (clear or set)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register controls all of the DMA channels, and contains
+			blitter DMA status bits.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>SET/CLR</td>
+				<td>
+					Set/Clear control bit. Determines if bits
+					written with a 1 get set or cleared
+					Bits written with a zero are unchanged
+				</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>BBUSY</td>
+				<td>Blitter busy status bit (read only)</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>BZERO</td>
+				<td>Blitter logic zero status bit (read only)</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>X</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>X</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>BLTPRI</td>
+				<td>
+					Blitter DMA priority (over CPU micro)
+					(also called "blitter nasty")
+					(disables /BLS pin, preventing micro
+					from stealing any bus cycles while
+					blitter DMA is running)
+				</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>DMAEN</td>
+				<td>Enable all DMA below (also UHRES DMA)</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>BPLEN</td>
+				<td>Bit plane DMA enable</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>COPEN</td>
+				<td>Coprocessor DMA enable</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>BLTEN</td>
+				<td>Blitter DMA enable</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>SPREN</td>
+				<td>Sprite DMA enable</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>DSKEN</td>
+				<td>Disk DMA enable</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>AUD3EN</td>
+				<td>Audio channel 3 DMA enable</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>AUD2EN</td>
+				<td>Audio channel 2 DMA enable</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>AUD1EN</td>
+				<td>Audio channel 1 DMA enable</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>AUD0EN</td>
+				<td>Audio channel 0 DMA enable</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="dskbytr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF01A</td>
+				<td>DSKBYTR</td>
+				<td>Disk data byte and status read</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register is the Disk-Microprocessor data buffer. Data from the
+			disk (in read mode) is loaded into this register one byte at a time,
+			and bit 15 (DSKBYT) is set true.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>DSKBYT</td>
+				<td>Disk byte ready (reset on read)</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>DMAON</td>
+				<td>DMAEN (DSKLEN) &amp; DMAEN (DMACON) &amp; DSKEN (DMACON)</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>DISKWRITE</td>
+				<td>Mirror of bit 14 (WRITE) in DSKLEN</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>WORDEQUAL</td>
+				<td>
+					This bit true only while DSKSYNC register
+					equals the data from disk
+				</td>
+			</tr>
+			<tr>
+				<td>11-08</td>
+				<td>0</td>
+				<td>Not used</td>
+			</tr>
+			<tr>
+				<td>07-00</td>
+				<td>DATA</td>
+				<td>Disk byte data</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="dskdatr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF008</td>
+				<td>DSKDATR</td>
+				<td>Disk DMA data read (early read dummy address)</td>
+			</tr>
+			<tr>
+				<td>DFF026</td>
+				<td>DSKDAT</td>
+				<td>Disk DMA data write</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register is the disk-DMA data buffer.It contains 2 bytes of data
+			that are either sent to (write) or received from (read) the disk. The
+			DMA controller automatically transfers data to or from this register
+			and RAM, and when the DMA data is finished (length=0) it causes
+			a disk block interrupt.
+		</p>
+		<hr size="2"/>
+		<a name="dsklen"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF024</td>
+				<td>DSKLEN</td>
+				<td>Disk length</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>DMAEN</td>
+				<td>Disk DMA enable</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>WRITE</td>
+				<td>Disk write (RAM or disk) if 1</td>
+			</tr>
+			<tr>
+				<td>13-0</td>
+				<td>LENGTH</td>
+				<td>Length (# of words) of DMA data.</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="dskpth"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF020</td>
+				<td>DSKPTH</td>
+				<td>Disk Pointer (high 5 bits (OCS: 3 bits))</td>
+			</tr>
+			<tr>
+				<td>DFF022</td>
+				<td>DSKPTL</td>
+				<td>Disk Pointer (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This pair of registers contains the 20 bit address of disk DMA data.
+			These address registers must be initialized by the processor or
+			coprocessor before disk DMA is enabled.
+		</p>
+		<hr size="2"/>
+		<a name="dsksync"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF07E</td>
+				<td>DSKSYNC</td>
+				<td>
+					Disk sync register, the match code for disk read synchronization
+					See ADKCON bit 10
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="fmode"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1FC</td>
+				<td>FMODE</td>
+				<td>Memory Fetch Mode</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register controls the fetch mechanism for different
+			types of Chip RAM accesses:
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>SSCAN2</td>
+				<td>Global enable for sprite scan-doubling.</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>BSCAN2</td>
+				<td>
+					Enables the use of 2nd P/F modulus on an
+					alternate line basis to support bitplane
+					scan-doubling.
+				</td>
+			</tr>
+			<tr>
+				<td>13-04</td>
+				<td>Unused</td>
+				<td></td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>SPAGEM</td>
+				<td>Sprite page mode (double CAS)</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>SPR32</td>
+				<td>Sprite 32 bit wide mode</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>BPAGEM</td>
+				<td>Bitplane Page Mode (double CAS)</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>BLP32</td>
+				<td>Bitplane 32 bit wide mode</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>BPAGEM</th>
+				<th>BPL32</th>
+				<th>Bitplane Fetch</th>
+				<th>Increment</th>
+				<th>Memory Cycle</th>
+				<th>Bus Width</th>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>0</td>
+				<td>By 2 bytes</td>
+				<td>(as before)</td>
+				<td>normal CAS</td>
+				<td>16</td>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>1</td>
+				<td>By 4 bytes</td>
+				<td></td>
+				<td>normal CAS</td>
+				<td>32</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>0</td>
+				<td>By 4 bytes</td>
+				<td></td>
+				<td>double CAS</td>
+				<td>16</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>1</td>
+				<td>By 8 bytes</td>
+				<td></td>
+				<td>double CAS</td>
+				<td>32</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>SPAGEM</th>
+				<th>SPR32</th>
+				<th>Sprite Fetch</th>
+				<th>Increment</th>
+				<th>Memory Cycle</th>
+				<th>Bus Width</th>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>0</td>
+				<td>By 2 bytes</td>
+				<td>(as before)</td>
+				<td>normal CAS</td>
+				<td>16</td>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>1</td>
+				<td>By 4 bytes</td>
+				<td></td>
+				<td>normal CAS</td>
+				<td>32</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>0</td>
+				<td>By 4 bytes</td>
+				<td></td>
+				<td>double CAS</td>
+				<td>16</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>1</td>
+				<td>By 8 bytes</td>
+				<td></td>
+				<td>double CAS</td>
+				<td>32</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="hbstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1C4</td>
+				<td>HBSTRT</td>
+				<td>Horizontal START position</td>
+			</tr>
+			<tr>
+				<td>DFF1C6</td>
+				<td>HBSTOP</td>
+				<td>Horizontal STOP position</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Bits 7-0 contain the stop and start positions, respectively,
+			for programmed horizontal blanking in 280ns increments.
+			Bits 10-8 provide a fine position control in 35ns increments.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15-11</td>
+				<td>0</td>
+				<td>Unused</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>H1</td>
+				<td>140ns</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>H1</td>
+				<td>70ns</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>H0</td>
+				<td>35ns</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>H10</td>
+				<td>35840ns</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>H9</td>
+				<td>17920ns</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>H8</td>
+				<td>8960ns</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>H7</td>
+				<td>4480ns</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>H6</td>
+				<td>2240ns</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>H5</td>
+				<td>1120ns</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>H4</td>
+				<td>560ns</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>H3</td>
+				<td>280ns</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			[BEAMCON0](#beamcon0) [HHPOSW/HHPOSR](#hhposw)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="hcenter"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1E2</td>
+				<td>HCENTER</td>
+				<td>Horizontal position (CCKs) of VSYNC on long field</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This is necessary for interlace mode with variable beam counters.
+			See [BEAMCON0](#beamcon0) for when it affects chip outputs.
+			See [HTOTAL](#htotal) for bits.
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="hhposw"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1D8</td>
+				<td>HHPOSW</td>
+				<td>DUAL mode hires Hbeam counter write</td>
+			</tr>
+			<tr>
+				<td>DFF1DA</td>
+				<td>HHPOSR</td>
+				<td>DUAL mode hires Hbeam counter read</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This the secondary beam counter for the faster mode, triggering the
+			UHRES pointers &amp; doing the comparisons for [HBSTRT](#hbstrt),
+			[HBSTOP](#hbstrt), [HTOTAL](#htotal), [HSSTRT](#hsstrt), [HSSTOP](#hsstop) (See [HTOTAL](#htotal) for bits)
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="hsstop"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1C2</td>
+				<td>HSSTOP</td>
+				<td>Horizontal line position for SYNC stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Sets # of colour clocks for sync stop ([HTOTAL](#htotal) for bits).
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0) [HHPOSW/HHPOSR](#hhposw)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="hsstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1DE</td>
+				<td>HSSTRT</td>
+				<td>Horiz line position for HSYNC stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Set # of colour clocks for sync start ([HTOTAL](#htotal) for bits)
+			See [BEAMCON0](#beamcon0) for details of when these 2 are active.
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+			[HHPOSW/HHPOSR](#hhposw)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="htotal"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1C0</td>
+				<td>HTOTAL</td>
+				<td>Highest colour clock count in horizontal line</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>H8</td>
+				<td>H7</td>
+				<td>H6</td>
+				<td>H5</td>
+				<td>H4</td>
+				<td>H3</td>
+				<td>H2</td>
+				<td>H1</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Horizontal line has these many + 1280nS increments. If the pal bit &amp;
+			LOLDIS are not high, long line/short line toggle will occur, and
+			there will be this many +2 every other line.
+			Active if VARBEAMEN=1 or DUAL+1.
+		</p>
+		<p>
+			[Hcenter](#hcenter)
+			[HHPOSW/HHPOSR](#hhposw)
+			[HSSTOP](#hsstop)
+			[HSSTRT](#hsstrt)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="intenar"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF01C</td>
+				<td>INTENAR</td>
+				<td>Interrupt enable bits (read)</td>
+			</tr>
+			<tr>
+				<td>DFF09A</td>
+				<td>INTENA</td>
+				<td>Interrupt enable bits (clear or set bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register contains interrupt enable bits. The bit assignment for
+			both the request, and enable registers is given below.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Level</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>SET/CLR</td>
+				<td></td>
+				<td>
+					Set/clear control bit. 0=clear, 1=set
+					Determines if bits written with a 1 get set or cleared.
+					Bits written with a zero are always unchanged.
+				</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>INTEN</td>
+				<td></td>
+				<td>
+					Master interrupt (enable only, no request)
+					Enable interrupts below (master toggle)
+				</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>EXTER</td>
+				<td>6</td>
+				<td>Level 6 External interrupt</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>DSKSYN</td>
+				<td>5</td>
+				<td>Level 5 Disk sync register (DSKSYNC) matches disk</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>RBF</td>
+				<td>5</td>
+				<td>Level 5 Serial port receive buffer full</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>AUD3</td>
+				<td>4</td>
+				<td>Level 4 Audio channel 3 block finished</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>AUD2</td>
+				<td>4</td>
+				<td>Level 4 Audio channel 2 block finished</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>AUD1</td>
+				<td>4</td>
+				<td>Level 4 Audio channel 1 block finished</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>AUD0</td>
+				<td>4</td>
+				<td>Level 4 Audio channel 0 block finished</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>BLIT</td>
+				<td>3</td>
+				<td>Level 3 Blitter Interrupt: blitter has finished</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>VERTB</td>
+				<td>3</td>
+				<td>Level 3 Vertical Blank Interrupt: start of vertical blank</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>COPER</td>
+				<td>3</td>
+				<td>Level 3 Copper Interrupt</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>PORTS</td>
+				<td>2</td>
+				<td>Level 2 CIA Interrupt (I/O ports and timers)</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>SOFT</td>
+				<td>1</td>
+				<td>Level 1 Software Interrupt</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>DSKBLK</td>
+				<td>1</td>
+				<td>Level 1 Disk Block Finished Interrupt</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>TBE</td>
+				<td>1</td>
+				<td>Level 1 Transmit Buffer Empty Interrupt (serial port)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="intreqr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF01E</td>
+				<td>INTREQR</td>
+				<td>Interrupt request bits (read)</td>
+			</tr>
+			<tr>
+				<td>DFF09C</td>
+				<td>INTREQ</td>
+				<td>Interrupt request bits (clear or set)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register contains interrupt request bits (or flags). These bits
+			may be polled by the processor, and if enabled by the bits listed in
+			the next register, they may cause processor interrupts. Both a set
+			and clear operation are required to load arbitrary data into this register.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Level</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>SET/CLR</td>
+				<td></td>
+				<td>
+					Set/clear control bit. Determines if bits
+					written with a 1 get set or cleared. Bits
+					written with a zero are always unchanged.
+				</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>INTEN</td>
+				<td></td>
+				<td>Master interrupt (enable only, no request)</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>EXTER</td>
+				<td>6</td>
+				<td>External interrupt</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>DSKSYN</td>
+				<td>5</td>
+				<td>Disk sync register (DSKSYNC) matches disk</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>RBF</td>
+				<td>5</td>
+				<td>Serial port receive buffer full</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>AUD3</td>
+				<td>4</td>
+				<td>Audio channel 3 block finished</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>AUD2</td>
+				<td>4</td>
+				<td>Audio channel 2 block finished</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>AUD1</td>
+				<td>4</td>
+				<td>Audio channel 1 block finished</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>AUD0</td>
+				<td>4</td>
+				<td>Audio channel 0 block finished</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>BLIT</td>
+				<td>3</td>
+				<td>Blitter has finished</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>VERTB</td>
+				<td>3</td>
+				<td>Start of vertical blank</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>COPER</td>
+				<td>3</td>
+				<td>Coprocessor</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>PORTS</td>
+				<td>2</td>
+				<td>I/O Ports and timers</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>SOFT</td>
+				<td>1</td>
+				<td>Reserved for software initiated interrupt.</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>DSKBLK</td>
+				<td>1</td>
+				<td>Disk block finished</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>TBE</td>
+				<td>1</td>
+				<td>Serial port transmit buffer empty</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="joy0dat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF00A</td>
+				<td>JOY0DAT</td>
+				<td>Joystick-mouse 0 data (left vert, horiz)</td>
+			</tr>
+			<tr>
+				<td>DFF00C</td>
+				<td>JOY1DAT</td>
+				<td>Joystick-mouse 1 data (right vert, horiz)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These addresses each read a 16 bit register. These in turn are loaded
+			from the MDAT serial stream and are clocked in on the rising edge of
+			SCLK. MLD output is used to parallel load the external parallel-to-
+			serial converter.This in turn is loaded with the 4 quadrature inputs
+			from each of two game controller ports (8 total) plus 8 miscellaneous
+			control bits which are new for LISA and can be read in upper 8 bits
+			of LISAID.
+		</p>
+		<p>
+			Register bits are as follows:
+		</p>
+		<p>
+			Mouse counter usage (pins 1,3 = Yclock, pins 2,4 = Xclock)
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td>JOY0DAT</td>
+				<td>Y7</td>
+				<td>Y6</td>
+				<td>Y5</td>
+				<td>Y4</td>
+				<td>Y3</td>
+				<td>Y2</td>
+				<td>Y1</td>
+				<td>Y0</td>
+				<td>X7</td>
+				<td>X6</td>
+				<td>X5</td>
+				<td>X4</td>
+				<td>X3</td>
+				<td>X2</td>
+				<td>X1</td>
+				<td>X0</td>
+			</tr>
+			<tr>
+				<td>JOY1DAT</td>
+				<td>Y7</td>
+				<td>Y6</td>
+				<td>Y5</td>
+				<td>Y4</td>
+				<td>Y3</td>
+				<td>Y2</td>
+				<td>Y1</td>
+				<td>Y0</td>
+				<td>X7</td>
+				<td>X6</td>
+				<td>X5</td>
+				<td>X4</td>
+				<td>X3</td>
+				<td>X2</td>
+				<td>X1</td>
+				<td>X0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			0 = LEFT CONTROLLER PAIR, 1 = RIGHT CONTROLLER PAIR.
+			(4 counters total).The bit usage for both left and right addresses is
+			shown below. Each 6 bit counter (Y7-Y2,X7-X2) is clocked by 2 of the
+			signals input from the mouse serial stream.
+		</p>
+		<p>
+			Starting with first bit received:
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Serial</th>
+				<th>Bit name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>0</td>
+				<td>M0H</td>
+				<td>JOY0DAT Horizontal Clock</td>
+			</tr>
+			<tr>
+				<td>1</td>
+				<td>M0HQ</td>
+				<td>JOY0DAT Horizontal Clock (quadrature)</td>
+			</tr>
+			<tr>
+				<td>2</td>
+				<td>M0V</td>
+				<td>JOY0DAT Vertical Clock</td>
+			</tr>
+			<tr>
+				<td>3</td>
+				<td>M0VQ</td>
+				<td>JOY0DAT Vertical Clock (quadrature)</td>
+			</tr>
+			<tr>
+				<td>4</td>
+				<td>M1V</td>
+				<td>JOY1DAT Horizontall Clock</td>
+			</tr>
+			<tr>
+				<td>5</td>
+				<td>M1VQ</td>
+				<td>JOY1DAT Horizontall Clock (quadrature)</td>
+			</tr>
+			<tr>
+				<td>6</td>
+				<td>M1V</td>
+				<td>JOY1DAT Vertical Clock</td>
+			</tr>
+			<tr>
+				<td>7</td>
+				<td>M1VQ</td>
+				<td>JOY1DAT Vertical Clock (quadrature)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Bits 1 and 0 of each counter (Y1-Y0,X1-X0) may be read to determine
+			the state of the related input signal pair. This allows these pins to
+			double as joystick switch inputs. Joystick switch closures can be
+			deciphered as follows:
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Direction</th>
+				<th>Pin</th>
+				<th>Counter bits</th>
+			</tr>
+			<tr>
+				<td>Forward</td>
+				<td>1</td>
+				<td>Y1 xor Y0 (BIT#09 xor BIT#08)</td>
+			</tr>
+			<tr>
+				<td>Left</td>
+				<td>3</td>
+				<td>Y1</td>
+			</tr>
+			<tr>
+				<td>Back</td>
+				<td>2</td>
+				<td>X1 xor X0 (BIT#01 xor BIT#00)</td>
+			</tr>
+			<tr>
+				<td>Right</td>
+				<td>4</td>
+				<td>X1</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="joytest"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF036</td>
+				<td>JOYTEST</td>
+				<td>Write to all 4 joystick-mouse counters at once</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Mouse counter write test data:
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td>JOY0DAT</td>
+				<td>Y7</td>
+				<td>Y6</td>
+				<td>Y5</td>
+				<td>Y4</td>
+				<td>Y3</td>
+				<td>Y2</td>
+				<td>Y1</td>
+				<td>Y0</td>
+				<td>X7</td>
+				<td>X6</td>
+				<td>X5</td>
+				<td>X4</td>
+				<td>X3</td>
+				<td>X2</td>
+				<td>X1</td>
+				<td>X0</td>
+			</tr>
+			<tr>
+				<td>JOY1DAT</td>
+				<td>Y7</td>
+				<td>Y6</td>
+				<td>Y5</td>
+				<td>Y4</td>
+				<td>Y3</td>
+				<td>Y2</td>
+				<td>Y1</td>
+				<td>Y0</td>
+				<td>X7</td>
+				<td>X6</td>
+				<td>X5</td>
+				<td>X4</td>
+				<td>X3</td>
+				<td>X2</td>
+				<td>X1</td>
+				<td>X0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register allows you to set the contents of the JOYODAT and JOYIDAT registers
+			($DFFOOA and $DFFOOC). The value stored here affects both registers, allowing you
+			to reset the mouse-position counters for both ports with just one instruction.
+		</p>
+		<br/>
+		<hr size="2"/>
+		<a name="noop"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1FE</td>
+				<td>NO-OP</td>
+				<td>No operation/NULL (Copper NOP instruction)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Can also indicate last 2 or 3 refresh cycles or the
+			restart of the COPPER after lockup.
+		</p>
+		<hr size="2"/>
+		<a name="pot0dat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF012</td>
+				<td>POT0DAT</td>
+				<td>Pot counter data left pair (vert, horiz)</td>
+			</tr>
+			<tr>
+				<td>DFF014</td>
+				<td>POT1DAT</td>
+				<td>Pot counter data right pair (vert, horiz)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These addresses each read a pair of 8 bit pot counters.
+			(4 counters total). The bit assignment for both addresses is shown
+			below. The counters are stopped by signals from 2 controller
+			connectors (left-right) with 2 pins each.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td>RIGHT</td>
+				<td>Y7</td>
+				<td>Y6</td>
+				<td>Y5</td>
+				<td>Y4</td>
+				<td>Y3</td>
+				<td>Y2</td>
+				<td>Y1</td>
+				<td>Y0</td>
+				<td>X7</td>
+				<td>X6</td>
+				<td>X5</td>
+				<td>X4</td>
+				<td>X3</td>
+				<td>X2</td>
+				<td>X1</td>
+				<td>X0</td>
+			</tr>
+			<tr>
+				<td>LEFT</td>
+				<td>Y7</td>
+				<td>Y6</td>
+				<td>Y5</td>
+				<td>Y4</td>
+				<td>Y3</td>
+				<td>Y2</td>
+				<td>Y1</td>
+				<td>Y0</td>
+				<td>X7</td>
+				<td>X6</td>
+				<td>X5</td>
+				<td>X4</td>
+				<td>X3</td>
+				<td>X2</td>
+				<td>X1</td>
+				<td>X0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Connector</th>
+				<td></td>
+				<td></td>
+				<td></td>
+				<th>Paula</th>
+			</tr>
+			<tr>
+				<th>Loc.</th>
+				<th>Dir.</th>
+				<th>Sym.</th>
+				<th>Pin</th>
+				<th>Pin</th>
+			</tr>
+			<tr>
+				<td>RIGHT</td>
+				<td>Y</td>
+				<td>RX</td>
+				<td>9</td>
+				<td>33</td>
+			</tr>
+			<tr>
+				<td>RIGHT</td>
+				<td>X</td>
+				<td>RX</td>
+				<td>5</td>
+				<td>32</td>
+			</tr>
+			<tr>
+				<td>LEFT</td>
+				<td>Y</td>
+				<td>LY</td>
+				<td>9</td>
+				<td>36</td>
+			</tr>
+			<tr>
+				<td>LEFT</td>
+				<td>X</td>
+				<td>LX</td>
+				<td>5</td>
+				<td>35</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			With normal (NTSC or PAL) horiz. line rate, the pots will give a full
+			scale (FF) reading with about 500kohms in one frame time. With
+			proportionally faster horiz line times, the counters will count
+			proportionally faster. This should be noted when doing variable
+			beam displays.
+		</p>
+		<hr size="2"/>
+		<a name="potgo"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF034</td>
+				<td>POTGO</td>
+				<td>Pot port (4 bit) bi-direction and data and pot counter start</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="potinp"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF016</td>
+				<td>POTINP</td>
+				<td>Pot pin data read</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register controls a 4 bit bi-direction I/O port that shares the
+			same 4 pins as the 4 pot counters above.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>OUTRY</td>
+				<td>Output enable for Paula pin 33</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>DATRY</td>
+				<td>I/O data Paula pin 33</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>OUTRX</td>
+				<td>Output enable for Paula pin 32</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>DATRX</td>
+				<td>I/O data Paula pin 32</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>OUTLY</td>
+				<td>Out put enable for Paula pin 36</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>DATLY</td>
+				<td>I/O data Paula pin 36</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>OUTLX</td>
+				<td>Output enable for Paula pin 35</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>DATLX</td>
+				<td>I/O data Paula pin 35</td>
+			</tr>
+			<tr>
+				<td>07-01</td>
+				<td>X</td>
+				<td>Not used</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>START</td>
+				<td>Start pots (dump capacitors,start counters)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="refptr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF028</td>
+				<td>REFPTR</td>
+				<td>Refresh pointer</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register is used as a dynamic RAM refresh address generator.
+			It's writable for test purposes only, and should never be written
+			by the microprocessor.
+		</p>
+		<hr size="2"/>
+		<a name="serdat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF030</td>
+				<td>SERDAT</td>
+				<td>Serial port data and stop bits write</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This address writes data to a transmit data buffer. Data from this
+			buffer is moved into a serial shift register for output transmission
+			whenever it is empty. This sets the interrupt request TBE
+			(transmit buffer empty).
+		</p>
+		<p>
+			A stop bit must be provided as part of the data word.
+			The length of the data word is set by the position of the stop bit.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>S</td>
+				<td>D8</td>
+				<td>D7</td>
+				<td>D6</td>
+				<td>D5</td>
+				<td>D4</td>
+				<td>D3</td>
+				<td>D2</td>
+				<td>D1</td>
+				<td>D0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="serdatr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF018</td>
+				<td>SERDATR</td>
+				<td>Pot pin data read</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			SERDATR - Serial port data and status read.
+		</p>
+		<p>
+			This address reads data from a recive data buffer. Data in this
+			buffer is loaded from a receiving shift register whenever it is full.
+			Several interrupt request bits are also read at this address, along
+			with the data as shown below.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>OVRUN</td>
+				<td>Serial port receiver overun</td>
+			</tr>
+			<tr>
+				<td>14</td>
+				<td>RBF</td>
+				<td>Serial port receive buffer full (mirror)</td>
+			</tr>
+			<tr>
+				<td>13</td>
+				<td>TBE</td>
+				<td>Serial port transmit buffer empty (mirror)</td>
+			</tr>
+			<tr>
+				<td>12</td>
+				<td>TSRE</td>
+				<td>Serial port transmit shift reg. empty</td>
+			</tr>
+			<tr>
+				<td>11</td>
+				<td>RXD</td>
+				<td>
+					RXD pin receives UART serial data for
+					direct bit test by the micro.
+				</td>
+			</tr>
+			<tr>
+				<td>10</td>
+				<td>X</td>
+				<td>Not used.</td>
+			</tr>
+			<tr>
+				<td>09</td>
+				<td>STP</td>
+				<td>Stop bit</td>
+			</tr>
+			<tr>
+				<td>08</td>
+				<td>STP-DB8</td>
+				<td>Stop bit if LONG, data bit if not.</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>DB7</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>DB6</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>DB5</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>DB4</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>DB3</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>DB2</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>DB1</td>
+				<td>Data bit.</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>DB0</td>
+				<td>Data bit.</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="serper"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF032</td>
+				<td>SERPER</td>
+				<td>Serial port period and control</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This register contains the control bit LONG referred to above, and a
+			15 bit number defining the serial port Baud rate. If this number is
+			N,then the baud rate is 1 bit every (N+1)*.2794 microseconds.
+		</p>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15</td>
+				<td>LONG</td>
+				<td>Defines serial receive as 9 bit word.</td>
+			</tr>
+			<tr>
+				<td>14-00</td>
+				<td>RATE</td>
+				<td>Defines baud rate=1/((N+1)*.2794 microseconds)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="sprhdat"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF078</td>
+				<td>SPRHDAT</td>
+				<td>Ext. logic UltraHiRes sprite pointer and data</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This identifies the cycle when this pointer address is on the bus
+			accessing the memory.
+		</p>
+		<p>
+			[BPLHPTH/BPLHPTL](#bplhpth)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="sprhpth"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1E8</td>
+				<td>SPRHPTH</td>
+				<td>UHRES sprite pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF1EA</td>
+				<td>SPRHPTL</td>
+				<td>UHRES sprite pointer (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			This pointer is activated in the 1st and 3rd 'free' cycles
+			(see [BPLHPTx](#bplhpth)) after horizontal line start.
+			It increments for the next line.
+		</p>
+		<hr size="2"/>
+		<a name="sprhstop"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1D2</td>
+				<td>SPRHSTOP</td>
+				<td>UHRES sprite vertical display stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td>SPRHWRM</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>V10</td>
+				<td>V9</td>
+				<td>V8</td>
+				<td>V7</td>
+				<td>V6</td>
+				<td>V5</td>
+				<td>V4</td>
+				<td>V3</td>
+				<td>V2</td>
+				<td>V1</td>
+				<td>V0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			SPRHWRM = Swaps the polarity of ARW* when the SPRHDAT comes out so
+			that external devices can detect the RGA and put things into memory.
+			(ECS and later chips only)
+		</p>
+		<hr size="2"/>
+		<a name="sprhstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1D0</td>
+				<td>SPRHSTRT</td>
+				<td>UHRES sprite vertical display start</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>0</td>
+				<td>V10</td>
+				<td>V9</td>
+				<td>V8</td>
+				<td>V7</td>
+				<td>V6</td>
+				<td>V5</td>
+				<td>V4</td>
+				<td>V3</td>
+				<td>V2</td>
+				<td>V1</td>
+				<td>V0</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<hr size="2"/>
+		<a name="sprxctl"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF142</td>
+				<td>SPR0CTL</td>
+				<td>Sprite 0 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF14A</td>
+				<td>SPR1CTL</td>
+				<td>Sprite 1 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF152</td>
+				<td>SPR2CTL</td>
+				<td>Sprite 2 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF15A</td>
+				<td>SPR3CTL</td>
+				<td>Sprite 3 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF162</td>
+				<td>SPR4CTL</td>
+				<td>Sprite 4 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF16A</td>
+				<td>SPR5CTL</td>
+				<td>Sprite 5 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF172</td>
+				<td>SPR6CTL</td>
+				<td>Sprite 6 position and control data</td>
+			</tr>
+			<tr>
+				<td>DFF17A</td>
+				<td>SPR7CTL</td>
+				<td>Sprite 7 position and control data</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15-08</td>
+				<td>EV7-EV0</td>
+				<td>End (stop) vertical value. Low 8 bits</td>
+			</tr>
+			<tr>
+				<td>07</td>
+				<td>ATT</td>
+				<td>Sprite attach control bit (odd sprites only)</td>
+			</tr>
+			<tr>
+				<td>06</td>
+				<td>SV9</td>
+				<td>Start vertical value 10th bit</td>
+			</tr>
+			<tr>
+				<td>05</td>
+				<td>EV9</td>
+				<td>End (stop) vertical value 10th bit</td>
+			</tr>
+			<tr>
+				<td>04</td>
+				<td>SH1=0</td>
+				<td>Start horizontal value, 70nS increment</td>
+			</tr>
+			<tr>
+				<td>03</td>
+				<td>SH0=0</td>
+				<td>Start horizontal value 35nS increment</td>
+			</tr>
+			<tr>
+				<td>02</td>
+				<td>SV8</td>
+				<td>Start vertical value 9th bit</td>
+			</tr>
+			<tr>
+				<td>01</td>
+				<td>EV8</td>
+				<td>End (stop) vertical value 9th bit</td>
+			</tr>
+			<tr>
+				<td>00</td>
+				<td>SH2</td>
+				<td>Start horizontal value, 140nS increment</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers work together as position, size and feature sprite
+			control registers. They are usually loaded by the sprite DMA channel,
+			during horizontal blank, however they may be loaded by either
+			processor any time. Writing to SPRxCTL disables the corresponding
+			sprite.
+		</p>
+		<p>
+			[SPRxDATA/SPRxDATB](#sprxdata)
+			[SPRxPOS](#sprxpos)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="sprxdata"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF144</td>
+				<td>SPR0DATA</td>
+				<td>Sprite 0 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF146</td>
+				<td>SPR0DATB</td>
+				<td>Sprite 0 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF14C</td>
+				<td>SPR1DATA</td>
+				<td>Sprite 1 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF14E</td>
+				<td>SPR1DATB</td>
+				<td>Sprite 1 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF154</td>
+				<td>SPR2DATA</td>
+				<td>Sprite 2 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF156</td>
+				<td>SPR2DATB</td>
+				<td>Sprite 2 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF15C</td>
+				<td>SPR3DATA</td>
+				<td>Sprite 3 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF15E</td>
+				<td>SPR3DATB</td>
+				<td>Sprite 3 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF164</td>
+				<td>SPR4DATA</td>
+				<td>Sprite 4 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF166</td>
+				<td>SPR4DATB</td>
+				<td>Sprite 4 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF16C</td>
+				<td>SPR5DATA</td>
+				<td>Sprite 5 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF16E</td>
+				<td>SPR5DATB</td>
+				<td>Sprite 5 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF174</td>
+				<td>SPR6DATA</td>
+				<td>Sprite 6 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF176</td>
+				<td>SPR6DATB</td>
+				<td>Sprite 6 image data register B</td>
+			</tr>
+			<tr>
+				<td>DFF17C</td>
+				<td>SPR7DATA</td>
+				<td>Sprite 7 image data register A</td>
+			</tr>
+			<tr>
+				<td>DFF17E</td>
+				<td>SPR7DATB</td>
+				<td>Sprite 7 image data register B</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These registers buffer the sprite image data. They are usually loaded
+			by the sprite DMA channel but may be loaded by either processor at
+			any time. When a horizontal coincidence occurs the buffers are dumped
+			into shift registers and serially outputted to the display, MSB first
+			on the left.
+		</p>
+		<blockquote>
+			<p>
+				Note:
+				Writing to the A buffer enables (arms) the sprite.
+				Writing to the [SPRxCTL](#sprxctl) registers disables the sprite.
+				If enabled, data in the A and B buffers will be output whenever the
+				beam counter equals the sprite horizontal position value in the
+				[SPRxPOS](#sprxpos) register. In lowres mode, 1 sprite pixel is 1 bitplane pixel
+				wide.In HRES and SHRES mode, 1 sprite pixel is 2 bitplane pixels.
+				The DATB bits are the 2SBs (worth 2) for the color registers,
+				and MSB for SHRES. DATA bits are LSBs of the pixels.
+			</p>
+		</blockquote>
+		<hr size="2"/>
+		<a name="sprxpos"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF140</td>
+				<td>SPR0POS</td>
+				<td>Sprite 0 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF148</td>
+				<td>SPR1POS</td>
+				<td>Sprite 1 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF150</td>
+				<td>SPR2POS</td>
+				<td>Sprite 2 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF158</td>
+				<td>SPR3POS</td>
+				<td>Sprite 3 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF160</td>
+				<td>SPR4POS</td>
+				<td>Sprite 4 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF168</td>
+				<td>SPR5POS</td>
+				<td>Sprite 5 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF170</td>
+				<td>SPR6POS</td>
+				<td>Sprite 6 vertical &amp; horizontal start positions data</td>
+			</tr>
+			<tr>
+				<td>DFF178</td>
+				<td>SPR7POS</td>
+				<td>Sprite 7 vertical &amp; horizontal start positions data</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>Function</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>15-08</td>
+				<td>SV7-SV0</td>
+				<td>
+					Start vertical value.High bit (SV8) is
+					in [SPRxCTL](#sprxctl) registers.
+				</td>
+			</tr>
+			<tr>
+				<td>07-00</td>
+				<td>SH10-SH3</td>
+				<td>
+					Sprite horizontal start value. Low order
+					3 bits are in [SPRxCTL](#sprxctl) registers. If
+					SSCAN2 bit in FMODE is set, then disable
+					SH10 horizontal coincidence detect.This bit
+					is then free to be used by ALICE as an
+					individual scan double enable.
+				</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			[SPRxDATA/SPRxDATB](#sprxdata)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="sprxpth"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF120</td>
+				<td>SPR0PTH</td>
+				<td>Sprite 0 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF122</td>
+				<td>SPR0PTL</td>
+				<td>Sprite 0 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF124</td>
+				<td>SPR1PTH</td>
+				<td>Sprite 1 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF126</td>
+				<td>SPR1PTL</td>
+				<td>Sprite 1 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF128</td>
+				<td>SPR2PTH</td>
+				<td>Sprite 2 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF12A</td>
+				<td>SPR2PTL</td>
+				<td>Sprite 2 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF12C</td>
+				<td>SPR3PTH</td>
+				<td>Sprite 3 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF12E</td>
+				<td>SPR3PTL</td>
+				<td>Sprite 3 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF130</td>
+				<td>SPR4PTH</td>
+				<td>Sprite 4 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF132</td>
+				<td>SPR4PTL</td>
+				<td>Sprite 4 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF134</td>
+				<td>SPR5PTH</td>
+				<td>Sprite 5 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF136</td>
+				<td>SPR5PTL</td>
+				<td>Sprite 5 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF138</td>
+				<td>SPR6PTH</td>
+				<td>Sprite 6 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF13A</td>
+				<td>SPR6PTL</td>
+				<td>Sprite 6 pointer (low 15 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF13C</td>
+				<td>SPR7PTH</td>
+				<td>Sprite 7 pointer (high 5 bits)</td>
+			</tr>
+			<tr>
+				<td>DFF13E</td>
+				<td>SPR7PTL</td>
+				<td>Sprite 7 pointer (low 15 bits)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			These pairs of registers contain the address of sprite x DMA data.
+			These address registers must be initialized by the processor or
+			Copper every vertical blank time.
+		</p>
+		<hr size="2"/>
+		<a name="strequ"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF038</td>
+				<td>STREQU</td>
+				<td>Strobe for horiz sync with VB (vert blank) and EQU</td>
+			</tr>
+			<tr>
+				<td>DFF03A</td>
+				<td>STRVBL</td>
+				<td>Strobe for horiz sync with VB</td>
+			</tr>
+			<tr>
+				<td>DFF03C</td>
+				<td>STRHOR</td>
+				<td>Strobe for horiz sync</td>
+			</tr>
+			<tr>
+				<td>DFF03E</td>
+				<td>STRLONG</td>
+				<td>Strobe for identification of long horiz line (228CC)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			One of the first 3 strobe addresses above, it is placed on the RGA
+			bus during the first refresh time slot of every other line, to
+			identify lines with long counts (228- NTSC, HTOTAL+2- VARBEAMEN=1
+			hires chips only). There are 4 refresh time slots and any not used
+			for strobes will leave a null (1FE) address on the RGA bus.
+		</p>
+		<hr size="2"/>
+		<a name="vbstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1CC</td>
+				<td>VBSTRT</td>
+				<td>Vertical line for VBLANK start</td>
+			</tr>
+			<tr>
+				<td>DFF1CE</td>
+				<td>VBSTOP</td>
+				<td>Vertical line for VBLANK stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			(V10-0 &lt;- D10-0) Affects CSY pin if BLAKEN=1 and VSY pin
+			if CSCBEN=1 (see [BEAMCON0](#beamcon0))
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="vhposr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF006</td>
+				<td>VHPOSR</td>
+				<td>Read vert and horiz position of beam, or lightpen</td>
+			</tr>
+			<tr>
+				<td>DFF02C</td>
+				<td>VHPOSW</td>
+				<td>Write vert and horiz position of beam, or lightpen</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>V7</td>
+				<td>V6</td>
+				<td>V5</td>
+				<td>V4</td>
+				<td>V3</td>
+				<td>V2</td>
+				<td>V1</td>
+				<td>V0</td>
+				<td>H8</td>
+				<td>H7</td>
+				<td>H6</td>
+				<td>H5</td>
+				<td>H4</td>
+				<td>H3</td>
+				<td>H2</td>
+				<td>H1</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			Resolution = 1/160 of screen width (280 ns).
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="vposr"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF004</td>
+				<td>VPOSR</td>
+				<td>Read vert most sig. bits (and frame flop)</td>
+			</tr>
+			<tr>
+				<td>DFF02A</td>
+				<td>VPOSW</td>
+				<td>Write most sig. bits (and frame flop)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<br/>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Bit</th>
+				<th>15</th>
+				<th>14</th>
+				<th>13</th>
+				<th>12</th>
+				<th>11</th>
+				<th>10</th>
+				<th>09</th>
+				<th>08</th>
+				<th>07</th>
+				<th>06</th>
+				<th>05</th>
+				<th>04</th>
+				<th>03</th>
+				<th>02</th>
+				<th>01</th>
+				<th>00</th>
+			</tr>
+			<tr>
+				<td></td>
+				<td>LOF</td>
+				<td>I6</td>
+				<td>I5</td>
+				<td>I4</td>
+				<td>I3</td>
+				<td>I2</td>
+				<td>I1</td>
+				<td>I0</td>
+				<td>LOL</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>V10</td>
+				<td>V9</td>
+				<td>V8</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			LOF = Long frame(auto toggle control bit in BPLCON0)
+			I0-I6 = Chip identification:
+		</p>
+		<ul>
+			<li>8361 (Regular) or 8370 (Fat) (Agnus-NTSC) = 10</li>
+			<li>8367 (Pal) or 8371 (Fat-Pal) (Agnus-PAL) = 00</li>
+			<li>8372 (Fat-hr) (agnushr),thru rev4 = 20 PAL, 30 NTSC</li>
+			<li>8372 (Fat-hr) (agnushr),rev 5 = 22 PAL, 31 NTSC</li>
+			<li>8374 (Alice) thru rev 2 = 22 PAL, 32 NTSC</li>
+			<li>8374 (Alice) rev 3 thru rev 4 = 23 PAL, 33 NTSC</li>
+		</ul>
+		<p>
+			LOL = Long line bit. When low, it indicates short raster line.
+			V9 and V10 are available on hires chips only (20,30 identifiers).
+			Aside from LOF and V8, none of the other bits are available on OCS.
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="vsstrt"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1E0</td>
+				<td>VSSTRT</td>
+				<td>Vertical sync start (VARVSY)</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		<hr size="2"/>
+		<a name="vtotal"></a>
+		<table cellspacing="0" border="1" cellpadding="2">
+			<tbody><tr>
+				<th>Address</th>
+				<th>Name</th>
+				<th>Description</th>
+			</tr>
+			<tr>
+				<td>DFF1C8</td>
+				<td>VTOTAL</td>
+				<td>Highest numbered vertical line (VERBEAMEN = 1)</td>
+			</tr>
+			<tr>
+				<td>DFF1CA</td>
+				<td>VSSTOP</td>
+				<td>Vertical position for VSYNC stop</td>
+			</tr>
+		</tbody></table>
+		<br/>
+		<p>
+			It's the line number to reset the counter, so there's this many + 1
+			in a field. The exception is if the LACE bit is set ([BPLCON0](#bplcon0)), in
+			which case every other field is this many + 2 and the short field
+			is this many + 1.
+		</p>
+		<p>
+			[BEAMCON0](#beamcon0)
+		</p>
+		<br/>
+		<br/>
+		</body>
+</html>

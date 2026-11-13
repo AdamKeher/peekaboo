@@ -1,0 +1,46 @@
+libretro-core.c: adm_debug_command()
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 89530f3..673690d 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9258,4 +9258,33 @@ RETRO_API int adm_drain_serial_output(char* out, int max_len) {
+     }
+     adm_serial_output_count -= (unsigned int)count;
+     return count;
++}
++#include "debug.h"
++
++RETRO_API int adm_debug_command(const char *cmd, char *output_buf, int buf_len) {
++    if (!cmd || !*cmd) {
++        if (output_buf && buf_len > 0)
++            output_buf[0] = '\0';
++        return 0;
++    }
++    if (output_buf && buf_len > 0)
++        output_buf[0] = '\0';
++#ifdef DEBUGGER
++    {
++        const size_t cmd_len = strlen(cmd);
++        char *cmd_mut = (char*)malloc(cmd_len + 1);
++        if (!cmd_mut)
++            return -1;
++        memcpy(cmd_mut, cmd, cmd_len + 1);
++        debug_parser((TCHAR*)cmd_mut,
++                     (output_buf && buf_len > 0) ? (TCHAR*)output_buf : NULL,
++                     (uae_u32)((buf_len > 0) ? buf_len : 0));
++        free(cmd_mut);
++    }
++#endif
++    if (output_buf && buf_len > 0) {
++        output_buf[buf_len - 1] = '\0';
++        return (int)strlen(output_buf);
++    }
++    return 0;
+ }
+\ No newline at end of file

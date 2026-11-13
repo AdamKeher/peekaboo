@@ -1,0 +1,67 @@
+disk.c: memoise the disk-image CRC32
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/disk.c b/sources/src/disk.c
+index be8d8f8..c33b474 100644
+--- a/sources/src/disk.c
++++ b/sources/src/disk.c
+@@ -791,6 +791,20 @@ static void drive_settype_id (drive *drv)
+ #endif
+ }
+ 
++/* ADM: memoised disk-image CRC32.
++   save_disk() stamps every savestate with a CRC of the WHOLE mounted image -
++   getadfcrc() below reads and hashes the entire file. That is affordable for the
++   occasional manual save state WinUAE takes, but Peekaboo captures a frame-start
++   state on every frame, so the cost lands fifty times a second. On an 880 KB ADF
++   it is invisible; on a 37 MB SuperCard Pro flux dump it is ~85 ms, which drops
++   the emulated machine from 50 fps to about 11 and made .scp images look like the
++   host had hung. The image cannot change while it is inserted, so hash it once.
++   The entry is keyed on the open zfile and dropped in drive_image_free(), which
++   every eject / insert / reset passes through - so a recycled heap address cannot
++   alias a stale entry. */
++struct adm_adfcrc_entry { struct zfile *zf; uae_u32 crc; };
++static struct adm_adfcrc_entry adm_adfcrc_cache[MAX_FLOPPY_DRIVES];
++
+ static void drive_image_free (drive *drv)
+ {
+ 	switch (drv->filetype)
+@@ -813,6 +827,11 @@ static void drive_image_free (drive *drv)
+ 		break;
+ 	}
+ 	drv->filetype = ADF_NONE;
++	/* ADM: the image is going away - drop its memoised CRC. */
++	if (drv->drvnum >= 0 && drv->drvnum < MAX_FLOPPY_DRIVES) {
++		adm_adfcrc_cache[drv->drvnum].zf = NULL;
++		adm_adfcrc_cache[drv->drvnum].crc = 0;
++	}
+ 	zfile_fclose(drv->diskfile);
+ 	drv->diskfile = NULL;
+ 	zfile_fclose(drv->writediskfile);
+@@ -6262,6 +6281,10 @@ static uae_u32 getadfcrc (drive *drv)
+ 
+ 	if (!drv->diskfile)
+ 		return 0;
++	/* ADM: see adm_adfcrc_cache. */
++	if (drv->drvnum >= 0 && drv->drvnum < MAX_FLOPPY_DRIVES &&
++		adm_adfcrc_cache[drv->drvnum].zf == drv->diskfile)
++		return adm_adfcrc_cache[drv->drvnum].crc;
+ 	zfile_fseek (drv->diskfile, 0, SEEK_END);
+ 	size = zfile_ftell32(drv->diskfile);
+ 	b = xmalloc (uae_u8, size);
+@@ -6271,6 +6294,11 @@ static uae_u32 getadfcrc (drive *drv)
+ 	zfile_fread (b, 1, size, drv->diskfile);
+ 	crc32 = get_crc32 (b, size);
+ 	free (b);
++	/* ADM: see adm_adfcrc_cache. */
++	if (drv->drvnum >= 0 && drv->drvnum < MAX_FLOPPY_DRIVES) {
++		adm_adfcrc_cache[drv->drvnum].zf = drv->diskfile;
++		adm_adfcrc_cache[drv->drvnum].crc = crc32;
++	}
+ 	return crc32;
+ }
+ 

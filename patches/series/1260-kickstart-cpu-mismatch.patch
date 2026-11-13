@@ -1,0 +1,75 @@
+A Kickstart the CPU cannot run no longer kills the host process
+
+memory_reset() checks the loaded Kickstart against the CPU (the A1200 and A4000 ROMs need a
+68020, the A3000 and A4000T ones a 68030) and, like WinUAE, answers a mismatch with
+notify_user() and uae_restart(). WinUAE goes back to its GUI. This port has none:
+
+- notify_user() is an empty stub in retrodep/gui.c, so nothing is reported;
+- uae_restart() only sets quit_program to -UAE_QUIT, so real_main2() returns before it sets
+  UAE_RESET;
+- retro_load_game() calls m68k_go() regardless, whose reset block runs only for a positive
+  quit_program. build_cpufunctbl() and custom_reset() never run, and the first instruction is a
+  call through an empty cpufunctbl_noret[] - an access violation at address 0 in the host.
+
+Reproduced with Peekaboo on an A500 (68000) given kick40068.A1200: m68k_run_1_ce+646 calls
+0x0, cpufunctbl[] and cpufunctbl_noret[] all NULL, and the core log has no "Building CPU" or
+"Reset at" line.
+
+Under __LIBRETRO__ the same four checks now log the mismatch at RETRO_LOG_ERROR (write_log is
+INFO, which a front end may filter) and the load carries on: the machine boots the ROM and fails
+as the real hardware would. Other builds keep WinUAE's behaviour.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/sources/src/memory.c
++++ b/sources/src/memory.c
+@@ -44,8 +44,10 @@
+ #include "draco.h"
+ 
+ #ifdef __LIBRETRO__
++#include "libretro.h"
+ extern bool retro_message;
+ extern char retro_message_msg[1024];
++extern retro_log_printf_t log_cb;
+ #endif
+ 
+ bool canbang;
+@@ -2903,6 +2905,29 @@ static void restore_roms(void)
+ 		if (rd) {
+ 			write_log (_T("Known ROM '%s' loaded\n"), rd->name);
+ #if 1
++#ifdef __LIBRETRO__
++			/* PEEKaboo: WinUAE answers a Kickstart the CPU cannot run by restarting into its GUI.
++			 * This port has no GUI: uae_restart() only leaves quit_program at -UAE_QUIT, so
++			 * real_main2() returns before the startup reset, m68k_go() never builds the opcode
++			 * table, and the first instruction is a call through NULL that takes the host process
++			 * down. notify_user() is empty here as well, so nothing said why. Say why, and boot
++			 * the ROM anyway: the Amiga then fails the way the real machine would. */
++			{
++				const char *needs = NULL;
++				if ((rd->cpu & 8) && changed_prefs.cpu_model < 68030)
++					needs = "a 68030 or later";
++				else if ((rd->cpu & 3) == 3 && changed_prefs.cpu_model != 68030)
++					needs = "a 68030";
++				else if ((rd->cpu & 3) == 1 && changed_prefs.cpu_model < 68020)
++					needs = "a 68EC020 or later";
++				else if ((rd->cpu & 3) == 2 && (changed_prefs.cpu_model < 68020 || changed_prefs.address_space_24))
++					needs = "a 68020 or later with 32-bit addressing";
++				if (needs && log_cb)
++					log_cb(RETRO_LOG_ERROR, "Kickstart '%s' needs %s CPU, but this machine has a %d%s; it is not expected to boot.\n",
++						rd->name, needs, changed_prefs.cpu_model,
++						changed_prefs.address_space_24 ? " with 24-bit addressing" : "");
++			}
++#else
+ 			if ((rd->cpu & 8) && changed_prefs.cpu_model < 68030) {
+ 				notify_user(NUMSG_KS68030PLUS);
+ 				uae_restart(&currprefs, -1, NULL);
+@@ -2916,6 +2941,7 @@ static void restore_roms(void)
+ 				notify_user(NUMSG_KS68020);
+ 				uae_restart(&currprefs, -1, NULL);
+ 			}
++#endif
+ #endif
+ 			if (rd->cloanto)
+ 				cloanto_rom = 1;

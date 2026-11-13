@@ -1,0 +1,26 @@
+uaelib.c: capture uaelib KPrintF output
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/uaelib.c b/sources/src/uaelib.c
+index 10d96cc..49fb7c2 100644
+--- a/sources/src/uaelib.c
++++ b/sources/src/uaelib.c
+@@ -392,6 +392,14 @@ static uae_u32 uaelib_demux_common(TrapContext *ctx, uae_u32 ARG0, uae_u32 ARG1,
+ 		if (valid_address(ARG1, 1)) {
+ 			uae_char tmp[MAX_DPATH];
+ 			trap_get_string(ctx, tmp, ARG1, sizeof tmp);
++#ifdef __LIBRETRO__
++			{
++				int i;
++				extern void adm_capture_serial_output(int c);
++				for (i = 0; tmp[i]; i++)
++					adm_capture_serial_output((unsigned char)tmp[i]);
++			}
++#endif
+ 			TCHAR *s = au(tmp);
+ 			write_log(_T("DBG: %s\n"), s);
+ 			xfree(s);

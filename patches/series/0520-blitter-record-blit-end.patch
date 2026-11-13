@@ -1,0 +1,33 @@
+blitter.c: adm_record_blit_end hooks
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/blitter.c b/sources/src/blitter.c
+index 54d1ef8..ca48cb4 100644
+--- a/sources/src/blitter.c
++++ b/sources/src/blitter.c
+@@ -458,8 +458,10 @@ static void blitter_end(void)
+ 	blt_info.blitter_dangerous_bpl = 0;
+ }
+ 
++extern void adm_record_blit_end(void);
+ static void blitter_done_all(int hpos)
+ {
++	adm_record_blit_end();
+ 	blt_info.blit_main = 0;
+ 	blt_info.blit_finald = 0;
+ 	if (m68k_interrupt_delay && hpos >= 0) {
+@@ -474,8 +476,10 @@ static void blitter_done_all(int hpos)
+ 	}
+ }
+ 
++extern void adm_record_blit_end(void);
+ static void blitter_done_except_d(int hpos)
+ {
++	adm_record_blit_end();
+ 	blt_info.blit_main = 0;
+ 	if (m68k_interrupt_delay && hpos >= 0) {
+ 		blt_info.finishhpos = hpos;

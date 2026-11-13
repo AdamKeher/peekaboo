@@ -1,0 +1,118 @@
+libretro-core.c: Bartman debug resource registry
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 4fa56d5..7543413 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9393,4 +9393,103 @@ RETRO_API int adm_get_fb_hit(void) {
+ #else
+     return 0;
+ #endif
+-}
+\ No newline at end of file
++}
++
++// --- Bartman debug resource registry (debug_register_bitmap/palette/copperlist) ---
++// Populated from uaelib.c case 88. The Amiga-side struct is stack-allocated and thus
++// transient, so uaelib.c snapshots its fields and calls adm_debug_register_resource()
++// at the moment of the call. Pixel/colour data lives at resource.address in Amiga RAM
++// (a real graphics buffer) and is read live by the host each frame.
++#ifndef ADM_MAX_DEBUG_RESOURCES
++#define ADM_MAX_DEBUG_RESOURCES 256
++#endif
++typedef struct {
++    uint32_t address;
++    uint32_t size;
++    char     name[32];
++    uint16_t type;      /* 0=bitmap 1=palette 2=copperlist (debug_resource_type) */
++    uint16_t flags;     /* debug_resource_flags: bit0=interleaved bit1=masked bit2=ham */
++    int16_t  width;     /* bitmap width  (also palette numEntries alias, offset 44) */
++    int16_t  height;    /* bitmap height */
++    int16_t  numPlanes; /* bitmap depth  */
++    int16_t  numEntries;/* palette entry count */
++    uint8_t  active;
++    uint8_t  pad[3];
++} adm_debug_resource_t;
++
++static adm_debug_resource_t adm_debug_resources[ADM_MAX_DEBUG_RESOURCES];
++static uint32_t adm_debug_resource_generation = 0;
++
++/* Called from uaelib.c case 88 (barto_cmd_register_resource). Re-registering the same
++   address overwrites the existing slot so live re-registration keeps one entry. */
++void adm_debug_register_resource(uint32_t address, uint32_t size, const char* name,
++                                 uint16_t type, uint16_t flags,
++                                 int16_t width, int16_t height, int16_t numPlanes,
++                                 int16_t numEntries) {
++    int i, slot = -1;
++    for (i = 0; i < ADM_MAX_DEBUG_RESOURCES; i++) {
++        if (adm_debug_resources[i].active && adm_debug_resources[i].address == address) {
++            slot = i;
++            break;
++        }
++        if (slot < 0 && !adm_debug_resources[i].active)
++            slot = i;
++    }
++    if (slot < 0)
++        return;
++    {
++        adm_debug_resource_t* r = &adm_debug_resources[slot];
++        r->address = address;
++        r->size = size;
++        if (name) { memcpy(r->name, name, 31); r->name[31] = 0; } else { r->name[0] = 0; }
++        r->type = type;
++        r->flags = flags;
++        r->width = width;
++        r->height = height;
++        r->numPlanes = numPlanes;
++        r->numEntries = numEntries;
++        r->active = 1;
++    }
++    adm_debug_resource_generation++;
++}
++
++/* Called from uaelib.c case 88 (barto_cmd_unregister_resource). */
++void adm_debug_unregister_resource(uint32_t address) {
++    int i;
++    for (i = 0; i < ADM_MAX_DEBUG_RESOURCES; i++) {
++        if (adm_debug_resources[i].active && adm_debug_resources[i].address == address) {
++            adm_debug_resources[i].active = 0;
++            adm_debug_resource_generation++;
++        }
++    }
++}
++
++/* Copies up to `max` active resources into `out` (adm_debug_resource_t layout). */
++RETRO_API int adm_get_debug_resources(void* out, int max) {
++    adm_debug_resource_t* o = (adm_debug_resource_t*)out;
++    int i, n = 0;
++    for (i = 0; i < ADM_MAX_DEBUG_RESOURCES && n < max; i++) {
++        if (adm_debug_resources[i].active) {
++            if (o) o[n] = adm_debug_resources[i];
++            n++;
++        }
++    }
++    return n;
++}
++
++/* Monotonic counter bumped on any registry change (add/overwrite/remove/clear). */
++RETRO_API uint32_t adm_get_debug_resource_generation(void) {
++    return adm_debug_resource_generation;
++}
++
++/* Clears the registry — call on machine reset / new program load. */
++RETRO_API void adm_clear_debug_resources(void) {
++    memset(adm_debug_resources, 0, sizeof(adm_debug_resources));
++    adm_debug_resource_generation++;
++}
++
++/* Host toggle for the opt-in boot rom (see expansion.c check_boot_rom patch). Takes
++   effect at the next machine reset / game load, when rtarea is (re)installed. */
++extern int adm_force_boot_rom;
++RETRO_API void adm_set_force_boot_rom(int on) { adm_force_boot_rom = on ? 1 : 0; }
++RETRO_API int adm_get_force_boot_rom(void) { return adm_force_boot_rom; }
+\ No newline at end of file

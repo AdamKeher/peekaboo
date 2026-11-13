@@ -1,0 +1,404 @@
+A2065 Ethernet and uaenet.device on WinUAE's built-in SLIRP (Windows)
+
+A2065, SANA2, WITH_SLIRP and WITH_BUILTIN_SLIRP were undefined and SLIRP's sources were not in
+the build. The card and the SANA-II device are built already; this gives them a network: SLIRP,
+a user-mode NAT inside the emulator (the Amiga is 10.0.2.15, gateway 10.0.2.2 = the host's
+loopback, DNS 10.0.2.3, DHCP), which needs no driver or privileges on the host.
+
+Windows only: slirp_uae.c's receive loop and SLIRP's socket layer are WinUAE's Winsock code
+(INT_PTR descriptors, select() without nfds), and this was built and tested on Windows alone.
+The defines are under _WIN32 and the sources under a Windows platform check, so other builds
+are unchanged.
+
+- sysconfig.h: A2065, SANA2, WITH_SLIRP, WITH_BUILTIN_SLIRP on Windows.
+- Makefile.common: slirp_uae.c and slirp/*.cpp (C++, as in WinUAE) on Windows.
+- slirp/packed.h, slirp/unpacked.h (new): missing from the tree; they bracket the wire-format
+  structs, unpacked.h supplying the declaration's closing PACKED__;.
+- slirp/libslirp.h: C linkage for the entry points (called from C slirp_uae.c) and for
+  slirp_output(), which ethernet.c defines in C.
+- slirp/slirp.cpp: slirp_select_fill() takes INT_PTR *, as libslirp.h declares; with int, C++
+  made it a second overload and the C caller did not link.
+- slirp/slirp.h: no <sys/ioctl.h> on Windows (sysconfig.h sets HAVE_SYS_IOCTL_H everywhere), and
+  container_of() for GCC, not only MSVC.
+- slirp/cksum.cpp: cksum() returns u_short, as slirp.h declares.
+- slirp_uae.c: a typedef for enum Implementation, so it compiles as C.
+- cfgfile.c, ethernet.c: winsock2.h/arpa/inet.h under WITH_SLIRP for inet_addr and in_addr.
+- ethernet.c: stubs for the NE2000-family boards (Ariadne II, Hydra, LAN Rover, X-Surf), whose
+  qemuvga/ne2000.c is not built; the same stubs the build without SLIRP already had.
+- uaenet.c, include/uaenet.h: the pcap backend needs WITH_UAENET_PCAP as well as A2065.
+- libretro-glue.c: target_ethernet_enumerate() lists the drivers, as WinUAE's target does. It
+  returned NULL, so every driver name became "no selection" and a2065_config's
+  ethernet_enumerate(&td, romtype) took the list-everything branch, writing three pointers into
+  the one static - overwriting sysdata, which the reset then frees.
+- libretro-core.c: puae_a2065 (disabled, slirp, slirp_inbound - which also forwards host ports
+  21-23 and 80) writes a2065_rom_file=:ENABLED and a2065_rom_options=<driver>, the rows WinUAE
+  writes (a2065= alone only enables the card, and the _rom_file row is what makes the parser
+  list the driver names before it reads the options); puae_sana2 (disabled/enabled) writes
+  sana2=true. Both options are declared only when the core has A2065/SANA2.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/Makefile.common
++++ b/Makefile.common
+@@ -298,6 +298,32 @@
+ # one elsewhere - from Amiberry, which keeps both current with bsdsocket.c.
+ SOURCES_CXX += $(EMU)/bsdsocket_host.cpp
+ 
++# PEEKaboo: the A2065 and uaenet.device reach the network through WinUAE's built-in SLIRP
++# (user-mode NAT; no driver or privileges on the host). Its sources are C++, as in WinUAE.
++# Windows only, like the defines in retrodep/sysconfig.h: the glue is WinUAE's Winsock code.
++ifneq (,$(findstring win,$(platform)))
++SOURCES_C += $(EMU)/slirp_uae.c
++SOURCES_CXX += \
++	$(EMU)/slirp/bootp.cpp \
++	$(EMU)/slirp/cksum.cpp \
++	$(EMU)/slirp/if.cpp \
++	$(EMU)/slirp/ip_icmp.cpp \
++	$(EMU)/slirp/ip_input.cpp \
++	$(EMU)/slirp/ip_output.cpp \
++	$(EMU)/slirp/mbuf.cpp \
++	$(EMU)/slirp/misc.cpp \
++	$(EMU)/slirp/sbuf.cpp \
++	$(EMU)/slirp/slirp.cpp \
++	$(EMU)/slirp/slirpdebug.cpp \
++	$(EMU)/slirp/socket.cpp \
++	$(EMU)/slirp/tcp_input.cpp \
++	$(EMU)/slirp/tcp_output.cpp \
++	$(EMU)/slirp/tcp_subr.cpp \
++	$(EMU)/slirp/tcp_timer.cpp \
++	$(EMU)/slirp/tftp.cpp \
++	$(EMU)/slirp/udp.cpp
++endif
++
+ SOURCES_CXX += $(EMU)/floppybridge/floppybridge_lib.cpp \
+                $(EMU)/floppybridge/CommonBridgeTemplate.cpp \
+                $(EMU)/floppybridge/RotationExtractor.cpp \
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -1050,6 +1050,41 @@
+          },
+          "disabled"
+       },
++#ifdef A2065
++      /* PEEKaboo: a network card on SLIRP, WinUAE's user-mode NAT */
++      {
++         "puae_a2065",
++         "System > A2065 Ethernet",
++         "A2065 Ethernet",
++         "A Commodore A2065 Zorro II Ethernet card behind a NAT in the emulator: the Amiga is 10.0.2.15, the gateway 10.0.2.2 and DNS 10.0.2.3, and DHCP answers. Needs a2065.device and a TCP/IP stack on the Amiga. 'NAT, open ports' also forwards host ports 21-23 and 80 to the Amiga. Use this or uaenet.device, not both.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "disabled", NULL },
++            { "slirp", "NAT" },
++            { "slirp_inbound", "NAT, open ports" },
++            { NULL, NULL },
++         },
++         "disabled"
++      },
++#endif
++#ifdef SANA2
++      /* PEEKaboo: the UAE Boot ROM's SANA-II driver on the same NAT */
++      {
++         "puae_sana2",
++         "System > uaenet.device",
++         "uaenet.device",
++         "A SANA-II network driver in the UAE Boot ROM, for a TCP/IP stack with no card: unit 0 is the same NAT as the A2065 option, unit 1 also opens host ports 21-23 and 80. Turns on the UAE Boot ROM.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "disabled", NULL },
++            { "enabled", NULL },
++            { NULL, NULL },
++         },
++         "disabled"
++      },
++#endif
+       /* PEEKaboo: MMU emulation, which a 68030/040/060 otherwise always gets in full */
+       {
+          "puae_mmu_model",
+@@ -3531,6 +3566,9 @@
+  * cpu_model option sets mmu_model to the CPU on every update while running. */
+ static char opt_adm_mmu_model[8]           = "auto";
+ static bool opt_adm_bsdsocket              = false;
++/* disabled, slirp or slirp_inbound: the a2065= value, ethernet.c's driver names. */
++static char opt_adm_a2065[16]              = "disabled";
++static bool opt_adm_sana2                  = false;
+ 
+ /* The mmu_model value for `cpu`, or -1 to leave the core's own choice. */
+ static int adm_mmu_model_for(int cpu, bool *ec)
+@@ -4206,6 +4244,10 @@
+       strlcpy(opt_adm_mmu_model, var.value, sizeof(opt_adm_mmu_model));
+    GET_VAR("bsdsocket")
+       opt_adm_bsdsocket = !strcmp(var.value, "enabled");
++   GET_VAR("a2065")
++      strlcpy(opt_adm_a2065, var.value, sizeof(opt_adm_a2065));
++   GET_VAR("sana2")
++      opt_adm_sana2 = !strcmp(var.value, "enabled");
+ 
+    GET_VAR("cpu_throttle")
+    {
+@@ -6980,6 +7022,17 @@
+     * UAE Boot ROM, which need_uae_boot_rom() turns on when socket_emu is set. */
+    if (opt_adm_bsdsocket)
+       retro_config_append("bsdsocket_emu=true\n");
++   /* The card is an autoconfig board and uaenet.device lives in the boot ROM: both are set up
++    * at power-on from these rows. The rows WinUAE writes for the card: a2065= alone only
++    * enables it, the driver is a rom option, and the _rom_file row is what makes the parser
++    * list the driver names before it reads the options. */
++   if (strcmp(opt_adm_a2065, "disabled"))
++   {
++      retro_config_append("a2065_rom_file=:ENABLED\n");
++      retro_config_append("a2065_rom_options=%s\n", opt_adm_a2065);
++   }
++   if (opt_adm_sana2)
++      retro_config_append("sana2=true\n");
+ }
+ 
+ /* PEEKaboo: the machine the core is actually running, straight from currprefs, so the
+--- a/libretro/libretro-glue.c
++++ b/libretro/libretro-glue.c
+@@ -1158,10 +1158,27 @@
+ void target_paste_to_keyboard (void) {}
+ bool target_can_autoswitchdevice(void) { return false; }
+ 
++#ifdef WITH_SLIRP
++#include "ethernet.h"
++
++/* PEEKaboo: the list the a2065= names are looked up in, as WinUAE's target builds it. With
++ * NULL every name became "no selection", and a2065_config's ethernet_enumerate(&td, romtype)
++ * then took the list-them-all branch - writing three pointers into one static - so
++ * slirp_inbound ran as slirp and sysdata was overwritten with a static the reset frees. */
++struct netdriverdata **target_ethernet_enumerate (void)
++{
++   static struct netdriverdata *list[32];
++   static bool listed;
++   if (!listed)
++      listed = ethernet_enumerate(list, 0);
++   return list;
++}
++#else
+ struct netdriverdata **target_ethernet_enumerate (void)
+ {
+    return NULL;
+ }
++#endif
+ 
+ static int deskhz;
+ float target_adjust_vblank_hz(int monid, float hz)
+--- a/retrodep/sysconfig.h
++++ b/retrodep/sysconfig.h
+@@ -62,17 +62,23 @@
+ //#define LOGITECHLCD /* Logitech G15 LCD */
+ #define SAVESTATE /* State file support */
+ #define A2091 /* A590/A2091 SCSI */
+-//#define A2065 /* A2065 Ethernet card */
++#ifdef _WIN32 /* PEEKaboo: over SLIRP, whose host glue is WinUAE's Winsock code */
++#define A2065 /* A2065 Ethernet card */
++#endif
+ #define GFXBOARD /* Hardware graphics board */
+ #define NCR /* A4000T/A4091, 53C710/53C770 SCSI */
+ //#define NCR9X /* 53C9X SCSI */
+-//#define SANA2 /* SANA2 network driver */
++#ifdef _WIN32 /* PEEKaboo: uaenet.device over SLIRP, as A2065 */
++#define SANA2 /* SANA2 network driver */
++#endif
+ //#define AMAX /* A-Max ROM adapter emulation */
+ //#define RETROPLATFORM /* Cloanto RetroPlayer support */
+ //#define WITH_LUA /* lua scripting */
+ //#define WITH_UAENATIVE
+-//#define WITH_SLIRP
+-//#define WITH_BUILTIN_SLIRP
++#ifdef _WIN32 /* PEEKaboo */
++#define WITH_SLIRP
++#define WITH_BUILTIN_SLIRP
++#endif
+ //#define WITH_TABLETLIBRARY
+ //#define WITH_UAENET_PCAP
+ //#define WITH_PPC
+--- a/sources/src/cfgfile.c
++++ b/sources/src/cfgfile.c
+@@ -8,6 +8,14 @@
+ */
+ 
+ #include "sysconfig.h"
++#ifdef WITH_SLIRP
++/* PEEKaboo: inet_addr() for slirp_redir, before sysdeps.h pulls in windows.h. */
++#ifdef _WIN32
++#include <winsock2.h>
++#else
++#include <arpa/inet.h>
++#endif
++#endif
+ #include "sysdeps.h"
+ 
+ #include <ctype.h>
+--- a/sources/src/ethernet.c
++++ b/sources/src/ethernet.c
+@@ -1,5 +1,13 @@
+ 
+ #include "sysconfig.h"
++#ifdef WITH_SLIRP
++/* PEEKaboo: struct in_addr, inet_addr(); uae/slirp.h leaves them out of libretro builds. */
++#ifdef _WIN32
++#include <winsock2.h>
++#else
++#include <arpa/inet.h>
++#endif
++#endif
+ #include "sysdeps.h"
+ 
+ #include "ethernet.h"
+@@ -314,5 +322,16 @@
+ 
+ #endif
+ 
++#ifdef WITH_SLIRP
++/* PEEKaboo: these boards are NE2000s from qemuvga/ne2000.c, which this build leaves out.
++   The same stubs the build without SLIRP has, so picking one fails rather than the link. */
++struct autoconfig_info;
++bool ariadne2_init(struct autoconfig_info *aci) { return false; }
++bool hydra_init(struct autoconfig_info *aci) { return false; }
++bool lanrover_init(struct autoconfig_info *aci) { return false; }
++bool xsurf_init(struct autoconfig_info *aci) { return false; }
++bool xsurf100_init(struct autoconfig_info *aci) { return false; }
++#endif
++
+ void ethernet_reset(void) {}
+ void ethernet_pause (int pause) {}
+--- a/sources/src/include/uaenet.h
++++ b/sources/src/include/uaenet.h
+@@ -6,7 +6,7 @@
+ 
+ #include "threaddep/thread.h"
+ 
+-#ifdef A2065
++#if defined(A2065) && defined(WITH_UAENET_PCAP) /* PEEKaboo: see uaenet.c */
+ #define HAVE_REMOTE
+ #define WPCAP
+ #include "pcap.h"
+--- a/sources/src/slirp/cksum.cpp
++++ b/sources/src/slirp/cksum.cpp
+@@ -44,7 +44,7 @@
+ #define ADDCARRY(x)  (x > 65535 ? x -= 65535 : x)
+ #define REDUCE {l_util.l = sum; sum = l_util.s[0] + l_util.s[1]; ADDCARRY(sum);}
+ 
+-int cksum(struct mbuf *m, int len)
++u_short cksum(struct mbuf *m, int len) /* PEEKaboo: as slirp.h declares it */
+ {
+ 	register u_int16_t *w;
+ 	register int sum = 0;
+--- a/sources/src/slirp/libslirp.h
++++ b/sources/src/slirp/libslirp.h
+@@ -9,6 +9,12 @@
+ #include <arpa/inet.h>
+ #endif
+ 
++/* PEEKaboo: the entry points are called from C (slirp_uae.c) and slirp_output() is
++   defined in C (ethernet.c); the rest of SLIRP is C++. */
++#ifdef __cplusplus
++extern "C" {
++#endif
++
+ int slirp_init(void);
+ void slirp_cleanup(void);
+ 
+@@ -30,4 +36,8 @@
+ 
+ extern char slirp_hostname[33];
+ 
++#ifdef __cplusplus
++}
++#endif
++
+ #endif
+--- /dev/null
++++ b/sources/src/slirp/packed.h
+@@ -0,0 +1,5 @@
++/* PEEKaboo: missing from the tree. Brackets a wire-format struct in the SLIRP headers:
++   #include "packed.h" / struct x { ... } / #include "unpacked.h" - which ends the declaration. */
++#ifdef PRAGMA_PACK_SUPPORTED
++#pragma pack(push, 1)
++#endif
+--- a/sources/src/slirp/slirp.cpp
++++ b/sources/src/slirp/slirp.cpp
+@@ -191,11 +191,13 @@
+ }
+ #endif
+ 
+-int slirp_select_fill(int *pnfds, 
++/* PEEKaboo: INT_PTR, as libslirp.h declares it and slirp_uae.c passes it. With int, C++ made
++   this a second overload and the C caller never linked. */
++int slirp_select_fill(INT_PTR *pnfds, 
+ 					  fd_set *readfds, fd_set *writefds, fd_set *xfds)
+ {
+     struct socket *so, *so_next;
+-    int nfds;
++    INT_PTR nfds;
+     int timeout, tmp_time;
+ 
+     /* fail safe */
+--- a/sources/src/slirp/slirp.h
++++ b/sources/src/slirp/slirp.h
+@@ -73,6 +73,12 @@
+ 
+ #include "sysdeps.h"
+ 
++/* PEEKaboo: only MSVC had one. */
++#ifndef container_of
++#include <stddef.h>
++#define container_of(address, type, field) ((type *)((char *)(address) - offsetof(type, field)))
++#endif
++
+ #include <sys/types.h>
+ #ifdef HAVE_SYS_BITYPES_H
+ # include <sys/bitypes.h>
+@@ -184,7 +190,8 @@
+ #include <sys/socket.h>
+ #endif
+ 
+-#if defined(HAVE_SYS_IOCTL_H)
++/* PEEKaboo: retrodep/sysconfig.h sets HAVE_SYS_IOCTL_H everywhere; MinGW has none. */
++#if defined(HAVE_SYS_IOCTL_H) && !defined(_WIN32)
+ # include <sys/ioctl.h>
+ #endif
+ 
+--- /dev/null
++++ b/sources/src/slirp/unpacked.h
+@@ -0,0 +1,5 @@
++/* PEEKaboo: missing from the tree; closes what packed.h opened. No include guard, on purpose. */
++PACKED__;
++#ifdef PRAGMA_PACK_SUPPORTED
++#pragma pack(pop)
++#endif
+--- a/sources/src/slirp_uae.c
++++ b/sources/src/slirp_uae.c
+@@ -25,12 +25,13 @@
+ 
+ /* Implementation enumeration must correspond to slirp_implementations in
+  * cfgfile.cpp. */
+-enum Implementation {
++/* PEEKaboo: typedef, so it compiles as C as well as WinUAE's C++. */
++typedef enum Implementation {
+ 	AUTO_IMPLEMENTATION = 0,
+ 	NO_IMPLEMENTATION,
+ 	BUILTIN_IMPLEMENTATION,
+ 	QEMU_IMPLEMENTATION,
+-};
++} Implementation;
+ 
+ static Implementation impl;
+ 
+--- a/sources/src/uaenet.c
++++ b/sources/src/uaenet.c
+@@ -11,7 +11,8 @@
+ #include "sysconfig.h"
+ 
+ #include <stdio.h>
+-#ifdef A2065
++/* PEEKaboo: the pcap backend, so WITH_UAENET_PCAP as well; A2065 alone uses SLIRP. */
++#if defined(A2065) && defined(WITH_UAENET_PCAP)
+ 
+ /** REMOVEME:
+   * These two are windows specific

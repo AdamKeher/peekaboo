@@ -1,0 +1,20 @@
+custom.c: frame-start cycle capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index 96b1bc4..da6f133 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -14309,6 +14309,8 @@ static void hsync_handler_post(bool onvsync)
+ 	if (onvsync) {
+ 		// vpos_count >= MAXVPOS just to not crash if VPOSW writes prevent vsync completely
+ 		vpos = 0;
++		extern void adm_record_frame_start(void);
++		adm_record_frame_start();
+ 		vsync_handler_post();
+ 		vpos_count = 0;
+ 	}

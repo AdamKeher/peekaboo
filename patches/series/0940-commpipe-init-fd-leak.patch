@@ -1,0 +1,22 @@
+commpipe.h: init_comm_pipe destroys sems before memset
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/include/commpipe.h b/sources/src/include/commpipe.h
+index 6b9de8e..27ada94 100644
+--- a/sources/src/include/commpipe.h
++++ b/sources/src/include/commpipe.h
+@@ -36,6 +36,10 @@ typedef struct {
+ 
+ STATIC_INLINE void init_comm_pipe (smp_comm_pipe *p, int size, int chunks)
+ {
++	uae_sem_destroy (&p->lock);         /* before memset: close old fd if any */
++	uae_sem_destroy (&p->reader_wait);
++	uae_sem_destroy (&p->writer_wait);
++	free (p->data);
+ 	memset (p, 0, sizeof (*p));
+ 	p->data = (uae_pt *)malloc (size*sizeof (uae_pt));
+ 	p->size = size;

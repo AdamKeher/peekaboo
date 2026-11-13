@@ -1,0 +1,36 @@
+Makefile.common: add the FloppyBridge sources
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/Makefile.common b/Makefile.common
+index e0e36be..18a9f06 100644
+--- a/Makefile.common
++++ b/Makefile.common
+@@ -287,3 +287,24 @@ GIT_VERSION := " $(shell git rev-parse --short HEAD || echo unknown)"
+ ifneq ($(GIT_VERSION)," unknown")
+     CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+ endif
++
++# ADM: FloppyBridge - live physical floppy drive support.
++# See the FLOPPYBRIDGE block at the end of Makefile for the flags, and
++# docs/floppy.md for the whole design. floppybridge_lib.cpp is ours (a static
++# factory over the drivers below); everything else is vendored unchanged apart
++# from the portability fixes listed in PATCHES.md.
++SOURCES_CXX += $(EMU)/floppybridge/floppybridge_lib.cpp \
++               $(EMU)/floppybridge/CommonBridgeTemplate.cpp \
++               $(EMU)/floppybridge/RotationExtractor.cpp \
++               $(EMU)/floppybridge/SerialIO.cpp \
++               $(EMU)/floppybridge/pll.cpp \
++               $(EMU)/floppybridge/ftdi.cpp \
++               $(EMU)/floppybridge/GreaseWeazleBridge.cpp \
++               $(EMU)/floppybridge/GreaseWeazleInterface.cpp \
++               $(EMU)/floppybridge/ArduinoFloppyBridge.cpp \
++               $(EMU)/floppybridge/ArduinoInterface.cpp \
++               $(EMU)/floppybridge/SuperCardProBridge.cpp \
++               $(EMU)/floppybridge/SuperCardProInterface.cpp \
++               $(EMU)/floppybridge/AdmXCopyBridge.cpp \
++               $(EMU)/floppybridge/AdmXCopyBufferedBridge.cpp \
++               $(EMU)/floppybridge/XCopyLink.cpp

@@ -1,0 +1,97 @@
+An extended ROM slot the host can set: puae_kickstart_ext
+
+The extended ROM (CD32, CDTV) was whatever the model preset named. There was no core option for
+it, so the only way to point the machine at a different one was a hand-written .uae setting
+kickstart_ext_rom_file - and that route does not cover every launch, because StartEmpty() boots
+without a config file at all. A core option applies to all of them.
+
+puae_kickstart_ext mirrors puae_kickstart: "auto" leaves the preset's own choice alone, anything
+else is a path. Like the Kickstart it is used as it is when it is an absolute path that resolves,
+and looked up under 'system' otherwise - without that check an absolute path would be joined onto
+the system directory and produce nonsense.
+
+The override is applied in retro_config_kickstart() where the preset's value is consumed, not at
+the GET_VAR, so it survives the preset being rebuilt on a model change.
+
+The option is declared with only "auto" in its value list. It is not an enumeration: the host
+writes an absolute path into it directly, and the list exists so a libretro front end still shows
+the option rather than hiding it.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -88,6 +88,8 @@
+ char opt_model_hd[10] = {0};
+ char opt_model_cd[10] = {0};
+ char opt_kickstart[RETRO_PATH_MAX] = {0};
++/* PEEKaboo: an extended ROM chosen by the host. Empty leaves the model preset's own. */
++char opt_kickstart_ext[RETRO_PATH_MAX] = {0};
+ 
+ struct preset_options
+ {
+@@ -923,6 +925,21 @@
+          NULL
+       },
+       {
++         /* PEEKaboo: the extended ROM slot (CD32, CDTV). Deliberately not enumerated - the host
++            writes an absolute path here, and "auto" leaves the model preset's own choice. */
++         "puae_kickstart_ext",
++         "System > Extended ROM",
++         "Extended ROM",
++         "Extended ROM for CD32 and CDTV. 'Automatic' uses the model preset's own.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
++      {
+          "puae_chipmem_size",
+          "System > Chip RAM",
+          "Chip RAM",
+@@ -3717,6 +3734,17 @@
+       strlcpy(opt_model_cd, var.value, sizeof(opt_model_cd));
+    }
+ 
++   GET_VAR("kickstart_ext")
++   {
++      /* PEEKaboo: "auto" means "leave the model preset's extended ROM alone". Anything else is
++         a path - used as it is when absolute, looked up under 'system' otherwise, the same two
++         ways the Kickstart itself is resolved. */
++      if (!strcmp(var.value, "auto"))
++         opt_kickstart_ext[0] = 0;
++      else
++         strlcpy(opt_kickstart_ext, var.value, sizeof(opt_kickstart_ext));
++   }
++
+    GET_VAR("kickstart")
+    {
+       strlcpy(opt_kickstart, var.value, sizeof(opt_kickstart));
+@@ -6033,11 +6061,22 @@
+    /* Replace full path for override */
+    strlcpy(uae_kickstart, kickstart, sizeof(uae_kickstart));
+ 
++   /* PEEKaboo: a host-chosen extended ROM replaces the model preset's, the same way a forced
++      Kickstart replaces it above. Applied here rather than at the GET_VAR so it survives the
++      preset being rebuilt on a model change. */
++   if (!string_is_empty(opt_kickstart_ext))
++      strlcpy(uae_kickstart_ext, opt_kickstart_ext, sizeof(uae_kickstart_ext));
++
+    /* Extended KS + NVRAM */
+    if (!string_is_empty(uae_kickstart_ext))
+    {
+       char kickstart_ext[RETRO_PATH_MAX];
+-      path_join(kickstart_ext, retro_system_directory, uae_kickstart_ext);
++      /* PEEKaboo: an extended ROM the host picked is already an absolute path. Joining it onto
++         the system directory would produce nonsense, so take it as it is when it resolves. */
++      if (path_is_absolute(uae_kickstart_ext) && path_is_valid(uae_kickstart_ext))
++         strlcpy(kickstart_ext, uae_kickstart_ext, sizeof(kickstart_ext));
++      else
++         path_join(kickstart_ext, retro_system_directory, uae_kickstart_ext);
+ 
+       /* Decide if CD32 ROM is combined based on filesize */
+       struct stat kickstart_st;

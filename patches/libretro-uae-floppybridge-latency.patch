@@ -1,0 +1,100 @@
+FloppyBridge driver sources: two buffered-path fixes.
+
+Applied to sources/src/floppybridge/ after the pristine RobSmithDev/FloppyDriveBridge
+sources are copied in, alongside the portability patch. Behavioural, not a
+portability fix, so it lives in its own file.
+
+HISTORY. Until 2026-09-02 this patch also carried the streaming-read hooks
+(admBeginFluxStream / admPumpFluxStream / admEndFluxStream on GreaseWeazleInterface,
+and LinearExtractor::bitsWritten) that supported our AdmStreamingBridge, the
+streaming Greaseweazle driver. That driver never beat the buffered Greaseweazle
+driver and was removed (docs/floppy.md section 12, docs/floppy-xcopy-buffered.md
+section 8g); the hooks went with it. What remains are the two fixes to upstream's
+buffered path, which the Greaseweazle reference and driver 4 (XCopy buffered)
+depend on.
+
+FIXES TO THE BUFFERED PATH
+
+1. Do not drain an aborted capture one byte at a time. Once abortReadStreaming()
+   sets m_shouldAbortReading, upstream switches the read to a single byte per
+   iteration, so cancelling drains the rest of a ~259ms flux stream a byte at a
+   time over USB serial while a queued seek waits. The zero-terminator scan in the
+   else branch already handles a full buffer, and bytesAvailable is bounded by
+   getBytesWaiting(). MEASURED WORTH ~2 FRAMES on its own: side-0 25.4 -> 23.5,
+   side-1 11.5 -> 10.3, with no other change.
+
+2. Keep the track cache across a guest reset. qcResetDrive called resetMFMCache(),
+   so anything captured while the machine sat idle was discarded the moment the
+   disk was booted. A guest reset does not change the platter. Media changes still
+   clear the cache in the disk-change handler. Gated on m_shouldAutoCache.
+
+NEGATIVE RESULTS, recorded so they are not retried: releasing the drive to read
+ahead once the guest has a usable 'current' made things WORSE (25.4 -> 30.8);
+reordering which track gets cached changed nothing, because
+handleBackgroundCaching() barely runs during a load.
+
+Regenerated with `git diff --no-index` from pre/post copies - the hunk counts are
+machine made, not hand edited (docs/floppy-xcopy.md section 7 on why that matters).
+
+--- a/sources/src/floppybridge/CommonBridgeTemplate.cpp
++++ b/sources/src/floppybridge/CommonBridgeTemplate.cpp
+@@ -1153,7 +1153,21 @@ void CommonBridgeTemplate::processCommand(const QueueInfo& info) {
+ 		m_isMotorRunning = false;		
+ 		m_readLoops = 0;
+ 		m_lastSeek = std::chrono::steady_clock::now();
+-		resetMFMCache();
++		// ADM: a guest reset does not change the platter, so with caching on keep the
++		// captured tracks and reset only the streaming state. Media changes still clear
++		// the cache in the disk-change handler. No effect when caching is off.
++		if (m_shouldAutoCache) {
++			resetWriteBuffer();
++			m_pll.reset();
++			{
++				std::lock_guard lockbuff(m_readBufferAvailableLock);
++				m_readBufferAvailable = false;
++			}
++			m_writePending = false;
++			m_writeComplete = false;
++			m_lastWroteTo = -1;
++		}
++		else resetMFMCache();
+ 		// Get some real disk status values
+ 		if (supportsDiskChange()) {
+ 			m_diskInDrive = getDiskChangeStatus(true);
+--- a/sources/src/floppybridge/GreaseWeazleInterface.cpp
++++ b/sources/src/floppybridge/GreaseWeazleInterface.cpp
+@@ -956,7 +956,13 @@ GWResponse GreaseWeazleInterface::readData(PLL::BridgePLL& pll) {
+ 		uint32_t bytesAvailable = m_comPort.getBytesWaiting();
+ 		if (bytesAvailable < 1) bytesAvailable = 1;
+ 		if (bytesAvailable > sizeof(tempReadBuffer)) bytesAvailable = sizeof(tempReadBuffer);
+-		uint32_t bytesRead = m_comPort.read(tempReadBuffer, m_shouldAbortReading ? 1 : bytesAvailable);
++		// ADM: upstream drops to ONE byte per read once an abort is requested, so
++		// cancelling a capture drains the rest of the flux stream a byte at a time over
++		// USB serial, and the pending seek cannot start until that finishes. The
++		// zero-terminator scan in the else branch below already handles a full buffer,
++		// and bytesAvailable is bounded by getBytesWaiting(), so bulk reading here never
++		// reads past what the device has already sent.
++		uint32_t bytesRead = m_comPort.read(tempReadBuffer, bytesAvailable);
+ 		if (bytesRead < 1) {
+ 			failCount++;
+ 			if (failCount > 10) break;
+@@ -1048,7 +1054,13 @@ GWResponse GreaseWeazleInterface::readRotation(PLL::BridgePLL& pll, const unsign
+ 		uint32_t bytesAvailable = m_comPort.getBytesWaiting();
+ 		if (bytesAvailable < 1) bytesAvailable = 1;
+ 		if (bytesAvailable > sizeof(tempReadBuffer)) bytesAvailable = sizeof(tempReadBuffer);
+-		uint32_t bytesRead = m_comPort.read(tempReadBuffer, m_shouldAbortReading ? 1 : bytesAvailable);
++		// ADM: upstream drops to ONE byte per read once an abort is requested, so
++		// cancelling a capture drains the rest of the flux stream a byte at a time over
++		// USB serial, and the pending seek cannot start until that finishes. The
++		// zero-terminator scan in the else branch below already handles a full buffer,
++		// and bytesAvailable is bounded by getBytesWaiting(), so bulk reading here never
++		// reads past what the device has already sent.
++		uint32_t bytesRead = m_comPort.read(tempReadBuffer, bytesAvailable);
+ 		if (bytesRead<1) {
+ 			failCount++;
+ 			if (failCount > 10) break;
+@@ -1107,4 +1119,3 @@ GWResponse GreaseWeazleInterface::readRotation(PLL::BridgePLL& pll, const unsign
+ void GreaseWeazleInterface::abortReadStreaming() {
+ 	m_shouldAbortReading = true;
+ }
+-

@@ -1,0 +1,47 @@
+Amiga fonts by dMG of Trueschool and Divine Stylers
+===================================================
+
+These TrueType fonts in this folder are dMG's conversions, distributed unchanged and under
+their original file names:
+
+  Topaz_a500_v1.0.ttf        TopazPlus_a500_v1.0.ttf
+  Topaz_a1200_v1.0.ttf       TopazPlus_a1200_v1.0.ttf
+  MicroKnight_v1.0.ttf       MicroKnightPlus_v1.0.ttf
+  P0T-NOoDLE_v1.0.ttf        mO'sOul_v1.0.ttf
+
+Licence
+-------
+
+Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported (CC BY-NC-SA 3.0)
+http://creativecommons.org/licenses/by-nc-sa/3.0/
+Full legal text: https://creativecommons.org/licenses/by-nc-sa/3.0/legalcode
+
+The author's addition, as embedded in every font (name table, licence description):
+
+  "Please do respect the following addition: Keep distribution structure intact, don't rename
+  the fonts and give full credits to the author when embedding on a homepage or when using for
+  any other kind of public display."
+
+Copyright notices, as embedded in the fonts
+-------------------------------------------
+
+  Topaz, TopazPlus (A500, A1200):
+    Topaz is Copyright (c) AmigaInc. Truetype version is Copyright (c) 2009 by dMG of
+    Trueschool and Divine Stylers.
+
+  MicroKnight, MicroKnightPlus:
+    MicroKnight is Copyright (c) Unknown. Truetype version is Copyright (c) 2009 by dMG of
+    Trueschool and Divine Stylers.
+
+  P0T-NOoDLE:
+    P0T-NOoDLE is (c) Leo "Nudel" Davidson. Truetype version is Copyright (c) 2009 by dMG of
+    Trueschool and Divine Stylers.
+
+  mO'sOul:
+    mO'sOul is Copyright (c) AmigaInc. Truetype version is Copyright (c) 2009 by dMG of
+    Trueschool and Divine Stylers. (Trademark record: mO'sOul is (c) Desoto/Mo'Soul.)
+
+Author's sites, as embedded: http://www.trueschool.org, http://ts.asciiscene.org,
+http://spetsnaz.su/dmg/ (now https://www.trueschool.se).
+
+Peekaboo credits these fonts in its About box and in THIRD_PARTY_NOTICES.md.

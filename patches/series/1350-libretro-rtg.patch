@@ -1,0 +1,337 @@
+The libretro front end's RTG path: options, geometry and adm_get_rtg_state
+
+The core side of RTG is now built; this is how it reaches the front end.
+
+**The board.** puae_gfxcard_size fits an uaegfx board of that many megabytes, and
+puae_gfxcard_type picks Zorro II or Zorro III. There is no "auto": every model preset leaves
+gfxcard_size at 0, so an automatic setting could only ever mean "None", and the option exists
+to turn on something no preset turns on. Both rows are written together - a gfxcard_size with
+no gfxcard_type leaves rtgmem_type at 0, which is Zorro II, silently caps the board at 8 MB and
+puts it in the wrong address space. A Zorro III board also turns 24-bit addressing off, exactly
+as puae_z3mem_size already does for Z3 Fast RAM.
+
+Neither is applied to changed_prefs while running, unlike the RAM options above them. The board
+is an autoconfig device: it is enumerated once at reset, and moving it under a guest whose
+Picasso96 has already found it would strand every pointer that guest holds.
+
+Two traps here, both of which produced a board that silently did not exist.
+
+**The rows are written by adm_machine_overrides_config(), not at the GET_VAR.** uae_config
+reaches the machine from four of retro_create_config()'s five branches. The fifth - the one that
+boots a .uae config file - reads that file row by row and then goes straight to
+retro_config_kickstart(), so nothing in uae_config is applied at all. Peekaboo boots every
+hard-disk, WHDLoad and CD machine through a generated launch.uae, which means a board written
+into uae_config is fitted on a floppy or an empty boot and missing on every machine that has a
+hard drive - that is, on every machine anyone would want RTG on.
+adm_machine_overrides_config() runs after all five branches, which is exactly why the chipset
+options already live there. It also puts cpu_24bit_addressing=false after the config file's own
+rows rather than before them, which is where it needs to be.
+
+**Each option is read into its own buffer, and neither is looked up from inside the other's
+block.** A front end is free to answer GET_VARIABLE out of a single buffer it reuses - Peekaboo
+does, one std::string - so a second lookup made while `var.value` from the first is still live
+rewrites the string that pointer refers to. Doing it the obvious way wrote a row reading
+`gfxcard_size=ZorroIII`, which cfgfile.c parsed as a 0 MB board.
+
+**The picture.** Picasso96 renders into retro_bmp - the same buffer the chipset frame uses, and
+only one of the two is live at a time (adisplays[0].picasso_on) - so nothing new has to be
+allocated or presented. What does change is the size of the picture, and there the chipset
+machinery has to be stood down rather than corrected:
+
+  * update_audiovideo() returns early while an RTG screen is up. Everything in it reads BPLCON0,
+    the DIW registers and the interlace state to work out the geometry, and those say nothing at
+    all while the chipset display is switched off. The geometry is whatever Picasso96 asked for,
+    with no crop. Leaving RTG sets the same update flags, so the chipset geometry is recomputed
+    and re-announced even if it lands on the size it had before.
+  * retro_get_aspect_ratio() returns width/height. An RTG mode has square pixels: none of the
+    PAL/NTSC pixel aspect, the line doubling or the hires division applies.
+
+The existing machinery does the rest - retro_update_av_info() already grows retrow_max/retroh_max
+and issues SET_SYSTEM_AV_INFO when a frame gets bigger than anything seen before, which is
+exactly what happens the first time a 1024x768 screen opens.
+
+**The host.** adm_get_rtg_state() reports the board size, the screen the guest last opened and
+whether RTG is the display right now. Peekaboo needs the last one for more than a status line:
+every raster overlay it draws - copper, DMA, blitter, sprites - maps a beam position onto the
+frame, and an RTG frame has no beam, so all of them are suppressed while this says RTG.
+
+The depth it reports is the guest's, not the host's: a 256-colour Workbench reads 8 even though
+the core is handing the front end 16- or 32-bit pixels.
+
+gfxmem_bank is exported too, so the board's VRAM shows in Peekaboo's Memory Map like every other
+bank - which is also how the tests prove the board was really fitted.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/libretro/libretro-glue.c
++++ b/libretro/libretro-glue.c
+@@ -20,6 +20,9 @@
+ #include "parser.h"
+ #include "inputdevice.h"
+ #include "newcpu.h"
++#ifdef PICASSO96
++#include "picasso_host.h"
++#endif
+ extern int mouse_port[NORMAL_JPORTS];
+ 
+ int log_scsi;
+@@ -34,7 +37,12 @@
+ int max_uae_height = EMULATOR_MAX_HEIGHT * 2;
+ int pause_emulation;
+ bool gfx_hdr;
++#ifndef PICASSO96
++/* PEEKaboo: picasso96.c owns this once RTG is built - it is the file that
++ * creates gfxmem_bank and puts it in slot 0. This stand-in only exists so the
++ * rest of the tree links when it is not. */
+ addrbank *gfxmem_banks[MAX_RTG_BOARDS];
++#endif
+ struct AmigaMonitor AMonitors[MAX_AMIGAMONITORS];
+ static int display_change_requested;
+ struct vidbuf_description *gfxvidinfo = &adisplays[0].gfxvidinfo;
+@@ -944,6 +952,14 @@
+    else
+       alloc_colors64k (0, 8, 8, 8, 16, 8, 0, 0, 0, 0, 0, false);
+ 
++#ifdef PICASSO96
++   /* PEEKaboo: Displays[0] is what picasso96_alloc() walks to build the guest's
++      mode list, and that runs as the guest's filesystem starts - well after this.
++      WinUAE fills it from EnumDisplaySettings in its own startup; this is the
++      equivalent, and it is here because this is the graphics driver's init. */
++   picasso_host_enumerate_modes();
++#endif
++
+    return 1;
+ }
+ 
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -23,6 +23,10 @@
+ #include "audio.h"
+ #include "memory.h"
+ #include "sounddep/sound.h"
++#ifdef PICASSO96
++#include "picasso96.h"
++#include "picasso_host.h"
++#endif
+ 
+ #ifndef MAX_STOP
+ #define MAX_STOP 30000
+@@ -90,6 +94,10 @@
+ char opt_kickstart[RETRO_PATH_MAX] = {0};
+ /* PEEKaboo: an extended ROM chosen by the host. Empty leaves the model preset's own. */
+ char opt_kickstart_ext[RETRO_PATH_MAX] = {0};
++/* PEEKaboo: the RTG board. Held as strings and emitted by adm_machine_overrides_config(),
++ * NOT written into uae_config at the GET_VAR - see the comment there. */
++char opt_gfxcard_type[16] = "ZorroIII";
++char opt_gfxcard_size[8] = "0";
+ 
+ struct preset_options
+ {
+@@ -1017,6 +1025,45 @@
+          "auto"
+       },
+       {
++         /* PEEKaboo: RTG. "0" is not the same as "auto" here - every model preset leaves
++            gfxcard_size at 0, so "auto" and "None" would be the same thing, and the option
++            exists to turn something on that no preset ever turns on. */
++         "puae_gfxcard_size",
++         "System > RTG Graphics Card",
++         "RTG Graphics Card",
++         "Picasso96 (uaegfx) board memory. The guest needs Picasso96 installed to use it.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "0", "Disabled" },
++            { "1", "1M" },
++            { "2", "2M" },
++            { "4", "4M" },
++            { "8", "8M" },
++            { "16", "16M" },
++            { "32", "32M" },
++            { NULL, NULL },
++         },
++         "0"
++      },
++      {
++         /* Zorro II tops out at 8M of board space and needs a 24-bit machine; Zorro III is
++            what an 020+ with a 32-bit address space wants, and the only way to get more
++            than 8M. cfgfile.c matches these strings against gfxboard_get_configname(). */
++         "puae_gfxcard_type",
++         "System > RTG Board Type",
++         "RTG Board Type",
++         "Zorro II boards are limited to 8M. Zorro III needs a 32-bit address space.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "ZorroIII", "Zorro III" },
++            { "ZorroII", "Zorro II" },
++            { NULL, NULL },
++         },
++         "ZorroIII"
++      },
++      {
+          "puae_cpu_model",
+          "System > CPU Model",
+          "CPU Model",
+@@ -4141,6 +4188,42 @@
+       }
+    }
+ 
++   /* PEEKaboo: RTG board. Both options are only *recorded* here; the config rows are
++      written by adm_machine_overrides_config(), and that is not a detail.
++
++      uae_config reaches the machine from four of retro_create_config()'s branches and
++      NOT from the fifth - the one that boots a .uae config file, which reads that file
++      row by row and then goes straight to retro_config_kickstart(). Peekaboo boots all
++      hard-disk, WHDLoad and CD media through a generated launch.uae, so a board written
++      into uae_config is fitted on a floppy or empty boot and silently missing on every
++      machine that has a hard drive - which is every machine anyone would actually want
++      RTG on. adm_machine_overrides_config() runs after all five branches, which is why
++      the chipset options already live there.
++
++      The two rows must go together: a gfxcard_size with no gfxcard_type leaves
++      rtgmem_type at 0 (Zorro II), which caps the board at 8M and puts it in the wrong
++      address space. A Zorro III board also needs the 24-bit address space off, the same
++      way z3mem_size above turns it off for Z3 Fast RAM.
++
++      Neither is applied to changed_prefs while running: the board is an autoconfig
++      device, enumerated once at reset, and moving it under a guest that has already
++      found it would strand Picasso96's pointers.
++
++      Each is read into its own buffer, and one is never looked up from inside the
++      other's block. A front end is free to answer GET_VARIABLE out of one buffer it
++      reuses - Peekaboo does - so a second lookup while `var.value` is still live
++      rewrites the string the first one returned. Doing that here wrote a row
++      reading `gfxcard_size=ZorroIII`, which cfgfile.c parsed as a 0 MB board. */
++   GET_VAR("gfxcard_type")
++   {
++      strlcpy(opt_gfxcard_type, var.value, sizeof(opt_gfxcard_type));
++   }
++
++   GET_VAR("gfxcard_size")
++   {
++      strlcpy(opt_gfxcard_size, var.value, sizeof(opt_gfxcard_size));
++   }
++
+    GET_VAR("cpu_model")
+    {
+       override_opt.cpu_model = -1;
+@@ -5594,6 +5677,19 @@
+    double ar  = 1;
+    double par = 1;
+ 
++#ifdef PICASSO96
++   /* PEEKaboo: an RTG mode has square pixels - none of the PAL/NTSC pixel
++      aspect, line doubling or hires division below applies to it. */
++   if (picasso_host_active())
++   {
++      if (pixel_aspect)
++         return 1.0f;
++      if (!width || !height)
++         return 1.0f;
++      return (float)((double)width / (double)height);
++   }
++#endif
++
+    if (video_config_geometry & PUAE_VIDEO_NTSC || video_config_aspect == PUAE_VIDEO_NTSC)
+       par = 28512.0f / 33173.0f; /* 43:50 */
+    else if (video_config_geometry & PUAE_VIDEO_PAL || video_config_aspect == PUAE_VIDEO_PAL)
+@@ -7100,6 +7196,17 @@
+    /* A sound card is an expansion board like the A2065: enabled by its _rom_file row. */
+    if (strcmp(opt_adm_sound_board, "disabled"))
+       retro_config_append("%s_rom_file=:ENABLED\n", opt_adm_sound_board);
++
++   /* The RTG board, for the reason given at GET_VAR("gfxcard_size"): this is the only place
++    * that runs on every launch path, including the .uae config file one that Peekaboo boots
++    * all hard-disk media through. */
++   if (atoi(opt_gfxcard_size) > 0)
++   {
++      retro_config_append("gfxcard_size=%s\n", opt_gfxcard_size);
++      retro_config_append("gfxcard_type=%s\n", opt_gfxcard_type);
++      if (!strcmp(opt_gfxcard_type, "ZorroIII"))
++         retro_config_append("cpu_24bit_addressing=false\n");
++   }
+ }
+ 
+ /* PEEKaboo: the machine the core is actually running, straight from currprefs, so the
+@@ -8226,6 +8333,43 @@
+       }
+    }
+ 
++#ifdef PICASSO96
++   /* PEEKaboo: an RTG screen sets the geometry itself, so everything below - the
++      resolution detector, the interlace detector, the crop and centring maths,
++      the PAL/NTSC timing switch - has nothing to work on and must not run: it
++      reads BPLCON0 and the DIW registers, which say nothing at all while the
++      chipset display is switched off. The picture is whatever size Picasso96
++      asked for, with square pixels and no crop. */
++   if (picasso_host_active())
++   {
++      unsigned short w = (unsigned short)picasso_host_width();
++      unsigned short h = (unsigned short)picasso_host_height();
++      bool changed = picasso_host_take_geometry_change() != 0;
++
++      if (retrow != w || retroh != h)
++         changed = true;
++
++      retrow = retrow_crop = defaultw = w;
++      retroh = retroh_crop = defaulth = h;
++      retrox_crop = retroy_crop = 0;
++
++      if (changed)
++      {
++         retro_av_info_change_geometry = true;
++         request_update_av_info = true;
++      }
++      return;
++   }
++   /* Leaving RTG: the chipset geometry below is about to be recomputed from
++      scratch, and the front-end has to be told even if it lands on the size it
++      had before the switch. */
++   if (picasso_host_take_geometry_change())
++   {
++      retro_av_info_change_geometry = true;
++      request_update_av_info = true;
++   }
++#endif
++
+    /* Automatic video resolution */
+    if (opt_video_resolution_auto && retro_min_diwstart != MAX_STOP)
+    {
+@@ -9639,6 +9783,35 @@
+     extern int adm_blitter_writes_enabled;
+     adm_blitter_writes_enabled = enabled ? 1 : 0;
+ }
++
++/* PEEKaboo: RTG state, for a host that has to know whether the picture on screen
++ * came from the chipset or from a Picasso96 screen. Every raster overlay - copper,
++ * DMA, blitter, sprites - maps a beam position onto the frame, and an RTG frame
++ * has no beam, so the host switches them off while this says the display is RTG.
++ *
++ * board_size is the configured uaegfx VRAM in bytes (0 when there is no board, so
++ * it doubles as "is RTG available at all"); width/height/depth describe the screen
++ * the guest last opened, and are 0 while the chipset display is up. */
++RETRO_API void adm_get_rtg_state(uint32_t* board_size, uint32_t* width, uint32_t* height,
++                                 uint32_t* depth, uint8_t* active) {
++#ifdef PICASSO96
++    struct picasso96_state_struct* state = &picasso96_state[0];
++    int on = picasso_host_active();
++    if (board_size) *board_size = (uint32_t)currprefs.rtgboards[0].rtgmem_size;
++    if (width)      *width      = on ? (uint32_t)picasso_host_width() : 0;
++    if (height)     *height     = on ? (uint32_t)picasso_host_height() : 0;
++    /* The guest's depth, not the host's: a 256-colour Workbench is 8 here even
++     * though the core hands the front-end 16- or 32-bit pixels. */
++    if (depth)      *depth      = on ? (uint32_t)(state->BytesPerPixel * 8) : 0;
++    if (active)     *active     = on ? 1 : 0;
++#else
++    if (board_size) *board_size = 0;
++    if (width)      *width      = 0;
++    if (height)     *height     = 0;
++    if (depth)      *depth      = 0;
++    if (active)     *active     = 0;
++#endif
++}
+ RETRO_API void adm_redraw_frame(void) {
+     struct amigadisplay *ad = &adisplays[0];
+     if (!ad->picasso_on) {

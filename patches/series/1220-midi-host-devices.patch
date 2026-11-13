@@ -1,0 +1,534 @@
+MIDI in and out through host devices (Windows)
+
+An Amiga's MIDI interface hangs off the serial port: software runs the UART at 31250 baud,
+which SERPER's table rounds to 31400. WinUAE sends the byte stream to a MIDI device at that
+rate; this build had Midi_Open() returning 0.
+
+- adm_hostio.c: at 31400 baud, with a device chosen, writeser() parses the byte stream
+  (running status, system common lengths, real-time bytes, SysEx buffered to F7) into
+  midiOutShortMsg/midiOutLongMsg, and readser() drains a ring the winmm input callback fills.
+  Any other rate closes the devices and the serial target gets the bytes again. Elsewhere
+  than Windows it reports that MIDI is not implemented.
+- adm_midi_set_devices(out, in): out -2 none, -1 the system mapper, 0.. a device; in -1 none.
+  libretro-core.c applies it on the emulation thread through the same serial close and
+  re-open as a port change, mirroring it into win32_midioutdev/indev for serial_open()'s
+  empty-port test, and opens the devices at once when the UART is already at MIDI speed.
+- The status struct gains the devices, whether MIDI is active, and message counts.
+- Makefile: -lwinmm on Windows.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/Makefile
++++ b/Makefile
+@@ -505,7 +505,8 @@
+ # DEFINE_GUID only *declares* it (no INITGUID), so the definition has to be
+ # linked in. None of the three is on the base link line, and the MSVC
+ # '#pragma comment(lib, ...)' in those sources does nothing under GCC.
+-override LDFLAGS += -Wl,-Bstatic -lstdc++ -lwinpthread -Wl,-Bdynamic -lsetupapi -lws2_32 -luuid
++# winmm: adm_hostio.c's MIDI in/out (PEEKaboo).
++override LDFLAGS += -Wl,-Bstatic -lstdc++ -lwinpthread -Wl,-Bdynamic -lsetupapi -lws2_32 -luuid -lwinmm
+ else
+ override LDFLAGS += -lstdc++
+ endif
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -8991,6 +8991,9 @@
+ extern int adm_hostio_take_serial_request(char *out, int len);
+ extern const char *adm_hostio_wanted_serial_port(void);
+ extern void adm_hostio_poll(void);
++extern int adm_hostio_take_midi_request(int *out_device, int *in_device);
++extern int adm_hostio_midi_request_seen(void);
++extern void adm_hostio_apply_midi(int out_device, int in_device);
+ extern void serial_open(void);
+ extern void serial_close(void);
+ 
+@@ -9005,13 +9008,40 @@
+       strlcpy(wanted, keep, sizeof(wanted));
+       apply = true;
+    }
+-   if (apply)
++   /* MIDI devices: serial_open() reads win32_midioutdev/indev to decide whether an empty
++    * port is really empty, so they change through the same close and re-open. */
++   int midi_out = -2, midi_in = -1;
++   bool midi_apply = adm_hostio_take_midi_request(&midi_out, &midi_in) != 0;
++   if (!midi_apply && adm_hostio_midi_request_seen())
+    {
++      bool midi = midi_out >= -1 || midi_in >= 0;
++      int want_out = midi ? (midi_out < -1 ? -1 : midi_out) : 0;
++      int want_in = midi ? midi_in : 0;
++      /* A reload rebuilt prefs without them. */
++      if (currprefs.win32_midioutdev != want_out || currprefs.win32_midiindev != want_in)
++         midi_apply = true;
++   }
++
++   if (apply || midi_apply)
++   {
++      if (!apply)
++         strlcpy(wanted, currprefs.sername, sizeof(wanted));
+       serial_close();
+       strlcpy(currprefs.sername, wanted, sizeof(currprefs.sername));
+       strlcpy(changed_prefs.sername, wanted, sizeof(changed_prefs.sername));
+       currprefs.use_serial = changed_prefs.use_serial = true;
++      if (adm_hostio_midi_request_seen())
++      {
++         /* Only serial_open()'s empty-port test reads these; adm_hostio.c keeps the real
++          * device numbers. With no MIDI they go back to this build's 0/0, which is what
++          * every machine had before, so KPrintF capture sees the same UART states. */
++         bool midi = midi_out >= -1 || midi_in >= 0;
++         currprefs.win32_midioutdev = changed_prefs.win32_midioutdev = midi ? (midi_out < -1 ? -1 : midi_out) : 0;
++         currprefs.win32_midiindev = changed_prefs.win32_midiindev = midi ? midi_in : 0;
++      }
+       serial_open();
++      if (adm_hostio_midi_request_seen())
++         adm_hostio_apply_midi(midi_out, midi_in);
+    }
+    adm_hostio_poll();
+ }
+--- a/retrodep/adm_hostio.c
++++ b/retrodep/adm_hostio.c
+@@ -9,6 +9,7 @@
+  *            TCP://host:port/connect  connect out, and keep reconnecting
+  *            COM3, \\.\COM10, /dev/ttyUSB0 ...  a host serial device
+  *   parallel a file every byte the Amiga strobes out is appended to
++ *   MIDI     host MIDI devices (Windows) while the Amiga runs its UART at MIDI speed
+  *
+  * It deliberately includes no UAE header: parser.h typedefs SOCKET and the Win32 comm
+  * structures for non-Windows builds, which collide with the real ones. The few prefs it
+@@ -30,6 +31,7 @@
+ #include <winsock2.h>
+ #include <ws2tcpip.h>
+ #include <windows.h>
++#include <mmsystem.h>
+ typedef SOCKET adm_sock_t;
+ #define ADM_BAD_SOCKET INVALID_SOCKET
+ #define adm_closesocket closesocket
+@@ -91,9 +93,15 @@
+    uint32_t parallel_bytes;
+    char parallel_path[512];
+    char parallel_error[160];
++   int32_t midi_out_device;  /* -2 none, -1 the system mapper, 0.. a device */
++   int32_t midi_in_device;   /* -1 none, 0.. a device */
++   int32_t midi_active;      /* the UART is at 31250 baud and a device is open */
++   uint32_t midi_out_messages;
++   uint32_t midi_in_bytes;
++   char midi_error[160];
+ };
+ 
+-static struct adm_hostio_status st;
++static struct adm_hostio_status st = {.midi_out_device = -2, .midi_in_device = -1};
+ 
+ static void set_serial_error(const char *text)
+ {
+@@ -634,6 +642,286 @@
+ }
+ 
+ /* ------------------------------------------------------------------------------------- */
++/* MIDI                                                                                   */
++/* ------------------------------------------------------------------------------------- */
++
++/* The Amiga has no MIDI port: MIDI interfaces hang off the serial port, and software sets
++ * the UART to 31250 baud (SERPER's table rounds it to 31400). At that rate the byte stream
++ * goes to the host MIDI devices instead of the serial target, as WinUAE does. */
++
++static bool midi_ready;
++
++#ifdef _WIN32
++static HMIDIOUT midi_out;
++static HMIDIIN midi_in;
++
++/* Outgoing parser: running status, channel and system common lengths, SysEx buffered. */
++static unsigned char midi_msg[3];
++static int midi_msg_len, midi_msg_need;
++static unsigned char midi_running_status;
++static unsigned char midi_sysex[65536];
++static int midi_sysex_len;
++static bool midi_in_sysex;
++
++/* Incoming bytes, filled by the winmm callback thread, drained by the UART. Single writer,
++ * single reader. */
++static unsigned char midi_in_ring[8192];
++static volatile unsigned midi_in_head, midi_in_tail;
++
++static void midi_in_push(unsigned char b)
++{
++   unsigned next = (midi_in_head + 1) & (sizeof(midi_in_ring) - 1);
++   if (next == midi_in_tail)
++      return; /* full: drop */
++   midi_in_ring[midi_in_head] = b;
++   midi_in_head = next;
++   st.midi_in_bytes++;
++}
++
++static MIDIHDR midi_in_header;
++static char midi_in_buffer[4096];
++
++static void CALLBACK midi_in_callback(HMIDIIN h, UINT msg, DWORD_PTR instance, DWORD_PTR p1,
++                                      DWORD_PTR p2)
++{
++   (void)h;
++   (void)instance;
++   (void)p2;
++   if (msg == MIM_DATA)
++   {
++      unsigned char status = (unsigned char)(p1 & 0xff);
++      int len = 3;
++      if (status >= 0xf8 || status == 0xf6)
++         len = 1;
++      else if ((status & 0xf0) == 0xc0 || (status & 0xf0) == 0xd0 || status == 0xf1 ||
++               status == 0xf3)
++         len = 2;
++      for (int i = 0; i < len; i++)
++         midi_in_push((unsigned char)((p1 >> (8 * i)) & 0xff));
++   }
++   else if (msg == MIM_LONGDATA)
++   {
++      MIDIHDR *hdr = (MIDIHDR *)p1;
++      for (DWORD i = 0; i < hdr->dwBytesRecorded; i++)
++         midi_in_push((unsigned char)hdr->lpData[i]);
++      /* Hand the buffer back for the next SysEx, unless the device is closing. */
++      if (midi_in && hdr->dwBytesRecorded)
++         midiInAddBuffer(midi_in, hdr, sizeof(*hdr));
++   }
++}
++
++static void midi_send_short(void)
++{
++   DWORD packed = midi_msg[0] | ((DWORD)midi_msg[1] << 8) | ((DWORD)midi_msg[2] << 16);
++   if (midi_out && midiOutShortMsg(midi_out, packed) == MMSYSERR_NOERROR)
++      st.midi_out_messages++;
++}
++
++static void midi_send_sysex(void)
++{
++   if (!midi_out || midi_sysex_len <= 0)
++      return;
++   MIDIHDR hdr;
++   memset(&hdr, 0, sizeof(hdr));
++   hdr.lpData = (LPSTR)midi_sysex;
++   hdr.dwBufferLength = (DWORD)midi_sysex_len;
++   hdr.dwBytesRecorded = (DWORD)midi_sysex_len;
++   if (midiOutPrepareHeader(midi_out, &hdr, sizeof(hdr)) == MMSYSERR_NOERROR)
++   {
++      if (midiOutLongMsg(midi_out, &hdr, sizeof(hdr)) == MMSYSERR_NOERROR)
++         st.midi_out_messages++;
++      /* Unprepare returns MIDIERR_STILLPLAYING until the driver has taken the buffer. */
++      for (int tries = 0; tries < 100; tries++)
++      {
++         if (midiOutUnprepareHeader(midi_out, &hdr, sizeof(hdr)) != MIDIERR_STILLPLAYING)
++            break;
++         Sleep(1);
++      }
++   }
++}
++
++static void midi_write(unsigned char b)
++{
++   if (b >= 0xf8)
++   {
++      /* Real-time bytes may appear anywhere, even inside SysEx, and stand alone. */
++      if (midi_out && midiOutShortMsg(midi_out, b) == MMSYSERR_NOERROR)
++         st.midi_out_messages++;
++      return;
++   }
++   if (midi_in_sysex)
++   {
++      if (midi_sysex_len < (int)sizeof(midi_sysex))
++         midi_sysex[midi_sysex_len++] = b;
++      if (b == 0xf7)
++      {
++         midi_send_sysex();
++         midi_in_sysex = false;
++         midi_sysex_len = 0;
++      }
++      return;
++   }
++   if (b == 0xf0)
++   {
++      midi_in_sysex = true;
++      midi_sysex_len = 0;
++      midi_sysex[midi_sysex_len++] = b;
++      midi_running_status = 0;
++      return;
++   }
++   if (b & 0x80)
++   {
++      midi_msg[0] = b;
++      midi_msg[1] = midi_msg[2] = 0;
++      midi_msg_len = 1;
++      if (b >= 0xf0)
++      {
++         midi_running_status = 0;
++         midi_msg_need = (b == 0xf2) ? 3 : (b == 0xf1 || b == 0xf3) ? 2 : 1;
++      }
++      else
++      {
++         midi_running_status = b;
++         midi_msg_need = ((b & 0xf0) == 0xc0 || (b & 0xf0) == 0xd0) ? 2 : 3;
++      }
++   }
++   else
++   {
++      if (midi_msg_len == 0)
++      {
++         if (!midi_running_status)
++            return; /* a data byte with no status: nothing to attach it to */
++         midi_msg[0] = midi_running_status;
++         midi_msg_len = 1;
++         midi_msg_need = ((midi_running_status & 0xf0) == 0xc0 ||
++                          (midi_running_status & 0xf0) == 0xd0) ? 2 : 3;
++      }
++      if (midi_msg_len < 3)
++         midi_msg[midi_msg_len++] = b;
++   }
++   if (midi_msg_len >= midi_msg_need)
++   {
++      midi_send_short();
++      midi_msg_len = 0;
++   }
++}
++
++static void midi_close(void)
++{
++   if (midi_in)
++   {
++      HMIDIIN h = midi_in;
++      midiInStop(h);
++      midiInReset(h);
++      midi_in = NULL;
++      midiInUnprepareHeader(h, &midi_in_header, sizeof(midi_in_header));
++      midiInClose(h);
++   }
++   if (midi_out)
++   {
++      midiOutReset(midi_out);
++      midiOutClose(midi_out);
++      midi_out = NULL;
++   }
++   if (midi_ready)
++      write_log("MIDI: closed\n");
++   midi_ready = false;
++   midi_msg_len = 0;
++   midi_running_status = 0;
++   midi_in_sysex = false;
++   midi_in_head = midi_in_tail = 0;
++   st.midi_active = 0;
++}
++
++static void midi_open(void)
++{
++   midi_close();
++   st.midi_error[0] = 0;
++   if (st.midi_out_device >= -1)
++   {
++      UINT id = st.midi_out_device == -1 ? MIDI_MAPPER : (UINT)st.midi_out_device;
++      MMRESULT r = midiOutOpen(&midi_out, id, 0, 0, CALLBACK_NULL);
++      if (r != MMSYSERR_NOERROR)
++      {
++         midi_out = NULL;
++         snprintf(st.midi_error, sizeof(st.midi_error), "cannot open MIDI out %d (error %u)",
++                  (int)st.midi_out_device, (unsigned)r);
++      }
++   }
++   if (st.midi_in_device >= 0)
++   {
++      MMRESULT r = midiInOpen(&midi_in, (UINT)st.midi_in_device, (DWORD_PTR)midi_in_callback, 0,
++                              CALLBACK_FUNCTION);
++      if (r == MMSYSERR_NOERROR)
++      {
++         memset(&midi_in_header, 0, sizeof(midi_in_header));
++         midi_in_header.lpData = midi_in_buffer;
++         midi_in_header.dwBufferLength = sizeof(midi_in_buffer);
++         midiInPrepareHeader(midi_in, &midi_in_header, sizeof(midi_in_header));
++         midiInAddBuffer(midi_in, &midi_in_header, sizeof(midi_in_header));
++         midiInStart(midi_in);
++      }
++      else
++      {
++         midi_in = NULL;
++         snprintf(st.midi_error, sizeof(st.midi_error), "cannot open MIDI in %d (error %u)",
++                  (int)st.midi_in_device, (unsigned)r);
++      }
++   }
++   midi_ready = midi_out != NULL || midi_in != NULL;
++   st.midi_active = midi_ready ? 1 : 0;
++   if (midi_ready)
++      write_log("MIDI: open (out %d, in %d)\n", (int)st.midi_out_device, (int)st.midi_in_device);
++}
++
++static int midi_read_avail(void)
++{
++   return (int)((midi_in_head - midi_in_tail) & (sizeof(midi_in_ring) - 1));
++}
++
++static int midi_read(void)
++{
++   if (midi_in_head == midi_in_tail)
++      return -1;
++   int b = midi_in_ring[midi_in_tail];
++   midi_in_tail = (midi_in_tail + 1) & (sizeof(midi_in_ring) - 1);
++   return b;
++}
++#else
++/* MIDI needs CoreMIDI or ALSA here, neither of which this build links. */
++static void midi_close(void)
++{
++   midi_ready = false;
++   st.midi_active = 0;
++}
++
++static void midi_open(void)
++{
++   snprintf(st.midi_error, sizeof(st.midi_error), "MIDI is only implemented on Windows");
++}
++
++static void midi_write(unsigned char b)
++{
++   (void)b;
++}
++
++static int midi_read_avail(void)
++{
++   return 0;
++}
++
++static int midi_read(void)
++{
++   return -1;
++}
++#endif
++
++static bool midi_wanted(void)
++{
++   return st.midi_out_device >= -1 || st.midi_in_device >= 0;
++}
++
++/* ------------------------------------------------------------------------------------- */
+ /* The functions serial_host.c calls (declared in parser.h)                               */
+ /* ------------------------------------------------------------------------------------- */
+ 
+@@ -647,6 +935,7 @@
+    listen_sock = ADM_BAD_SOCKET;
+    connect_pending = false;
+    device_close();
++   midi_close();
+    if (st.serial_open)
+       write_log("SERIAL: closed %s\n", st.serial_name);
+    st.serial_mode = ADM_SER_NONE;
+@@ -680,6 +969,11 @@
+ 
+ void writeser(int c)
+ {
++   if (midi_ready)
++   {
++      midi_write((unsigned char)c);
++      return;
++   }
+    if (st.serial_mode == ADM_SER_NONE)
+       return;
+    if (tx_len >= (int)sizeof(tx_buf))
+@@ -697,7 +991,7 @@
+ 
+ int checkserwrite(int spaceneeded)
+ {
+-   if (st.serial_mode == ADM_SER_NONE)
++   if (midi_ready || st.serial_mode == ADM_SER_NONE)
+       return 1;
+    flush_tx();
+    return tx_len + spaceneeded <= (int)sizeof(tx_buf);
+@@ -713,6 +1007,8 @@
+ {
+    if (breakcond)
+       *breakcond = false;
++   if (midi_ready)
++      return midi_read_avail();
+    if (st.serial_mode == ADM_SER_NONE)
+       return 0;
+    if (rx_pos >= rx_len)
+@@ -727,6 +1023,14 @@
+ 
+ int readser(int *buffer)
+ {
++   if (midi_ready)
++   {
++      int b = midi_read();
++      if (b < 0)
++         return 0;
++      *buffer = b;
++      return 1;
++   }
+    if (st.serial_mode == ADM_SER_NONE)
+       return 0;
+    if (rx_pos >= rx_len)
+@@ -818,6 +1122,14 @@
+ int setbaud(long baud)
+ {
+    st.serial_baud = (int32_t)baud;
++   if (baud == 31400 && midi_wanted())
++   {
++      if (!midi_ready)
++         midi_open();
++      return 1;
++   }
++   if (midi_ready)
++      midi_close();
+    if (st.serial_mode != ADM_SER_DEVICE)
+       return 1;
+ #ifdef _WIN32
+@@ -911,6 +1223,9 @@
+ static bool serial_request_seen; /* the host has ever set a port */
+ static char parallel_request[512];
+ static volatile int parallel_request_pending;
++static int midi_request_out = -2, midi_request_in = -1;
++static volatile int midi_request_pending;
++static bool midi_request_seen;
+ 
+ /* The serial device for the next retro_run: a name openser() takes, or "" for none. */
+ int adm_serial_set_port(const char *name)
+@@ -929,6 +1244,46 @@
+    return 1;
+ }
+ 
++/* The host MIDI devices the serial port uses at MIDI speed: out -2 none, -1 the system
++ * mapper, 0.. a device; in -1 none, 0.. a device. */
++int adm_midi_set_devices(int out_device, int in_device)
++{
++   midi_request_out = out_device < -2 ? -2 : out_device;
++   midi_request_in = in_device < -1 ? -1 : in_device;
++   midi_request_seen = true;
++   midi_request_pending = 1;
++   return 1;
++}
++
++/* For libretro-core.c, which mirrors them into currprefs.win32_midi*dev so serial_open()
++ * knows an empty serial port still has somewhere to send bytes. Returns 1 when a request
++ * was waiting. */
++int adm_hostio_take_midi_request(int *out_device, int *in_device)
++{
++   *out_device = midi_request_out;
++   *in_device = midi_request_in;
++   if (!midi_request_pending)
++      return 0;
++   midi_request_pending = 0;
++   return 1;
++}
++
++int adm_hostio_midi_request_seen(void)
++{
++   return midi_request_seen ? 1 : 0;
++}
++
++/* After libretro-core.c re-opened the port for new MIDI devices: take them, and if the UART
++ * is already at MIDI speed open them now rather than waiting for the next SERPER write. */
++void adm_hostio_apply_midi(int out_device, int in_device)
++{
++   st.midi_out_device = out_device;
++   st.midi_in_device = in_device;
++   midi_close();
++   if (st.serial_baud == 31400 && midi_wanted())
++      midi_open();
++}
++
+ /* Copies up to `size` bytes of the status struct; returns the struct's full size. */
+ int adm_hostio_get_status(void *out, int size)
+ {

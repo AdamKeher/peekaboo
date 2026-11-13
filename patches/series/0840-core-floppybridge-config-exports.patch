@@ -1,0 +1,79 @@
+libretro-core.c: FloppyBridge configuration exports
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 205a274..2ce9a24 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -10058,7 +10058,7 @@ RETRO_API void adm_get_display_geometry(int* full_w, int* full_h,
+     if (crop_y) *crop_y = (int)retroy_crop;
+     if (vlb)    *vlb    = visible_left_border;
+     if (ya)     *ya     = thisframe_y_adjust;
+-}
++}
+ 
+ 
+ // --- ADM disk write event ring buffer ---
+@@ -10100,6 +10100,58 @@ RETRO_API int adm_read_disk_track(int drive, int track, uint8_t* buf, int buflen
+     return adm_read_disk_track_raw(drive, track, buf, buflen);
+ }
+ 
++// --- ADM FloppyBridge (live physical floppy drive) configuration ---
++// Thin wrappers over disk.c, which owns these because two of them need the C++
++// FloppyBridgeAPI. Attaching is asynchronous by design: these only write
++// changed_prefs, and DISK_vsync() -> DISK_check_change() opens or closes the
++// device on the next vertical blank. See the comment block in disk.c.
++// Must stay byte-identical to adm_bridge_status_t in disk.c and to
++// AmigaEmulator::BridgeStatus on the host side.
++typedef struct {
++    int configured;
++    int opened;
++    int disk_in_drive;
++    int write_protected;
++    int cylinder;
++    char driver_name[64];
++    char last_error[256];
++} adm_bridge_status_t;
++
++extern int adm_bridge_set_config(int drive_idx, const char* config);
++extern int adm_bridge_clear_config(int drive_idx);
++extern int adm_bridge_get_driver_list(char* buf, int maxlen);
++extern int adm_bridge_enum_com_ports(char* buf, int maxlen);
++extern int adm_bridge_get_status(int drive_idx, adm_bridge_status_t* out);
++extern int adm_bridge_shutdown_all(void);
++
++RETRO_API int adm_set_drive_bridge_config(int drive_idx, const char* config) {
++    return adm_bridge_set_config(drive_idx, config);
++}
++
++RETRO_API int adm_clear_drive_bridge_config(int drive_idx) {
++    return adm_bridge_clear_config(drive_idx);
++}
++
++RETRO_API int adm_get_bridge_driver_list(char* buf, int maxlen) {
++    return adm_bridge_get_driver_list(buf, maxlen);
++}
++
++RETRO_API int adm_enum_bridge_com_ports(char* buf, int maxlen) {
++    return adm_bridge_enum_com_ports(buf, maxlen);
++}
++
++// Synchronous teardown of every live drive, for core shutdown. See the long
++// comment on adm_bridge_shutdown_all() in disk.c: nothing in UAE's own teardown
++// stops a FloppyBridge driver's worker thread or closes its serial port, so the
++// host must ask before it unloads the library. Returns how many were stopped.
++RETRO_API int adm_shutdown_drive_bridges(void) {
++    return adm_bridge_shutdown_all();
++}
++
++RETRO_API int adm_get_drive_bridge_status(int drive_idx, void* out) {
++    return adm_bridge_get_status(drive_idx, (adm_bridge_status_t*)out);
++}
++
+ // --- ADM disk DMA transfer log ---
+ // disk.c calls adm_record_disk_dma_start/end/abort through externs. Payloads are
+ // copied into a circular arena; each event carries an (offset,length) window into

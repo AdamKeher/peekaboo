@@ -1,0 +1,62 @@
+diff --git a/retrodep/fsdb_host.c b/retrodep/fsdb_host.c
+index 03b7202..cf238c0 100644
+--- a/retrodep/fsdb_host.c
++++ b/retrodep/fsdb_host.c
+@@ -141,11 +141,8 @@ int my_getvolumeinfo(const char *root)
+ FILE *my_opentext(const TCHAR *name)
+ {
+ #ifdef USE_LIBRETRO_VFS
+-	int open_flags = RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING;
+-
+-	open_flags = open_flags | RETRO_VFS_FILE_ACCESS_READ;
+-
+-	return filestream_open(name, open_flags, RETRO_VFS_FILE_ACCESS_HINT_NONE);
++	return filestream_open(name, RETRO_VFS_FILE_ACCESS_READ,
++		RETRO_VFS_FILE_ACCESS_HINT_NONE);
+ #else
+ 	FILE *f;
+ 	uae_u8 tmp[4];
+@@ -287,16 +287,18 @@ struct my_openfile_s *my_open(const TCHAR *name, int flags)
+ 
+ #ifdef USE_LIBRETRO_VFS
+ 	RFILE *fp = NULL;
+-	int open_flags = RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING;
++	int open_flags;
+ 	if (flags & O_TRUNC || flags & O_CREAT)
+ 		open_flags = RETRO_VFS_FILE_ACCESS_READ_WRITE;
+-
+-	if (flags & O_RDWR)
+-		open_flags = open_flags | RETRO_VFS_FILE_ACCESS_READ_WRITE;
+-	else if (flags & O_RDONLY)
+-		open_flags = open_flags | RETRO_VFS_FILE_ACCESS_READ;
++	else if (flags & O_RDWR)
++		open_flags = RETRO_VFS_FILE_ACCESS_READ_WRITE |
++			RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING;
+ 	else if (flags & O_WRONLY)
+-		open_flags = open_flags | RETRO_VFS_FILE_ACCESS_WRITE;
++		open_flags = RETRO_VFS_FILE_ACCESS_WRITE |
++			RETRO_VFS_FILE_ACCESS_UPDATE_EXISTING;
++	else
++		/* O_RDONLY is defined as zero, so it cannot be detected with a bit test. */
++		open_flags = RETRO_VFS_FILE_ACCESS_READ;
+ 
+ 	fp = filestream_open(name_utf8, open_flags, RETRO_VFS_FILE_ACCESS_HINT_NONE);
+ #elif defined(FD_OPEN)
+@@ -333,6 +336,17 @@ struct my_openfile_s *my_open(const TCHAR *name, int flags)
+ 	fopen_flags = NULL;
+ #endif
+ 
++#ifdef USE_LIBRETRO_VFS
++	if (!fp)
++		return NULL;
++#elif defined(FD_OPEN)
++	if (fd < 0)
++		return NULL;
++#else
++	if (!fp)
++		return NULL;
++#endif
++
+ 	struct my_openfile_s *mos;
+ 	mos = xmalloc (struct my_openfile_s, 1);
+ 	if (!mos)

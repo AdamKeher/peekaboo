@@ -1,0 +1,125 @@
+cia.c: adm_get_cia_state()
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/cia.c b/sources/src/cia.c
+index 59182fc..3270377 100644
+--- a/sources/src/cia.c
++++ b/sources/src/cia.c
+@@ -3125,3 +3125,112 @@ uae_u8 *restore_keyboard(uae_u8 *src)
+ }
+ 
+ #endif /* SAVESTATE */
++
++
++// --- ADM CIA state snapshot ---
++// Reads the internal (static) cia[] array without any timing side effects.
++// Called once per frame by the host debugger after retro_run() completes.
++typedef struct {
++    uint8_t pra, prb, dra, drb;
++    uint8_t talo, tahi, tblo, tbhi;
++    uint8_t todlo, todmid, todhi;
++    uint8_t sdr, icr, imask, cra, crb;
++} adm_cia_chip_t;
++
++typedef struct {
++    adm_cia_chip_t a;
++    adm_cia_chip_t b;
++} adm_cia_state_t;
++
++RETRO_API void adm_get_cia_state(adm_cia_state_t* out) {
++    if (!out) return;
++    
++    for (int i = 0; i < 2; i++) {
++        struct CIA *c = &cia[i];
++        adm_cia_chip_t *target = (i == 0) ? &out->a : &out->b;
++        
++        // PRA/PRB live calculations (from ReadCIAA/ReadCIAB)
++        if (i == 0) {
++            // CIAA PRA
++            uae_u8 pra = DISK_status_ciaa() & 0x3c;
++            pra |= handle_joystick_buttons(c->pra, c->dra);
++            pra |= (c->pra | (c->dra ^ 3)) & 0x03;
++            pra = dongle_cia_read(0, 0, c->dra, pra);
++            pra = alg_joystick_buttons(c->pra, c->dra, pra);
++            if (currprefs.cs_ciatype[0]) {
++                pra &= ~c->dra;
++                pra |= c->pra & c->dra;
++            }
++            target->pra = pra;
++
++            // CIAA PRB
++            uae_u8 prb = (c->prb & c->drb) | (c->drb ^ 0xff);
++            prb = handle_parport_joystick(0, prb);
++            prb = dongle_cia_read(0, 1, c->drb, prb);
++            prb = CIA_PBON(c, prb);
++            if (currprefs.cs_ciatype[0]) {
++                prb &= ~c->drb;
++                prb |= c->prb & c->drb;
++            }
++            target->prb = prb;
++        } else {
++            // CIAB PRA
++            uae_u8 pra = (c->pra & c->dra) | (c->dra ^ 0xff);
++#ifdef SERIAL_PORT
++            pra = serial_readstatus(pra, c->dra);
++#endif
++            pra = handle_parport_joystick(1, pra);
++            pra = dongle_cia_read(1, 0, c->pra, pra);
++            if (currprefs.cs_ciatype[1]) {
++                pra &= ~c->dra;
++                pra |= c->pra & c->dra;
++            }
++            target->pra = pra;
++
++            // CIAB PRB
++            uae_u8 prb = c->prb;
++            prb = DISK_status_ciab(prb);
++            prb = dongle_cia_read(1, 1, c->prb, prb);
++            prb = CIA_PBON(c, prb);
++            if (currprefs.cs_ciatype[1]) {
++                prb &= ~c->drb;
++                prb |= c->prb & c->drb;
++            }
++            target->prb = prb;
++        }
++
++        target->dra = c->dra;
++        target->drb = c->drb;
++
++        // Timers: timer - passed gives the live value
++        uint16_t ta = (uint16_t)(c->t[0].timer - c->t[0].passed);
++        target->talo = ta & 0xFF;
++        target->tahi = ta >> 8;
++        
++        uint16_t tb = (uint16_t)(c->t[1].timer - c->t[1].passed);
++        target->tblo = tb & 0xFF;
++        target->tbhi = tb >> 8;
++
++        // TOD: non-destructive read (don't use tlatch logic as it's for emulated CPU)
++        uae_u32 tod = c->tod;
++        if (currprefs.cs_cia6526) {
++            uae_u32 bcdtod = 0;
++            for (int j = 0; j < 4; j++) {
++                int val = tod % 10;
++                bcdtod = (bcdtod >> 4) | (val << 12); // Simple BCD conversion for debug view
++                tod /= 10;
++            }
++            tod = bcdtod;
++        }
++        target->todlo  = (uint8_t)(tod & 0xFF);
++        target->todmid = (uint8_t)((tod >> 8) & 0xFF);
++        target->todhi  = (uint8_t)((tod >> 16) & 0xFF);
++
++        target->sdr   = c->sdr;
++        // ICR: report but don't clear (ReadCIAReg clears icr1)
++        target->icr   = c->icr1 & ~(0x40 | 0x20); 
++        target->imask = c->imask;
++        target->cra   = c->t[0].cr;
++        target->crb   = c->t[1].cr;
++    }
++}
+\ No newline at end of file

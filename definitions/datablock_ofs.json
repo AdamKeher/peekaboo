@@ -1,0 +1,88 @@
+{
+    "name": "DATABLOCK_OFS",
+    "fields": [
+        {
+            "name": "type",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "Block type",
+            "lookup": "primary_types",
+            "color": {
+                "background": "Maroon",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "header_key",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "Header key (parent file header)",
+            "color": {
+                "background": "Navy",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "seq_num",
+            "type": "ulong",
+            "format": "decimal",
+            "comment": "file data block number (first is #1)",
+            "color": {
+                "background": "Olive",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "data_size",
+            "type": "ulong",
+            "format": "decimal",
+            "comment": "data size <= (BSIZE-24)",
+            "color": {
+                "background": "Teal",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "next_data",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "next data block ptr (0 for last)",
+            "color": {
+                "background": "Purple",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "chksum",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "Data block checksum",
+            "checksumType": "standard",
+            "checksumOffset": 20,
+            "color": {
+                "background": "Gray",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "data",
+            "type": "uchar",
+            "size": 488,
+            "format": "hex",
+            "comment": "file data"
+        }
+    ],
+    "lookups": {
+        "primary_types": {
+            "type": "index",
+            "values": {
+                "2": "T_HEADER",
+                "8": "T_DATA",
+                "16": "T_LIST",
+                "33": "T_DIRC"
+            }
+        }
+    }
+}

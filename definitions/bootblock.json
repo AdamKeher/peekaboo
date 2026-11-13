@@ -1,0 +1,74 @@
+{
+    "name": "BOOTBLOCK",
+    "fields": [
+        {
+            "name": "DiskType",
+            "type": "uchar",
+            "size": 3,
+            "format": "hex",
+            "comment": "'D''O''S' + flags",
+            "color": {
+                "foreground": "Fuchsia",
+                "background": "Red"
+            }
+        },
+        {
+            "name": "flags",
+            "type": "uchar",
+            "format": "decimal",
+            "comment": "disk flags",
+            "lookup": "filesystem_flag_types",
+            "color": {
+                "foreground": "Yellow",
+                "background": "Navy"
+            }
+        },
+        {
+            "name": "chksum",
+            "type": "ulong",
+            "format": "hex:8",
+            "checksumType": "bootblock",
+            "comment": "special block checksum",
+            "color": {
+                "foreground": "Aqua",
+                "background": "Gray"
+            }
+        },
+        {
+            "name": "Rootblock",
+            "type": "ulong",
+            "format": "hex:8",
+            "comment": "Value is 880 for DD and HD",
+            "blocktarget": "true",
+            "color": {
+                "foreground": "Black",
+                "background": "LtYellow"
+            }
+        },
+        {
+            "name": "Bootblock_code",
+            "type": "uchar",
+            "size": 1012,
+            "format": "hex",
+            "comment": "BOOT_CODE",
+            "color": {
+                "foreground": "White",
+                "background": "Black"
+            }
+        }
+    ],
+    "lookups": {
+        "filesystem_flag_types": {
+            "type": "index",
+            "values": {
+                "0": "OFS (Old FileSystem)",
+                "1": "FFS (Fast FileSystem)",
+                "2": "OFS Intl",
+                "3": "FFS Intl",
+                "4": "OFS DC (DirCache)",
+                "5": "FFS DC (DirCache)",
+                "6": "FFS LN (Long Names)"
+            }
+        }
+    }
+}

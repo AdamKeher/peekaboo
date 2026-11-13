@@ -1,0 +1,10 @@
+{
+    "name": "Amiga Bitmap Font (descriptor)",
+    "group": "Fonts",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "0F00"
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "name": "DATABLOCK_FFS",
+    "fields": [
+        {
+            "name": "data",
+            "type": "uchar",
+            "size": 512,
+            "format": "hex",
+            "comment": "Raw FFS data block (512 bytes)"
+        }
+    ]
+}

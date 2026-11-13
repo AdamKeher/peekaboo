@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "buildId": 539363346,
+  "target": "peekaboo_validation.exe",
+  "profiles": [
+    "a500-pal",
+    "a500-ntsc",
+    "a600-pal",
+    "a1200-pal"
+  ],
+  "scenarios": [
+    {
+      "id": 1,
+      "phase": 1,
+      "name": "CPU registers and status",
+      "capabilities": [
+        "cpu",
+        "mailbox",
+        "symbols"
+      ],
+      "checkpoints": [
+        {
+          "id": 1,
+          "name": "distinctive register state",
+          "symbol": "ptv_checkpoint_cpu",
+          "expectations": {
+            "d0": {
+              "mode": "exact",
+              "value": 16909060
+            },
+            "d1": {
+              "mode": "exact",
+              "value": 286397204
+            },
+            "sr": {
+              "mode": "masked",
+              "value": 0,
+              "mask": 8192
+            },
+            "pc": {
+              "mode": "exact",
+              "value": "ptv_checkpoint_cpu+0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "phase": 1,
+      "name": "Copper color split",
+      "capabilities": [
+        "copper",
+        "framebuffer-golden",
+        "mailbox",
+        "symbols"
+      ],
+      "checkpoints": [
+        {
+          "id": 2,
+          "name": "MOVE execution order",
+          "symbol": "ptv_checkpoint_copper",
+          "expectations": {
+            "operations": {
+              "mode": "sequence",
+              "value": [
+                "WAIT",
+                "MOVE COLOR00 $000F",
+                "WAIT",
+                "MOVE COLOR00 $0F00"
+              ]
+            },
+            "lists": {
+              "mode": "set",
+              "value": [
+                1
+              ]
+            },
+            "framebuffer": {
+              "mode": "image",
+              "hash": "split-000f-0f00",
+              "crop": [
+                0,
+                44,
+                320,
+                212
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "phase": 1,
+      "name": "A XOR B blit",
+      "capabilities": [
+        "blitter",
+        "mailbox",
+        "symbols"
+      ],
+      "checkpoints": [
+        {
+          "id": 3,
+          "name": "minterm and destination",
+          "symbol": "ptv_checkpoint_blitter",
+          "expectations": {
+            "minterm": {
+              "mode": "exact",
+              "value": 60
+            },
+            "result": {
+              "mode": "exact",
+              "value": 26214
+            },
+            "trigger": {
+              "mode": "exact",
+              "value": "cpu"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "phase": 2,
+      "name": "Frame timing and alignment",
+      "capabilities": [
+        "alignment-workload",
+        "timeline",
+        "dma",
+        "idle",
+        "partial-frame"
+      ],
+      "checkpoints": [
+        {
+          "id": 4,
+          "name": "PAL normalized frame",
+          "symbol": "ptv_checkpoint_alignment",
+          "expectations": {
+            "frameCycles": {
+              "mode": "exact",
+              "value": 71364
+            },
+            "idleSpans": {
+              "mode": "exact",
+              "value": [
+                [
+                  1000,
+                  5000
+                ],
+                [
+                  8000,
+                  12000
+                ]
+              ]
+            },
+            "dmaTotal": {
+              "mode": "exact",
+              "value": 71364
+            },
+            "breakLRef": {
+              "mode": "range",
+              "min": 19990,
+              "max": 20010
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "phase": 3,
+      "name": "Debugger depth and CIA",
+      "capabilities": [
+        "callstack",
+        "dwarf",
+        "breakpoints",
+        "watchpoints",
+        "cia"
+      ],
+      "checkpoints": [
+        {
+          "id": 1,
+          "name": "nested stack and non-destructive CIA",
+          "symbol": "ptv_checkpoint_cpu",
+          "expectations": {
+            "stack": {
+              "mode": "sequence",
+              "value": [
+                "main",
+                "alpha",
+                "beta",
+                "leaf"
+              ]
+            },
+            "ciaaCra": {
+              "mode": "masked",
+              "value": 17,
+              "mask": 255
+            },
+            "snapshotDestructive": {
+              "mode": "exact",
+              "value": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "phase": 4,
+      "name": "Chipset and visual model",
+      "capabilities": [
+        "bitplanes",
+        "sprites",
+        "display-masks",
+        "resources",
+        "panel-render"
+      ],
+      "checkpoints": [
+        {
+          "id": 2,
+          "name": "isolated display and panel golden",
+          "symbol": "ptv_checkpoint_copper",
+          "expectations": {
+            "bitplanes": {
+              "mode": "exact",
+              "value": 4
+            },
+            "sprites": {
+              "mode": "set",
+              "value": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            },
+            "machineStateUnchanged": {
+              "mode": "exact",
+              "value": true
+            },
+            "panel": {
+              "mode": "image",
+              "hash": "panel-alignment-v1",
+              "crop": [
+                0,
+                0,
+                960,
+                240
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "phase": 5,
+      "name": "Matrix and robustness",
+      "capabilities": [
+        "save-state",
+        "capability-negotiation",
+        "mcp",
+        "matrix",
+        "provenance-hashes"
+      ],
+      "checkpoints": [
+        {
+          "id": 3,
+          "name": "save/reload and public API parity",
+          "symbol": "ptv_checkpoint_blitter",
+          "expectations": {
+            "restored": {
+              "mode": "exact",
+              "value": true
+            },
+            "mcpMatchesDirect": {
+              "mode": "exact",
+              "value": true
+            },
+            "profile": {
+              "mode": "set",
+              "value": [
+                "a500-pal",
+                "a500-ntsc",
+                "a600-pal",
+                "a1200-pal"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

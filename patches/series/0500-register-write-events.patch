@@ -1,0 +1,59 @@
+libretro-core.c: custom register write log
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index da0906b..d257aad 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9820,4 +9820,46 @@ RETRO_API int adm_get_copper_events(void* buf, int maxCount, int* overflow) {
+ RETRO_API void adm_clear_copper_events(void) {
+     adm_copper_write_pos = 0;
+     adm_active_copper_list = 1;
++}
++
++// --- Custom register write capture (ADM) ---
++typedef struct {
++    uint16_t vpos;       /* @ 0  - scanline of the write */
++    uint16_t hpos;       /* @ 2  - horizontal CCK position */
++    uint16_t reg;        /* @ 4  - register offset, addr & 0x1FE */
++    uint16_t value;      /* @ 6  - value written */
++    uint32_t pc;         /* @ 8  - writing CPU PC, or copper IP */
++    uint8_t  fromCopper; /* @ 12 - 1 = written by the copper */
++    uint8_t  pad[3];     /* @ 13 - explicit padding */
++    uint32_t cycle;      /* @ 16 - absolute CCK at write (get_cycles()/512) */
++} adm_reg_write_event_t;  /* 20 bytes */
++
++#define ADM_MAX_REG_WRITE_EVENTS 16384
++static adm_reg_write_event_t adm_reg_write_events[ADM_MAX_REG_WRITE_EVENTS];
++static uint32_t adm_reg_write_pos = 0;
++
++// Called from custom.c custom_wput_1() after addr and value have been masked.
++void adm_record_reg_write(uint16_t vpos_v, uint16_t hpos_v, uint16_t reg_v,
++                          uint16_t value_v, uint32_t pc_v, uint8_t from_copper) {
++    adm_reg_write_event_t *ev =
++        &adm_reg_write_events[adm_reg_write_pos % ADM_MAX_REG_WRITE_EVENTS];
++    ev->vpos       = vpos_v;
++    ev->hpos       = hpos_v;
++    ev->reg        = reg_v;
++    ev->value      = value_v;
++    ev->pc         = pc_v;
++    ev->fromCopper = from_copper;
++    ev->pad[0] = ev->pad[1] = ev->pad[2] = 0;
++    ev->cycle      = (uint32_t)(get_cycles() / 512);
++    adm_reg_write_pos++;
++}
++
++RETRO_API int adm_get_reg_write_events(void* buf, int maxCount, int* overflow) {
++    return adm_ring_copy(adm_reg_write_events, ADM_MAX_REG_WRITE_EVENTS,
++                         adm_reg_write_pos, buf, maxCount,
++                         sizeof(adm_reg_write_event_t), overflow);
++}
++
++RETRO_API void adm_clear_reg_write_events(void) {
++    adm_reg_write_pos = 0;
+ }
+\ No newline at end of file

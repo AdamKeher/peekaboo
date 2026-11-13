@@ -1,0 +1,10 @@
+{
+    "name": "AMOS Bank (ABK)",
+    "group": "Bank",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "416D426B"
+        }
+    ]
+}

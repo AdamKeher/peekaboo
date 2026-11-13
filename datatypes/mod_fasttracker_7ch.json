@@ -1,0 +1,10 @@
+{
+    "name": "FastTracker Module (7 channel)",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "3743484E"
+        }
+    ]
+}

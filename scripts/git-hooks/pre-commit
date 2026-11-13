@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# Pre-commit hook: block the commit if any staged C++ source is not
+# clang-format clean. Check-only — it never modifies your files.
+#
+# This hook is tracked in the repo. Activate it once per clone with:
+#   git config core.hooksPath scripts/git-hooks
+#
+# Bypass for a single commit with:  git commit --no-verify
+
+# Resolve clang-format (allow override via $CLANG_FORMAT).
+CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
+if ! command -v "$CLANG_FORMAT" >/dev/null 2>&1; then
+    echo "pre-commit: '$CLANG_FORMAT' not found on PATH; skipping format check." >&2
+    exit 0
+fi
+
+# Staged, added/copied/modified files; C/C++ only; skip vendored code.
+# patches/ is excluded for the same reason as src/vendor/: it holds third-party
+# sources and near-verbatim derivatives of them (e.g. patches/floppybridge/),
+# kept in their upstream style so future upstream diffs stay readable.
+files=$(git diff --cached --name-only --diff-filter=ACM \
+        | grep -E '\.(c|cc|cpp|cxx|h|hh|hpp|hxx)$' \
+        | grep -v '^src/vendor/' \
+        | grep -v '^patches/')
+
+[ -z "$files" ] && exit 0
+
+fail=0
+bad=""
+for f in $files; do
+    # File may be staged but deleted on disk; skip if missing.
+    [ -f "$f" ] || continue
+    if ! "$CLANG_FORMAT" --dry-run -Werror "$f" >/dev/null 2>&1; then
+        bad="$bad  $f\n"
+        fail=1
+    fi
+done
+
+if [ "$fail" -ne 0 ]; then
+    echo "pre-commit: the following staged files are not clang-format clean:" >&2
+    printf "$bad" >&2
+    echo "" >&2
+    echo "Fix with:    clang-format -i <files>   (then re-stage)" >&2
+    echo "Bypass with: git commit --no-verify" >&2
+fi
+
+exit $fail

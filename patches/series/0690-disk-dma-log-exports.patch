@@ -1,0 +1,233 @@
+libretro-core.c: disk DMA transfer log
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 64221b4..205a274 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -10098,4 +10098,220 @@ RETRO_API void adm_clear_disk_write_events(void) {
+ 
+ RETRO_API int adm_read_disk_track(int drive, int track, uint8_t* buf, int buflen) {
+     return adm_read_disk_track_raw(drive, track, buf, buflen);
++}
++
++// --- ADM disk DMA transfer log ---
++// disk.c calls adm_record_disk_dma_start/end/abort through externs. Payloads are
++// copied into a circular arena; each event carries an (offset,length) window into
++// it. Beam-relative position is NOT stored — the host derives it from start_cycle
++// minus the frame start, exactly as it does for blits.
++#define ADM_MAX_DISK_DMA_EVENTS 256
++#define ADM_DISK_ARENA_BYTES    (1u << 20)
++#define ADM_DISK_PAYLOAD_MAX    16384
++
++typedef struct {
++    uint32_t seq;
++    uint32_t start_cycle, end_cycle;
++    uint32_t pc;
++    uint8_t  from_copper, direction, drive, side;
++    uint8_t  cyl, turbo, aborted, pad;
++    uint32_t dskpt_start, dskpt_end;
++    uint16_t dsklen, words, dsksync, adkcon;
++    uint16_t mfmpos, pad2;
++    uint32_t payload_off, payload_len;
++} adm_disk_dma_event_t;
++
++static adm_disk_dma_event_t adm_disk_dma_events[ADM_MAX_DISK_DMA_EVENTS];
++static adm_disk_dma_event_t adm_pending_disk_dma;
++static int      adm_disk_dma_pending_valid = 0;
++static uint32_t adm_disk_dma_write_pos = 0;
++static uint32_t adm_disk_dma_seq = 0;
++static uint8_t  adm_disk_arena[ADM_DISK_ARENA_BYTES];
++static uint32_t adm_disk_arena_pos = 0;
++
++// Latched by custom.c immediately before it dispatches a DSKLEN write, so the
++// event records the instruction that armed the transfer rather than whatever the
++// CPU had advanced to by the time the DMA ran.
++static uint32_t adm_disk_trigger_pc = 0;
++static uint8_t  adm_disk_trigger_from_copper = 0;
++
++void adm_disk_set_trigger(uint32_t pc, uint8_t from_copper) {
++    adm_disk_trigger_pc = pc;
++    adm_disk_trigger_from_copper = from_copper;
++}
++
++// --- disk DMA breakpoint (BDSK / add_disk_breakpoint) ---
++static int adm_disk_bp_armed  = 0;
++static int adm_disk_bp_access = 0; // 0=any 1=read 2=write
++static int adm_disk_bp_cyl    = -1;
++static int adm_disk_bp_side   = -1;
++static int adm_disk_bp_sector = -1;
++static uint32_t adm_disk_bp_addr_lo = 0;
++static uint32_t adm_disk_bp_addr_hi = 0xFFFFFFFFu;
++static int adm_disk_bp_hit = 0;
++static adm_disk_dma_event_t adm_disk_bp_hit_ev;
++
++static void adm_disk_signal_break(void) {
++#ifdef DEBUGGER
++    { extern int adm_debug_break_pending; adm_debug_break_pending = 1; }
++#endif
++    { extern bool libretro_frame_end; libretro_frame_end = true; }
++}
++
++// Predicates that are known at arm time, so the break lands on the instruction
++// that wrote DSKLEN. The sector predicate is handled separately at completion.
++static int adm_disk_bp_match_arm(const adm_disk_dma_event_t* ev) {
++    uint32_t lo, hi;
++    if (!adm_disk_bp_armed) return 0;
++    if (adm_disk_bp_access == 1 && ev->direction != 2) return 0;
++    if (adm_disk_bp_access == 2 && ev->direction != 3) return 0;
++    if (adm_disk_bp_cyl  >= 0 && ev->cyl  != (uint8_t)adm_disk_bp_cyl)  return 0;
++    if (adm_disk_bp_side >= 0 && ev->side != (uint8_t)adm_disk_bp_side) return 0;
++    lo = ev->dskpt_start;
++    hi = lo + (uint32_t)ev->words * 2u;
++    if (hi <= adm_disk_bp_addr_lo || lo > adm_disk_bp_addr_hi) return 0;
++    return 1;
++}
++
++// Enough of the trackdisk MFM layout to answer "does this transfer touch sector
++// N": two 0x4489 sync words, then the odd/even-encoded info long whose second
++// byte is the sector number. Only walked when a sector filter is armed.
++static int adm_disk_payload_has_sector(const uint8_t* p, uint32_t len, int sector) {
++    uint32_t i;
++    for (i = 0; i + 12 <= len; i += 2) {
++        uint32_t odd, even, info;
++        if (p[i] != 0x44 || p[i + 1] != 0x89) continue;
++        if (p[i + 2] != 0x44 || p[i + 3] != 0x89) continue;
++        odd  = ((uint32_t)p[i + 4] << 24) | ((uint32_t)p[i + 5] << 16) |
++               ((uint32_t)p[i + 6] << 8)  |  (uint32_t)p[i + 7];
++        even = ((uint32_t)p[i + 8] << 24) | ((uint32_t)p[i + 9] << 16) |
++               ((uint32_t)p[i + 10] << 8) |  (uint32_t)p[i + 11];
++        info = ((odd & 0x55555555u) << 1) | (even & 0x55555555u);
++        if ((int)((info >> 8) & 0xFFu) == sector) return 1;
++    }
++    return 0;
++}
++
++// Called from disk.c once DSKLEN_2() has resolved the active drive.
++void adm_record_disk_dma_start(int direction, uint32_t dskpt_v, uint16_t dsklen_v,
++                               int drive, int cyl, int side_v, uint16_t mfmpos_v,
++                               uint16_t dsksync_v, uint16_t adkcon_v, int turbo)
++{
++    adm_disk_dma_event_t* ev = &adm_pending_disk_dma;
++    memset(ev, 0, sizeof(*ev));
++    ev->seq         = adm_disk_dma_seq++;
++    ev->start_cycle = (uint32_t)(get_cycles() / 512);
++    ev->pc          = adm_disk_trigger_pc;
++    ev->from_copper = adm_disk_trigger_from_copper;
++    ev->direction   = (uint8_t)direction;
++    ev->drive       = (drive >= 0) ? (uint8_t)drive : 0xFF;
++    ev->side        = (uint8_t)side_v;
++    ev->cyl         = (uint8_t)cyl;
++    ev->turbo       = (uint8_t)(turbo ? 1 : 0);
++    ev->dskpt_start = dskpt_v;
++    ev->dskpt_end   = dskpt_v;
++    ev->dsklen      = dsklen_v;
++    ev->words       = (uint16_t)(dsklen_v & 0x3fff);
++    ev->dsksync     = dsksync_v;
++    ev->adkcon      = adkcon_v;
++    ev->mfmpos      = mfmpos_v;
++    adm_disk_dma_pending_valid = 1;
++
++    if (adm_disk_bp_sector < 0 && adm_disk_bp_match_arm(ev)) {
++        adm_disk_bp_hit = 1;
++        adm_disk_bp_hit_ev = *ev;
++        adm_disk_signal_break();
++    }
++}
++
++static void adm_disk_dma_commit(uint32_t dskpt_end, int aborted)
++{
++    adm_disk_dma_event_t* ev = &adm_pending_disk_dma;
++    uint32_t bytes, off, i;
++
++    if (!adm_disk_dma_pending_valid) return;
++    adm_disk_dma_pending_valid = 0;
++
++    ev->end_cycle = (uint32_t)(get_cycles() / 512);
++    ev->dskpt_end = dskpt_end;
++    ev->aborted   = (uint8_t)(aborted ? 1 : 0);
++
++    // The turbo write path reads through dskpt without advancing it, so fall back
++    // to the programmed length when the pointer did not move.
++    bytes = (dskpt_end > ev->dskpt_start) ? (dskpt_end - ev->dskpt_start)
++                                          : ((uint32_t)ev->words * 2u);
++    if (bytes > ADM_DISK_PAYLOAD_MAX) bytes = ADM_DISK_PAYLOAD_MAX;
++    bytes &= ~1u;
++
++    if (bytes > 0) {
++        // Keep each payload contiguous so the host can hand out a flat pointer.
++        off = adm_disk_arena_pos;
++        if (off + bytes > ADM_DISK_ARENA_BYTES) off = 0;
++        for (i = 0; i < bytes; i += 2) {
++            uae_u16 w = (uae_u16)chipmem_wget_indirect(ev->dskpt_start + i);
++            adm_disk_arena[off + i]     = (uint8_t)(w >> 8);
++            adm_disk_arena[off + i + 1] = (uint8_t)(w & 0xff);
++        }
++        ev->payload_off = off;
++        ev->payload_len = bytes;
++        adm_disk_arena_pos = off + bytes;
++    }
++
++    if (adm_disk_bp_sector >= 0 && adm_disk_bp_match_arm(ev) &&
++        adm_disk_payload_has_sector(adm_disk_arena + ev->payload_off,
++                                    ev->payload_len, adm_disk_bp_sector)) {
++        adm_disk_bp_hit = 1;
++        adm_disk_bp_hit_ev = *ev;
++        adm_disk_signal_break();
++    }
++
++    adm_disk_dma_events[adm_disk_dma_write_pos % ADM_MAX_DISK_DMA_EVENTS] = *ev;
++    adm_disk_dma_write_pos++;
++}
++
++void adm_record_disk_dma_end(uint32_t dskpt_end)   { adm_disk_dma_commit(dskpt_end, 0); }
++void adm_record_disk_dma_abort(uint32_t dskpt_end) { adm_disk_dma_commit(dskpt_end, 1); }
++
++RETRO_API int adm_get_disk_dma_events(void* buf, int max) {
++    return adm_ring_copy(adm_disk_dma_events, ADM_MAX_DISK_DMA_EVENTS,
++                         adm_disk_dma_write_pos, buf, max,
++                         sizeof(adm_disk_dma_event_t), NULL);
++}
++
++RETRO_API void adm_clear_disk_dma_events(void) {
++    adm_disk_dma_write_pos = 0;
++    adm_disk_dma_seq = 0;
++    adm_disk_arena_pos = 0;
++    adm_disk_dma_pending_valid = 0;
++}
++
++// Copies a payload window back out to the host. Returns bytes copied.
++RETRO_API int adm_get_disk_dma_payload(uint32_t off, uint32_t len, void* out) {
++    if (!out || off >= ADM_DISK_ARENA_BYTES) return 0;
++    if (len > ADM_DISK_ARENA_BYTES - off) len = ADM_DISK_ARENA_BYTES - off;
++    memcpy(out, adm_disk_arena + off, len);
++    return (int)len;
++}
++
++// cyl/side/sector < 0 mean "any". addr_hi == 0 means "any address".
++RETRO_API void adm_arm_disk_break(int access, int cyl, int side_v, int sector,
++                                  uint32_t addr_lo, uint32_t addr_hi) {
++    adm_disk_bp_access  = access;
++    adm_disk_bp_cyl     = cyl;
++    adm_disk_bp_side    = side_v;
++    adm_disk_bp_sector  = sector;
++    adm_disk_bp_addr_lo = addr_lo;
++    adm_disk_bp_addr_hi = addr_hi ? addr_hi : 0xFFFFFFFFu;
++    adm_disk_bp_armed   = (access >= 0) ? 1 : 0;
++    adm_disk_bp_hit     = 0;
++}
++
++RETRO_API int adm_is_disk_break_armed(void) { return adm_disk_bp_armed; }
++
++// Read-and-clear; fills the event that tripped the break when one is pending.
++RETRO_API int adm_get_disk_break_hit(void* out_event) {
++    if (!adm_disk_bp_hit) return 0;
++    adm_disk_bp_hit = 0;
++    if (out_event) memcpy(out_event, &adm_disk_bp_hit_ev, sizeof(adm_disk_bp_hit_ev));
++    return 1;
+ }
+\ No newline at end of file

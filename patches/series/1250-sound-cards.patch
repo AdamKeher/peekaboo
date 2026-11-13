@@ -1,0 +1,192 @@
+Expansion sound cards: Toccata, Prelude, Prelude 1200 and UAESND
+
+sndboard.c was compiled with WITH_TOCCATA undefined, so every board in it was a stub. It holds
+MacroSystem's Toccata and ACT's Prelude (Zorro II, AD1848/CS4231A codecs with a FIFO), the
+Prelude 1200 on the A1200 clock port, and WinUAE's own UAESND Zorro II/III board - the one
+WinUAE's AHI driver uses. Each mixes into the Paula output through audio_enable_stream(), so
+nothing changes on the libretro side.
+
+- sysconfig.h: WITH_TOCCATA on (all platforms; nothing here is host-specific).
+- sndboard.c, for a C build: WinUAE compiles it as C++ with MSVC, which accepts an extern
+  forward declaration followed by a static definition, and NULL for a uaecptr. The FM801 and
+  SOLO1 PCI cards go under WITH_PCI (pci.c is empty without it). The vsync, volume and init
+  hooks lived inside the HAVE_X86 block with QEMU's audio glue and the WASAPI recording code;
+  without HAVE_X86 they are provided for the boards above, and recording input reads nothing.
+- libretro-core.c: puae_sound_board (disabled, toccata, prelude, prelude1200, uaesnd_z2,
+  uaesnd_z3) writes <board>_rom_file=:ENABLED, the row WinUAE writes for an expansion board.
+
+The AHI define stays off: it is WinUAE's older DirectSound-backed AHI emulation
+(ahidsound.cpp), which this tree does not have; UAESND replaced it.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -2043,6 +2043,27 @@
+          },
+          "internal"
+       },
++#ifdef WITH_TOCCATA
++      /* PEEKaboo: an expansion sound card, mixed into the same output as Paula */
++      {
++         "puae_sound_board",
++         "Audio > Sound Card",
++         "Sound Card",
++         "An expansion sound card beside Paula, mixed into the same output. Toccata and Prelude are Zorro II cards and Prelude 1200 sits on the A1200 clock port; they need their own Amiga drivers or AHI. UAESND is WinUAE's card for its AHI driver (Zorro III needs a 32-bit CPU). Recording input is not connected.\nCore restart required.",
++         NULL,
++         "audio",
++         {
++            { "disabled", NULL },
++            { "toccata", "Toccata" },
++            { "prelude", "Prelude" },
++            { "prelude1200", "Prelude 1200" },
++            { "uaesnd_z2", "UAESND Zorro II" },
++            { "uaesnd_z3", "UAESND Zorro III" },
++            { NULL, NULL },
++         },
++         "disabled"
++      },
++#endif
+       {
+          "puae_sound_volume_cd",
+          "Audio > CD Audio Volume",
+@@ -3569,6 +3590,8 @@
+ /* disabled, slirp or slirp_inbound: the a2065= value, ethernet.c's driver names. */
+ static char opt_adm_a2065[16]              = "disabled";
+ static bool opt_adm_sana2                  = false;
++/* disabled, or the expansion board name of the sound card: toccata, prelude, ... */
++static char opt_adm_sound_board[16]        = "disabled";
+ 
+ /* The mmu_model value for `cpu`, or -1 to leave the core's own choice. */
+ static int adm_mmu_model_for(int cpu, bool *ec)
+@@ -4248,6 +4271,8 @@
+       strlcpy(opt_adm_a2065, var.value, sizeof(opt_adm_a2065));
+    GET_VAR("sana2")
+       opt_adm_sana2 = !strcmp(var.value, "enabled");
++   GET_VAR("sound_board")
++      strlcpy(opt_adm_sound_board, var.value, sizeof(opt_adm_sound_board));
+ 
+    GET_VAR("cpu_throttle")
+    {
+@@ -7033,6 +7058,9 @@
+    }
+    if (opt_adm_sana2)
+       retro_config_append("sana2=true\n");
++   /* A sound card is an expansion board like the A2065: enabled by its _rom_file row. */
++   if (strcmp(opt_adm_sound_board, "disabled"))
++      retro_config_append("%s_rom_file=:ENABLED\n", opt_adm_sound_board);
+ }
+ 
+ /* PEEKaboo: the machine the core is actually running, straight from currprefs, so the
+--- a/retrodep/sysconfig.h
++++ b/retrodep/sysconfig.h
+@@ -83,7 +83,7 @@
+ //#define WITH_UAENET_PCAP
+ //#define WITH_PPC
+ //#define WITH_QEMU_CPU
+-//#define WITH_TOCCATA
++#define WITH_TOCCATA /* PEEKaboo: Toccata, Prelude, Prelude 1200, UAE Zorro sound board */
+ //#define WITH_PCI
+ //#define WITH_X86
+ #define WITH_THREADED_CPU
+--- a/sources/src/sndboard.c
++++ b/sources/src/sndboard.c
+@@ -45,7 +45,8 @@
+ 
+ static float base_event_clock;
+ 
+-extern addrbank uaesndboard_bank_z2, uaesndboard_bank_z3;
++/* PEEKaboo: static, as they are defined; extern then static is an MSVC-only allowance. */
++static addrbank uaesndboard_bank_z2, uaesndboard_bank_z3;
+ 
+ #define MAX_DUPLICATE_SOUND_BOARDS 1
+ #define MAX_SNDDEVS 3
+@@ -260,7 +261,7 @@
+ 
+ static bool audio_state_sndboard_uae(int streamid, void *params);
+ 
+-extern addrbank uaesndboard_ram_bank;
++static addrbank uaesndboard_ram_bank;
+ MEMORY_FUNCTIONS(uaesndboard_ram);
+ static addrbank uaesndboard_ram_bank = {
+ 	uaesndboard_ram_lget, uaesndboard_ram_wget, uaesndboard_ram_bget,
+@@ -753,7 +754,7 @@
+ 					uaesndboard_stop(data, s);
+ 				}
+ 				if (!s->indirect_address) {
+-					s->indirect_ptr = NULL;
++					s->indirect_ptr = 0; /* PEEKaboo: a uaecptr */
+ 				}
+ 			}
+ 			if (end) {
+@@ -1484,7 +1485,7 @@
+ 
+ static struct snddev_data snddev[MAX_SNDDEVS];
+ 
+-extern addrbank toccata_bank;
++static addrbank toccata_bank;
+ 
+ #define STATUS_ACTIVE 1
+ #define STATUS_RESET 2
+@@ -2415,6 +2416,8 @@
+ 	}
+ }
+ 
++/* PEEKaboo: the FM801 and SOLO1 PCI cards, which need pci.c - empty without WITH_PCI. */
++#ifdef WITH_PCI
+ struct fm801_data
+ {
+ 	struct pci_board_state *pcibs;
+@@ -2833,6 +2836,8 @@
+ 	}
+ };
+ 
++#endif /* WITH_PCI */
++
+ #ifdef HAVE_X86
+ static SWVoiceOut *qemu_voice_out;
+ 
+@@ -3159,6 +3164,42 @@
+ 
+ #endif
+ #endif /* HAVE_X86 */
++
++#ifndef HAVE_X86
++/* PEEKaboo: the HAVE_X86 block above holds QEMU's audio glue and, with it, the vsync, volume
++   and init hooks and the WASAPI recording capture. These are the hooks for the boards this
++   build has (Toccata, Prelude, Prelude 1200, UAESND), and no capture: recording reads
++   nothing. */
++static void sndboard_vsync(void)
++{
++	if (snddev[0].snddev_active)
++		sndboard_vsync_toccata(&snddev[0]);
++}
++
++void sndboard_ext_volume(void)
++{
++	if (snddev[0].snddev_active)
++		calculate_volume_toccata(&snddev[0]);
++}
++
++static void snd_init(void)
++{
++	device_add_hsync(sndboard_hsync);
++	device_add_vsync_post(sndboard_vsync);
++	device_add_rethink(sndboard_rethink);
++	device_add_exit(sndboard_free, NULL);
++	device_add_exit(uaesndboard_free, NULL);
++}
++
++static uae_u8 *sndboard_get_buffer(int *frames)
++{
++	*frames = -1;
++	return NULL;
++}
++static void sndboard_release_buffer(uae_u8 *buffer, int frames) {}
++static void sndboard_free_capture(void) {}
++static bool sndboard_init_capture(int freq) { return false; }
++#endif /* !HAVE_X86 */
+ #else
+ 
+ void update_sndboard_sound (double clk) {}

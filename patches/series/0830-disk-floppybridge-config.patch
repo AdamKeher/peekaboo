@@ -1,0 +1,315 @@
+disk.c: FloppyBridge host configuration
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/disk.c b/sources/src/disk.c
+index 4d6f557..23618ca 100644
+--- a/sources/src/disk.c
++++ b/sources/src/disk.c
+@@ -2846,13 +2846,27 @@ static int drive_write_pcdos (drive *drv, struct zfile *zf, bool count)
+ 
+ /* ADM: Read back one ADF track's decoded sector data from the drive's diskfile.
+  * drive_idx: 0-3, track: cyl*2+side (0-159), buf: output buffer >= buflen bytes.
+- * Returns bytes read, or -1 on error. */
++ * Returns bytes read, or -1 on error.
++ *
++ * LIMITATION - a bridged (live physical) drive is not supported here, and is not
++ * planned to be. ADF_FLOPPYBRIDGE has no diskfile: the data lives on a spinning
++ * platter and is streamed as MFM by FloppyBridge's worker thread, so there is no
++ * decoded sector image at a file offset to read back. The host's offline track
++ * read-back and its AdfHandler/AmigaMfmDecoder browsing therefore do not apply to
++ * a slot attached with adm_set_drive_bridge_config(); the UI should say "browse
++ * unavailable for a live drive" rather than presenting an empty disk. Offline
++ * imaging of the same physical disk still works through the separate gw CLI path.
++ * The diskfile == NULL test below already rejects it; this is explicit so the
++ * failure reads as intentional. */
+ int adm_read_disk_track_raw(int drive_idx, int track, uae_u8* buf, int buflen)
+ {
+     if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES || track < 0 || track >= MAX_TRACKS)
+         return -1;
+     if (!buf || buflen <= 0) return -1;
+     drive *drv = &floppy[drive_idx];
++#ifdef FLOPPYBRIDGE
++    if (drv->bridge || drv->filetype == ADF_FLOPPYBRIDGE) return -1;
++#endif
+     if (!drv->diskfile) return -1;
+     trackid *tid = &drv->trackdata[track];
+     if (tid->offs < 0) return -1;
+@@ -5546,6 +5560,274 @@ void floppybridge_modified(int num)
+ }
+ #endif //FLOPPYBRIDGE
+ 
++/* ADM: FloppyBridge host configuration entry points.
++ *
++ * These live in disk.c rather than libretro-core.c because two of them touch
++ * the C++ FloppyBridgeAPI, and disk.c is the only translation unit that has it
++ * in scope. libretro-core.c wraps all four with the RETRO_API adm_* exports.
++ *
++ * HOT-ATTACH (verified by reading disk.c, not assumed):
++ *   Setting changed_prefs.floppyslots[n] is all that is required. custom.c's
++ *   hsync handler calls DISK_vsync() -> DISK_check_change() every vertical
++ *   blank; that function diffs dfxtype/dfxprofile/dfxsubtype against currprefs
++ *   and, when either the old or the new dfxtype is >= DRV_FB, runs
++ *   floppybridge_init() followed by reset_drive(). reset_drive() re-runs
++ *   drive_insert(), whose "else if (drv->bridge)" branch sets filetype =
++ *   ADF_FLOPPYBRIDGE, num_tracks, tracklen and ddhd from the live device and
++ *   returns 1 without needing a backing file at all. So attach and detach are
++ *   both live: no core restart, no retro_load_game(), no new DMA-loop hook.
++ *
++ * dfxprofile is TCHAR[32] (options.h). "FloppyBridge:" costs 13, leaving 18
++ * usable characters plus the terminator - enough for "[1|0|COM256|1|0]" but
++ * not for a profile-name prefix. adm_bridge_set_config() refuses to truncate.
++ */
++
++/* Must stay byte-identical to AmigaEmulator::BridgeStatus on the host side. */
++typedef struct
++{
++	int configured;      /* the slot's dfxtype is DRV_FB */
++	int opened;          /* a driver exists and initialise() succeeded */
++	int disk_in_drive;
++	int write_protected;
++	int cylinder;
++	char driver_name[64];
++	char last_error[256];
++} adm_bridge_status_t;
++
++/* Build the "FloppyBridge:<config>" dfxprofile string that floppybridge_init2()
++ * already knows how to parse and mark the slot DRV_FB. config is upstream's own
++ * pipe-delimited form, "[bridgeIndex|flags|comPort|bridgeMode|bridgeDensity]".
++ * Returns 1 if the request was queued, 0 if it was rejected outright. Success
++ * here means "prefs accepted", not "hardware opened" - the device is opened on
++ * the next vertical blank, and a failure to open is reported through write_log
++ * by floppybridge_init2(). */
++int adm_bridge_set_config(int drive_idx, const char *config)
++{
++#ifdef FLOPPYBRIDGE
++	static const char prefix[] = "FloppyBridge:";
++	struct floppyslot *slot;
++	size_t need;
++
++	if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES)
++		return 0;
++	if (!config || !config[0])
++		return 0;
++
++	slot = &changed_prefs.floppyslots[drive_idx];
++	need = sizeof(prefix) - 1 + strlen(config) + 1;
++	if (need > sizeof(slot->dfxprofile) / sizeof(slot->dfxprofile[0]))
++		return 0;
++
++	strcpy(slot->dfxprofile, prefix);
++	strcat(slot->dfxprofile, config);
++	slot->dfxtype = DRV_FB;
++	/* The profile-ID system is stubbed in our floppybridge_lib.cpp, so leave
++	   these empty and let floppybridge_init2() take the createDriverFromString
++	   path. floppybridge_getsetprofile() is a no-op against an empty
++	   bridgeprofiles vector. */
++	slot->dfxsubtype = 0;
++	slot->dfxsubtypeid[0] = 0;
++	/* One slot cannot be backed by both a live drive and an image. Clearing df
++	   stops reset_drive() re-inserting the previously mounted ADF underneath
++	   the bridge. reset_drive() copies changed_prefs.df to currprefs.df before
++	   drive_insert(), so DISK_vsync()'s own df-diff will not fire either. */
++	slot->df[0] = 0;
++	/* Force floppybridge_init2() to tear the old driver down and rebuild it.
++	   Its re-create block is guarded by "type != bridge_type[dr]", and the type
++	   is DRV_FB either way, so without this a re-attach that only changes the
++	   COM port or the bridge mode would be silently ignored - the prefs would
++	   say COM4 while the open device was still COM3. */
++	floppybridge_modified(drive_idx);
++	return 1;
++#else
++	(void)drive_idx;
++	(void)config;
++	return 0;
++#endif
++}
++
++/* Per-slot bridge health, for the host UI. This has to live here because
++ * bridges[] and bridge_driver[] are file-static, and it is the only way to tell
++ * a slot whose device opened from one whose device failed: floppybridge_init2()
++ * assigns the driver to floppy[dr].bridge either way, but sets bridge_driver[dr]
++ * only after initialise() returns true.
++ *
++ * Fills *out and returns 1, or returns 0 for a bad argument. All string fields
++ * are always null-terminated. */
++int adm_bridge_get_status(int drive_idx, adm_bridge_status_t *out)
++{
++	if (!out)
++		return 0;
++	memset(out, 0, sizeof(*out));
++	if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES)
++		return 0;
++#ifdef FLOPPYBRIDGE
++	out->configured = currprefs.floppyslots[drive_idx].dfxtype == DRV_FB ? 1 : 0;
++	out->opened = bridge_driver[drive_idx] != NULL ? 1 : 0;
++	if (bridge_driver[drive_idx]) {
++		strncpy(out->driver_name, bridge_driver[drive_idx]->name, sizeof(out->driver_name) - 1);
++	}
++	if (bridges[drive_idx]) {
++		out->disk_in_drive = bridges[drive_idx]->isDiskInDrive() ? 1 : 0;
++		out->write_protected = bridges[drive_idx]->isWriteProtected() ? 1 : 0;
++		const char *msg = bridges[drive_idx]->getLastErrorMessage();
++		if (msg) {
++			strncpy(out->last_error, msg, sizeof(out->last_error) - 1);
++		}
++	}
++	out->cylinder = floppy[drive_idx].cyl;
++#endif
++	return 1;
++}
++
++/* Revert a slot to an ordinary file-backed 3.5" DD drive. The same
++ * DISK_check_change() branch tears the bridge down, because the *old* dfxtype
++ * is >= DRV_FB. The slot is left empty; the host re-mounts an image normally. */
++int adm_bridge_clear_config(int drive_idx)
++{
++#ifdef FLOPPYBRIDGE
++	struct floppyslot *slot;
++
++	if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES)
++		return 0;
++
++	slot = &changed_prefs.floppyslots[drive_idx];
++	if (slot->dfxtype != DRV_FB && slot->dfxprofile[0] == 0)
++		return 1;
++
++	slot->dfxprofile[0] = 0;
++	slot->dfxtype = DRV_35_DD;
++	slot->dfxsubtype = 0;
++	slot->dfxsubtypeid[0] = 0;
++	slot->df[0] = 0;
++	return 1;
++#else
++	(void)drive_idx;
++	return 0;
++#endif
++}
++
++/* Newline-separated driver names, in the index order createDriverFromString()
++ * expects: 0 = DrawBridge, 1 = Greaseweazle, 2 = SuperCard Pro.
++ * Returns the number of names written, or -1 if the buffer was too small. */
++int adm_bridge_get_driver_list(char *buf, int maxlen)
++{
++#ifdef FLOPPYBRIDGE
++	std::vector<FloppyBridgeAPI::DriverInformation> drivers;
++	int used = 0;
++	int count = 0;
++
++	if (!buf || maxlen <= 0)
++		return -1;
++	buf[0] = 0;
++
++	FloppyBridgeAPI::getDriverList(drivers);
++	for (size_t i = 0; i < drivers.size(); i++) {
++		int n = snprintf(buf + used, (size_t)(maxlen - used), "%s\n", drivers[i].name);
++		if (n < 0 || n >= maxlen - used) {
++			buf[used] = 0;
++			return -1;
++		}
++		used += n;
++		count++;
++	}
++	return count;
++#else
++	if (buf && maxlen > 0)
++		buf[0] = 0;
++	return -1;
++#endif
++}
++
++/* Newline-separated serial port names from the vendored SerialIO enumeration.
++ * Returns the number of names written, 0 for none, or -1 if the buffer was too
++ * small. Safe to call with no device attached. */
++int adm_bridge_enum_com_ports(char *buf, int maxlen)
++{
++#ifdef FLOPPYBRIDGE
++	std::vector<const TCHAR *> ports;
++	int used = 0;
++	int count = 0;
++
++	if (!buf || maxlen <= 0)
++		return -1;
++	buf[0] = 0;
++
++	FloppyBridgeAPI::enumCOMPorts(ports);
++	for (size_t i = 0; i < ports.size(); i++) {
++		int n;
++		if (!ports[i])
++			continue;
++		n = snprintf(buf + used, (size_t)(maxlen - used), "%s\n", ports[i]);
++		if (n < 0 || n >= maxlen - used) {
++			buf[used] = 0;
++			return -1;
++		}
++		used += n;
++		count++;
++	}
++	return count;
++#else
++	if (buf && maxlen > 0)
++		buf[0] = 0;
++	return -1;
++#endif
++}
++
++
++/* Synchronously tear every live drive down: stop each driver's worker thread and
++ * close its device. Returns the number of bridges that were shut down.
++ *
++ * This exists because nothing else does it. UAE's own teardown is DISK_free() ->
++ * drive_image_free(), which closes backing FILES; the FloppyBridge objects in
++ * bridges[] are owned by floppybridge_init2() and are released only when a
++ * *running* machine's prefs change. Unload the core without one of those and
++ * every driver's std::thread keeps running - the motor stays on, auto-cache
++ * keeps stepping the head, and the serial port stays open. On Windows the host
++ * then FreeLibrary()s this DLL out from under that thread and the next load maps
++ * the same image at the same base, so the orphan thread returns from its serial
++ * read into the NEW core and wedges it.
++ *
++ * Unlike adm_bridge_clear_config() this does not wait for a vertical blank -
++ * there will not be another one. Both prefs copies are reverted so nothing can
++ * re-create a driver afterwards, and a slot still claiming ADF_FLOPPYBRIDGE is
++ * marked empty so no read path can follow a dangling drv->bridge. Idempotent. */
++int adm_bridge_shutdown_all(void)
++{
++#ifdef FLOPPYBRIDGE
++	int n = 0;
++
++	for (int dr = 0; dr < MAX_FLOPPY_DRIVES; dr++) {
++		if (bridges[dr]) {
++			/* shutdown(), not a plain delete: ~CommonBridgeTemplate() joins the
++			   worker thread but never calls closeInterface(), so deleting alone
++			   leaves the serial port open. */
++			bridges[dr]->shutdown();
++			delete bridges[dr];
++			bridges[dr] = NULL;
++			n++;
++		}
++		floppy[dr].bridge = NULL;
++		bridge_driver[dr] = NULL;
++		bridge_type[dr] = -1;
++		if (floppy[dr].filetype == ADF_FLOPPYBRIDGE)
++			floppy[dr].filetype = ADF_NONE;
++		if (currprefs.floppyslots[dr].dfxtype == DRV_FB) {
++			currprefs.floppyslots[dr].dfxtype = DRV_35_DD;
++			currprefs.floppyslots[dr].dfxprofile[0] = 0;
++		}
++		if (changed_prefs.floppyslots[dr].dfxtype == DRV_FB) {
++			changed_prefs.floppyslots[dr].dfxtype = DRV_35_DD;
++			changed_prefs.floppyslots[dr].dfxprofile[0] = 0;
++		}
++	}
++	return n;
++#else
++	return 0;
++#endif
++}
++
++
+ void DISK_init (void)
+ {
+ 	for (int dr = MAX_FLOPPY_DRIVES - 1; dr >= 0; dr--) {

@@ -1,0 +1,21 @@
+debug.c: adm_skip_bp_check in the bpnode loop
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/debug.c b/sources/src/debug.c
+index e049f4f..8ca3a02 100644
+--- a/sources/src/debug.c
++++ b/sources/src/debug.c
+@@ -7452,6 +7452,9 @@ void debug (void)
+ 				}
+ 			}
+ 
++#ifdef __LIBRETRO__
++			if (adm_skip_bp_check) { adm_skip_bp_check = 0; bpnum = -1; }
++#endif
+ 			if (trace_mode) {
+ 				if (trace_mode == TRACE_MATCH_PC && trace_param[0] == pc)
+ 					bp = -1;

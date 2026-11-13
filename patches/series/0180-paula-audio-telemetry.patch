@@ -1,0 +1,100 @@
+libretro-core.c: Paula audio telemetry ring
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index a1e5ab3..d55520f 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9138,4 +9138,87 @@ RETRO_API int adm_get_sprpt_color_snaps(adm_sprpt_color_snap_t* out, int max) {
+ 
+ RETRO_API void adm_clear_sprpt_events(void) {
+     adm_sprpt_write_pos = 0;
++}
++
++// --- Paula audio channel telemetry (ADM) ---
++// audio_channel_mask lives in audio.c (non-static, applied in newsample()).
++// adm_audio_filter_state is the non-static mirror of led_filter_on/sound_use_filter that the
++// audio.c patch adds -- both of those are static, so this is the only way to read them back.
++extern int audio_channel_mask;
++extern int adm_audio_filter_state;
++
++typedef struct {
++    int16_t  sample; // raw signed 8-bit sample, sign-extended, BEFORE audio_channel_mask
++    uint8_t  vol;    // AUDxVOL in effect (0..64)
++    uint8_t  flags;  // bit0 = channel enabled in mask, bit1 = channel DMA on
++    uint16_t per;    // AUDxPER in effect (CYCLE_UNIT already divided out)
++    uint16_t vpos;
++    uint16_t hpos;
++    uint32_t cycle;  // get_cycles() / 512, same CCK units as every other adm_* stamp
++} adm_audio_sample_t;
++
++#define ADM_AUDIO_CHANNELS    4
++#define ADM_MAX_AUDIO_SAMPLES 2048
++static adm_audio_sample_t adm_audio_trace[ADM_AUDIO_CHANNELS][ADM_MAX_AUDIO_SAMPLES];
++static uint32_t           adm_audio_write_pos[ADM_AUDIO_CHANNELS];
++static int                adm_audio_trace_enabled = 0;
++
++// Called from audio.c newsample(). Hot path (~56 kHz summed over four channels) -- the
++// enabled check keeps it free whenever the host's Audio window is closed.
++void adm_record_audio_sample(int nr, int sample, int vol, int per, int dmaon) {
++    uint32_t idx;
++    adm_audio_sample_t *ev;
++    if (!adm_audio_trace_enabled) return;
++    if (nr < 0 || nr >= ADM_AUDIO_CHANNELS) return;
++    idx = adm_audio_write_pos[nr] % ADM_MAX_AUDIO_SAMPLES;
++    ev  = &adm_audio_trace[nr][idx];
++    ev->sample = (int16_t)sample;
++    ev->vol    = (uint8_t)(vol < 0 ? 0 : (vol > 255 ? 255 : vol));
++    ev->flags  = (uint8_t)((audio_channel_mask >> nr) & 1);
++    if (dmaon) ev->flags |= 2;
++    ev->per    = (uint16_t)(per < 0 ? 0 : (per > 65535 ? 65535 : per));
++    ev->vpos   = (uint16_t)vpos;
++    ev->hpos   = (uint16_t)current_hpos();
++    ev->cycle  = (uint32_t)(get_cycles() / 512);
++    adm_audio_write_pos[nr]++;
++}
++
++RETRO_API int adm_get_audio_trace(int ch, adm_audio_sample_t* out, int max) {
++    if (ch < 0 || ch >= ADM_AUDIO_CHANNELS) return 0;
++    return adm_ring_copy(adm_audio_trace[ch], ADM_MAX_AUDIO_SAMPLES,
++                         adm_audio_write_pos[ch], out, max,
++                         sizeof(adm_audio_sample_t), NULL);
++}
++
++RETRO_API void adm_clear_audio_trace(void) {
++    int i;
++    for (i = 0; i < ADM_AUDIO_CHANNELS; i++)
++        adm_audio_write_pos[i] = 0;
++}
++
++// Disabling also empties the rings, so re-opening the host window never shows stale samples
++// captured before the emulator was reset.
++RETRO_API void adm_set_audio_trace_enabled(int enable) {
++    if (!enable) {
++        int i;
++        for (i = 0; i < ADM_AUDIO_CHANNELS; i++)
++            adm_audio_write_pos[i] = 0;
++    }
++    adm_audio_trace_enabled = enable ? 1 : 0;
++}
++
++// Per-channel mute. Bit n set = channel n audible. Mirrors adm_set_bitplane_mask: the global
++// lives in another translation unit and the chipset code applies it.
++RETRO_API void adm_set_audio_channel_mask(uint8_t mask) {
++    audio_channel_mask = (int)(mask & 0x0F);
++}
++
++RETRO_API uint8_t adm_get_audio_channel_mask(void) {
++    return (uint8_t)(audio_channel_mask & 0x0F);
++}
++
++// bit0 = LED low-pass filter currently on; bits 1+ = sound_use_filter model
++// (0 none, 1 A500, 2 A1200, 3 A500 fixed-only).
++RETRO_API int adm_get_audio_filter_state(void) {
++    return adm_audio_filter_state;
+ }
+\ No newline at end of file

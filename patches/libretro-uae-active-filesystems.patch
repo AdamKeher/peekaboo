@@ -1,0 +1,27 @@
+diff --git a/sources/src/filesys.c b/sources/src/filesys.c
+index fce4986..48b49aa 100644
+--- a/sources/src/filesys.c
++++ b/sources/src/filesys.c
+@@ -256,6 +256,22 @@ struct uaedev_mount_info {
+ };
+ 
+ static struct uaedev_mount_info mountinfo;
++
++/* PEEKaboo optional extension: report directory units that have reached the guest-side
++ * startup trap. An entry can be present in currprefs/mountinfo before AmigaOS accepts it;
++ * parmpacket is assigned by filesys_dev_storeinfo() only once the guest creates the unit. */
++int adm_get_active_filesystem_units(int *output, int maximum)
++{
++	int count = 0;
++	if (!output || maximum <= 0)
++		return 0;
++	for (int unit = 0; unit < MAX_FILESYSTEM_UNITS && count < maximum; ++unit) {
++		if (mountinfo.ui[unit].open > 0 && mountinfo.ui[unit].parmpacket != 0 &&
++		    mountinfo.ui[unit].rootdir != NULL)
++			output[count++] = unit;
++	}
++	return count;
++}
+ 
+ 
+ /* minimal AmigaDOS definitions */

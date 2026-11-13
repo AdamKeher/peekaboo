@@ -1,0 +1,246 @@
+Serial port: poll the host once every 16 idle asks and send in frame-sized writes; MIDI SysEx
+buffers handed back lazily instead of slept for
+
+Measured on the emulation thread with a TCP serial target and nothing arriving: the UART calls
+readseravail()/readser() once per byte period - every scanline at the fast rates, ~15 kHz - and
+each call went to accept()/recv() (or ClearCommError()+ReadFile() for a COM device) to be told
+nothing was there. On the way out writeser() flushed after every byte, so a printed line was one
+send() and one TCP segment per character.
+
+- An empty rx_buf is refilled once every RX_IDLE_POLL_EVERY (16) asks. A read that finds data
+  lets the very next empty ask go straight to the source, so a stream longer than the buffer
+  keeps flowing at full rate; adm_hostio_poll() reads ahead once per frame besides, for a COM
+  device now as well as a socket.
+- writeser() only buffers. writeser_flush(), which the UART calls once per byte period, sends when
+  TX_FLUSH_AT (256) bytes are waiting; anything less goes out with adm_hostio_poll() at the end of
+  the frame, or in closeser() so a port change never loses the tail. checkserwrite() flushes only
+  when the buffer could not otherwise take the bytes.
+- midi_send_sysex() prepared a MIDIHDR, sent it, then spun on midiOutUnprepareHeader() with
+  Sleep(1) for up to 100 ms per message - on the emulation thread, per SysEx, so a patch dump
+  stalled the machine for frames at a time. Four prepared buffers now rotate: a message takes a
+  free one and returns at once, and a buffer comes back when a later message finds MHDR_DONE on
+  it, or at midi_close() after midiOutReset() has returned them all. With all four in flight the
+  message is dropped and logged once rather than waited for.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/retrodep/adm_hostio.c
++++ b/retrodep/adm_hostio.c
+@@ -164,6 +164,19 @@ static int rx_len, rx_pos;
+ static unsigned char tx_buf[16384];
+ static int tx_len;
+ 
++/* The UART asks readseravail()/readser() once per byte period whether anything has arrived -
++ * every scanline at the fast rates, ~15 kHz. Each empty answer used to be an accept(), recv()
++ * or ReadFile() for nothing, on the emulation thread. An empty rx_buf is now refilled once
++ * every RX_IDLE_POLL_EVERY asks; a burst then lands in one read and is served out of the
++ * buffer, and adm_hostio_poll() reads ahead once per frame besides. */
++#define RX_IDLE_POLL_EVERY 16
++static int rx_idle_polls;
++
++/* Bytes tx_buf holds before the UART's own per-byte flush sends them. Anything less waits for
++ * adm_hostio_poll() at the end of the frame, so a stream goes out in frame-sized writes (one
++ * TCP segment) rather than one send() per byte. */
++#define TX_FLUSH_AT 256
++
+ static void set_nonblocking(adm_sock_t s)
+ {
+ #ifdef _WIN32
+@@ -599,6 +612,21 @@ static void fill_rx(void)
+       tcp_drop_client("receive error");
+ }
+ 
++/* fill_rx() for the UART's per-byte poll: skipped while the last few came back empty. After a
++ * read that found data the very next empty poll goes straight to the source again, so a
++ * stream longer than rx_buf keeps flowing at full rate. */
++static void fill_rx_for_uart(void)
++{
++   if (rx_pos < rx_len)
++      return;
++   if (++rx_idle_polls < RX_IDLE_POLL_EVERY)
++      return;
++   rx_idle_polls = 0;
++   fill_rx();
++   if (rx_pos < rx_len)
++      rx_idle_polls = RX_IDLE_POLL_EVERY;
++}
++
+ static void flush_tx(void)
+ {
+    if (tx_len <= 0)
+@@ -663,6 +691,15 @@ static unsigned char midi_sysex[65536];
+ static int midi_sysex_len;
+ static bool midi_in_sysex;
+ 
++/* Outgoing SysEx goes to the driver from one of these; midiOutLongMsg() keeps the buffer until
++ * it has played it, which can be a long time for a dump. Waiting for that here (the first
++ * version slept in a loop, on the emulation thread) stalled the machine for frames, so the
++ * buffers are handed back lazily instead: whenever the next message needs one, and at close. */
++#define MIDI_SYSEX_SLOTS 4
++static MIDIHDR midi_sysex_hdr[MIDI_SYSEX_SLOTS];
++static unsigned char midi_sysex_slot[MIDI_SYSEX_SLOTS][sizeof(midi_sysex)];
++static bool midi_sysex_busy[MIDI_SYSEX_SLOTS];
++
+ /* Incoming bytes, filled by the winmm callback thread, drained by the UART. Single writer,
+  * single reader. */
+ static unsigned char midi_in_ring[8192];
+@@ -717,27 +754,62 @@ static void midi_send_short(void)
+       st.midi_out_messages++;
+ }
+ 
++/* Give back every SysEx buffer the driver has finished with. Never waits: a buffer still
++ * playing stays busy until a later call finds it done. With `force`, after midiOutReset() has
++ * returned them all, the done flag is not consulted. */
++static void midi_sysex_reclaim(bool force)
++{
++   for (int i = 0; i < MIDI_SYSEX_SLOTS; i++)
++   {
++      if (!midi_sysex_busy[i])
++         continue;
++      if (!force && !(midi_sysex_hdr[i].dwFlags & MHDR_DONE))
++         continue;
++      if (midi_out &&
++          midiOutUnprepareHeader(midi_out, &midi_sysex_hdr[i], sizeof(MIDIHDR)) == MIDIERR_STILLPLAYING)
++         continue;
++      midi_sysex_busy[i] = false;
++   }
++}
++
+ static void midi_send_sysex(void)
+ {
+    if (!midi_out || midi_sysex_len <= 0)
+       return;
+-   MIDIHDR hdr;
+-   memset(&hdr, 0, sizeof(hdr));
+-   hdr.lpData = (LPSTR)midi_sysex;
+-   hdr.dwBufferLength = (DWORD)midi_sysex_len;
+-   hdr.dwBytesRecorded = (DWORD)midi_sysex_len;
+-   if (midiOutPrepareHeader(midi_out, &hdr, sizeof(hdr)) == MMSYSERR_NOERROR)
++   midi_sysex_reclaim(false);
++   int slot = -1;
++   for (int i = 0; i < MIDI_SYSEX_SLOTS && slot < 0; i++)
++      if (!midi_sysex_busy[i])
++         slot = i;
++   if (slot < 0)
+    {
+-      if (midiOutLongMsg(midi_out, &hdr, sizeof(hdr)) == MMSYSERR_NOERROR)
+-         st.midi_out_messages++;
+-      /* Unprepare returns MIDIERR_STILLPLAYING until the driver has taken the buffer. */
+-      for (int tries = 0; tries < 100; tries++)
++      /* Every buffer is still with the driver. Waiting for one would stall the emulation,
++       * which is the one thing this path must never do; the message is dropped instead. */
++      static bool reported;
++      if (!reported)
+       {
+-         if (midiOutUnprepareHeader(midi_out, &hdr, sizeof(hdr)) != MIDIERR_STILLPLAYING)
+-            break;
+-         Sleep(1);
++         reported = true;
++         write_log("MIDI: %d SysEx messages in flight, dropping one\n", MIDI_SYSEX_SLOTS);
+       }
++      return;
++   }
++   MIDIHDR *hdr = &midi_sysex_hdr[slot];
++   memset(hdr, 0, sizeof(*hdr));
++   memcpy(midi_sysex_slot[slot], midi_sysex, (size_t)midi_sysex_len);
++   hdr->lpData = (LPSTR)midi_sysex_slot[slot];
++   hdr->dwBufferLength = (DWORD)midi_sysex_len;
++   hdr->dwBytesRecorded = (DWORD)midi_sysex_len;
++   if (midiOutPrepareHeader(midi_out, hdr, sizeof(*hdr)) != MMSYSERR_NOERROR)
++      return;
++   midi_sysex_busy[slot] = true;
++   if (midiOutLongMsg(midi_out, hdr, sizeof(*hdr)) == MMSYSERR_NOERROR)
++   {
++      st.midi_out_messages++;
++      return;
+    }
++   /* Refused outright: the driver never took it, so it can be unprepared at once. */
++   midiOutUnprepareHeader(midi_out, hdr, sizeof(*hdr));
++   midi_sysex_busy[slot] = false;
+ }
+ 
+ static void midi_write(unsigned char b)
+@@ -819,7 +891,9 @@ static void midi_close(void)
+    }
+    if (midi_out)
+    {
++      /* Reset returns every pending SysEx buffer, so all of them can be unprepared now. */
+       midiOutReset(midi_out);
++      midi_sysex_reclaim(true);
+       midiOutClose(midi_out);
+       midi_out = NULL;
+    }
+@@ -927,6 +1001,8 @@ static bool midi_wanted(void)
+ 
+ void closeser(void)
+ {
++   /* Bytes batched since the last frame boundary would otherwise go with the connection. */
++   flush_tx();
+    if (conn_sock != ADM_BAD_SOCKET)
+       adm_closesocket(conn_sock);
+    conn_sock = ADM_BAD_SOCKET;
+@@ -962,9 +1038,12 @@ int openser(const char *sername)
+    return device_open(sername);
+ }
+ 
++/* Called by the UART once per byte period while it has something to shift out. Only a
++ * buffer worth sending goes now; the tail of a burst waits for adm_hostio_poll(). */
+ void writeser_flush(void)
+ {
+-   flush_tx();
++   if (tx_len >= TX_FLUSH_AT)
++      flush_tx();
+ }
+ 
+ void writeser(int c)
+@@ -986,14 +1065,15 @@ void writeser(int c)
+       }
+    }
+    tx_buf[tx_len++] = (unsigned char)c;
+-   flush_tx();
++   /* Not flushed here: writeser_flush() and adm_hostio_poll() batch it with its neighbours. */
+ }
+ 
+ int checkserwrite(int spaceneeded)
+ {
+    if (midi_ready || st.serial_mode == ADM_SER_NONE)
+       return 1;
+-   flush_tx();
++   if (tx_len + spaceneeded > (int)sizeof(tx_buf))
++      flush_tx();
+    return tx_len + spaceneeded <= (int)sizeof(tx_buf);
+ }
+ 
+@@ -1011,8 +1091,7 @@ int readseravail(bool *breakcond)
+       return midi_read_avail();
+    if (st.serial_mode == ADM_SER_NONE)
+       return 0;
+-   if (rx_pos >= rx_len)
+-      fill_rx();
++   fill_rx_for_uart();
+    if (breakcond && com_break_seen)
+    {
+       *breakcond = true;
+@@ -1033,8 +1112,7 @@ int readser(int *buffer)
+    }
+    if (st.serial_mode == ADM_SER_NONE)
+       return 0;
+-   if (rx_pos >= rx_len)
+-      fill_rx();
++   fill_rx_for_uart();
+    if (rx_pos >= rx_len)
+       return 0;
+    *buffer = rx_buf[rx_pos++];
+@@ -1333,4 +1411,11 @@ void adm_hostio_poll(void)
+       if (conn_sock != ADM_BAD_SOCKET && !connect_pending)
+          fill_rx();
+    }
++   else if (st.serial_mode == ADM_SER_DEVICE)
++   {
++      /* The frame's batched output, and a read ahead so the UART's throttled poll finds the
++       * bytes already waiting. */
++      flush_tx();
++      fill_rx();
++   }
+ }

@@ -1,0 +1,108 @@
+--- a/libretro/libretro-core.c	2026-02-17 21:52:35.087199773 +1100
++++ b/libretro/libretro-core.c	2026-02-17 21:46:26.044801304 +1100
+@@ -4873,12 +4873,12 @@
+          {
+             case DC_IMAGE_TYPE_FLOPPY:
+             case DC_IMAGE_TYPE_ARCHIVE:
+-               floppy_close_redirect(0);
+-               changed_prefs.floppyslots[0].df[0] = 0;
+-               disk_eject(0);
++               floppy_close_redirect(dc->index);
++               changed_prefs.floppyslots[dc->index].df[0] = 0;
++               disk_eject(dc->index);
+                break;
+             case DC_IMAGE_TYPE_CD:
+-               changed_prefs.cdslots[0].name[0] = 0;
++               changed_prefs.cdslots[dc->index].name[0] = 0;
+                break;
+             default:
+                break;
+@@ -4890,17 +4890,18 @@
+          {
+             case DC_IMAGE_TYPE_FLOPPY:
+             case DC_IMAGE_TYPE_ARCHIVE:
+-               /* Need to remove duplicates from external drives */
+-               for (unsigned i = 1; i < MAX_FLOPPY_DRIVES; i++)
+-                  if (!strcmp(currprefs.floppyslots[i].df, dc->files[dc->index]))
++               /* Need to remove duplicates from other drives */
++               for (unsigned i = 0; i < MAX_FLOPPY_DRIVES; i++)
++                  if (i != dc->index && !strcmp(currprefs.floppyslots[i].df, dc->files[dc->index]))
+                   {
+                      changed_prefs.floppyslots[i].df[0] = 0;
+                      disk_eject(i);
+                   }
+ 
+-               strcpy(changed_prefs.floppyslots[0].df, dc->files[dc->index]);
+-               floppy_open_redirect(0);
+-               DISK_reinsert(0);
++               strcpy(changed_prefs.floppyslots[dc->index].df, dc->files[dc->index]);
++               changed_prefs.floppyslots[dc->index].dfxtype = 0; // 3.5" DD
++               floppy_open_redirect(dc->index);
++               DISK_reinsert(dc->index);
+                break;
+             case DC_IMAGE_TYPE_CD:
+                strcpy(changed_prefs.cdslots[0].name, dc->files[dc->index]);
+@@ -4950,7 +4951,7 @@
+          switch (dc->types[dc->index])
+          {
+             case DC_IMAGE_TYPE_FLOPPY:
+-               log_cb(RETRO_LOG_INFO, "Disk (%d) inserted in drive DF0: \"%s\".\n", dc->index + 1, dc->files[dc->index]);
++               log_cb(RETRO_LOG_INFO, "Disk (%d) inserted in drive DF%d: \"%s\".\n", dc->index + 1, dc->index, dc->files[dc->index]);
+                break;
+             case DC_IMAGE_TYPE_CD:
+                log_cb(RETRO_LOG_INFO, "CD (%d) inserted in drive CD0: \"%s\".\n", dc->index + 1, dc->files[dc->index]);
+@@ -7402,6 +7403,25 @@
+       free(tmp_str);
+    tmp_str = NULL;
+ 
++   /* Pad with dummy entries to ensure 4 drives are addressable in Disk Control */
++   char dummy_name[32];
++   while (dc->count < 4) {
++      snprintf(dummy_name, sizeof(dummy_name), "EMPTY_DRIVE_%d.adf", dc->count);
++      dc_add_file(dc, dummy_name, dummy_name);
++   }
++
++   /* Enable 4 drive slots; per-drive type controlled by ADM_DRIVEn_ENABLED env vars */
++   retro_config_append("nr_floppies=4\n");
++   retro_config_append("floppy0type=0\n"); /* DF0 always enabled */
++   for (int i = 1; i < 4; i++) {
++      char env_name[32], config_line[32];
++      snprintf(env_name, sizeof(env_name), "ADM_DRIVE%d_ENABLED", i);
++      const char *val = getenv(env_name);
++      int drive_type = (val && val[0] == '1') ? 0 : -1; /* 0=3.5"DD, -1=disabled */
++      snprintf(config_line, sizeof(config_line), "floppy%dtype=%d\n", i, drive_type);
++      retro_config_append(config_line);
++   }
++
+    return true;
+ }
+ 
+
+--- a/libretro/libretro-dc.c	2026-02-17 21:52:25.705748748 +1100
++++ b/libretro/libretro-dc.c	2026-02-17 21:51:54.732802951 +1100
+@@ -207,9 +207,9 @@
+    {
+       dc->replace = false;
+ 
+-      /* Eject all floppy drives */
+-      for (unsigned i = 0; i < 4; i++)
+-         changed_prefs.floppyslots[i].df[0] = 0;
++      /* Clear only the target floppy slot for multi-drive support */
++      if (index >= 0 && index < 4)
++         changed_prefs.floppyslots[index].df[0] = 0;
+ 
+       char full_path_replace[RETRO_PATH_MAX] = {0};
+       strlcpy(full_path_replace, (char*)filename, sizeof(full_path_replace));
+@@ -368,9 +368,11 @@
+          image_label[0] = '\0';
+          fill_pathname(image_label, path_basename(full_path_replace), "", sizeof(image_label));
+ 
+-         /* Dupecheck */
++         /* Dupecheck (skip index — already freed above) */
+          for (unsigned i = 0; i < dc->count - 1; i++)
+          {
++            if (i == (unsigned)index || !dc->files[i])
++               continue;
+             if (!strcmp(dc->files[i], full_path_replace))
+             {
+                dc_remove_file(dc, index);

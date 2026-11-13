@@ -1,0 +1,226 @@
+uaegfx only: keep gfxboard.c's hardware boards out of the build
+
+sources/src/gfxboard.c is WinUAE's emulation of the real RTG cards - Picasso II and IV,
+CyberVision, Piccolo, Voodoo, Permedia and the rest - and its whole body sits behind
+#ifdef PICASSO96. Turning PICASSO96 on therefore tries to compile 7000 lines that this build
+cannot take:
+
+  * it is gfxboard.cpp renamed, and does not compile as C99 (it uses a struct tag as a type
+    name, among other things);
+  * the boards are driven through the PCem device layer in sources/src/pcem, which is not in
+    Makefile.common at all.
+
+So the guard becomes PICASSO96 && WITH_GFXBOARD_HARDWARE, and nothing defines the second. That
+is not a loss of anything that worked before - none of it has ever been built in this port -
+and it leaves PICASSO96 meaning exactly "uaegfx", which is the board Peekaboo wants: the one
+that is a plain Zorro RAM window picasso96.c owns, with no chip to emulate.
+
+The file already had an #else block of stubs for the PICASSO96-off case, and that is now what
+gets compiled. It needed extending: the rest of the tree only calls gfxboard_vsync_handler(),
+gfxboard_toggle(), gfxboard_rtg_disable() and a dozen others once PICASSO96 is on, so they had
+never been missed. "No hardware board here" is the right answer to every one of them.
+
+Two are not stubs. gfxboard_get_configname() and gfxboard_get_configtype() answer for the two
+uaegfx types, which are not boards in this file's sense and never reached find_board() even
+upstream: expansion.c reads the config type to decide whether the RTG window autoconfigs as
+Zorro II or Zorro III, and cfgfile.c matches gfxcard_type= against the config name. Returning
+0/NULL for them would silently make every board a Zorro II one, capped at 8 MB.
+gfxboard_getrtgbuffer() and gfxboard_freertgbuffer() forward to uaegfx's own, so a host-side
+screenshot of an RTG screen still works.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/sources/src/gfxboard.c
++++ b/sources/src/gfxboard.c
+@@ -31,7 +31,13 @@
+ #include "sysconfig.h"
+ #include "sysdeps.h"
+ 
+-#ifdef PICASSO96
++/* PEEKaboo: the hardware RTG boards (Picasso II/IV, CyberVision, Voodoo, ...) are
++ * emulated through the PCem device layer in sources/src/pcem, which is not in
++ * Makefile.common - and this file is WinUAE's gfxboard.cpp, which does not compile
++ * as C99. PICASSO96 on its own therefore means uaegfx only, and the stub block at
++ * the bottom of this file stands in for the boards. Defining WITH_GFXBOARD_HARDWARE
++ * is a separate project: it needs pcem built and this file compiled as C++. */
++#if defined(PICASSO96) && defined(WITH_GFXBOARD_HARDWARE)
+ 
+ #include "options.h"
+ #include "uae.h"
+@@ -165,28 +171,28 @@
+ 	},
+ 	{
+ 		GFXBOARD_ID_PICCOLO_Z2,
+-		_T("Piccolo [Zorro II]"), _T("Ingenieurbüro Helfrich"), _T("Piccolo_Z2"),
++		_T("Piccolo [Zorro II]"), _T("Ingenieurbï¿½ro Helfrich"), _T("Piccolo_Z2"),
+ 		BOARD_MANUFACTURER_PICCOLO, BOARD_MODEL_MEMORY_PICCOLO, BOARD_MODEL_REGISTERS_PICCOLO, 0,
+ 		0x00000000, 0x00100000, 0x00200000, 0x00200000, CIRRUS_ID_CLGD5426, 2, 6, true, true,
+ 		0, 0, NULL, &gd5426_swapped_device
+ 	},
+ 	{
+ 		GFXBOARD_ID_PICCOLO_Z3,
+-		_T("Piccolo [Zorro III]"), _T("Ingenieurbüro Helfrich"), _T("Piccolo_Z3"),
++		_T("Piccolo [Zorro III]"), _T("Ingenieurbï¿½ro Helfrich"), _T("Piccolo_Z3"),
+ 		BOARD_MANUFACTURER_PICCOLO, BOARD_MODEL_MEMORY_PICCOLO, BOARD_MODEL_REGISTERS_PICCOLO, 0,
+ 		0x00000000, 0x00100000, 0x00200000, 0x00200000, CIRRUS_ID_CLGD5426, 3, 6, true, true,
+ 		0, 0, NULL, &gd5426_swapped_device
+ 	},
+ 	{
+ 		GFXBOARD_ID_SD64_Z2,
+-		_T("Piccolo SD64 [Zorro II]"), _T("Ingenieurbüro Helfrich"), _T("PiccoloSD64_Z2"),
++		_T("Piccolo SD64 [Zorro II]"), _T("Ingenieurbï¿½ro Helfrich"), _T("PiccoloSD64_Z2"),
+ 		BOARD_MANUFACTURER_PICCOLO, BOARD_MODEL_MEMORY_PICCOLO64, BOARD_MODEL_REGISTERS_PICCOLO64, 0,
+ 		0x00000000, 0x00200000, 0x00400000, 0x00400000, CIRRUS_ID_CLGD5434, 2, 6, true, true,
+ 		0, 0, NULL, &gd5434_vlb_swapped_device
+ 	},
+ 	{
+ 		GFXBOARD_ID_SD64_Z3,
+-		_T("Piccolo SD64 [Zorro III]"), _T("Ingenieurbüro Helfrich"), _T("PiccoloSD64_Z3"),
++		_T("Piccolo SD64 [Zorro III]"), _T("Ingenieurbï¿½ro Helfrich"), _T("PiccoloSD64_Z3"),
+ 		BOARD_MANUFACTURER_PICCOLO, BOARD_MODEL_MEMORY_PICCOLO64, BOARD_MODEL_REGISTERS_PICCOLO64, 0,
+ 		0x00000000, 0x00200000, 0x00400000, 0x00400000, CIRRUS_ID_CLGD5434, 3, 6, true, true,
+ 		0, 0, NULL, &gd5434_vlb_swapped_device
+@@ -288,14 +294,14 @@
+ 	},
+ 	{
+ 		GFXBOARD_ID_GRAFFITY_Z2,
+-		_T("Graffity [Zorro II]"), _T("Atéo Concepts"), _T("GraffityZ2"),
++		_T("Graffity [Zorro II]"), _T("Atï¿½o Concepts"), _T("GraffityZ2"),
+ 		2092, 34, 33, 0,
+ 		0x00000000, 0x00100000, 0x00200000, 0x00200000, CIRRUS_ID_CLGD5428, 2, 2, false, true,
+ 		0, 0, NULL, &gd5428_device
+ 	},
+ 	{
+ 		GFXBOARD_ID_GRAFFITY_Z3,
+-		_T("Graffity [Zorro III]"), _T("Atéo Concepts"), _T("GraffityZ3"),
++		_T("Graffity [Zorro III]"), _T("Atï¿½o Concepts"), _T("GraffityZ3"),
+ 		2092, 33, 0, 0,
+ 		0x00000000, 0x00100000, 0x00200000, 0x01000000, CIRRUS_ID_CLGD5428, 3, 2, false, true,
+ 		0, 0, NULL, &gd5428_device
+@@ -316,7 +322,7 @@
+ 	},
+ 	{
+ 		GFXBOARD_ID_RAINBOWIII,
+-		_T("Rainbow III [Zorro III]"), _T("Ingenieurbüro Helfrich"), _T("RainbowIII"),
++		_T("Rainbow III [Zorro III]"), _T("Ingenieurbï¿½ro Helfrich"), _T("RainbowIII"),
+ 		2145, 33, 0, 0,
+ 		0x00000000, 0x00400000, 0x00400000, 0x02000000, 0, 3, 6, false, false,
+ 		0, 0, NULL, &inmos_rainbow3_z3_device
+@@ -330,7 +336,7 @@
+ 	},
+ 	{
+ 		GFXBOARD_ID_PIXEL64,
+-		_T("Pixel64 [AteoBus]"), _T("Atéo Concepts"), _T("Pixel64"),
++		_T("Pixel64 [AteoBus]"), _T("Atï¿½o Concepts"), _T("Pixel64"),
+ 		2026, 255, 254, 0, // 255: type=$c7 flags=$40, 254: type=$c2 flags=$40 128k, 252: type=$c2 flags=$40, 128k
+ 		0x00000000, 0x00200000, 0x00200000, 0x00400000, CIRRUS_ID_CLGD5434, 2, 0, false, false,
+ 		0, 0, NULL, &gd5434_vlb_device
+@@ -358,7 +364,7 @@
+ 	},
+ 	{
+ 		GFXBOARD_ID_RAINBOWII,
+-		_T("Rainbow II [Zorro II]"), _T("Ingenieurbüro Helfrich"), _T("RainbowII"),
++		_T("Rainbow II [Zorro II]"), _T("Ingenieurbï¿½ro Helfrich"), _T("RainbowII"),
+ 		2145, 32, 0, 0,
+ 		0x00000000, 0x00200000, 0x00200000, 0x00200000, 0, 0, 0, false, false,
+ 		ROMTYPE_RAINBOWII, 0xc6, &rainbowii_func
+@@ -6982,20 +6988,46 @@
+ 
+ #else
+ 
+-struct rtgboardconfig;
++#include "options.h"
++#include "memory.h"
++#include "gfxboard.h"
++#ifdef PICASSO96
++/* gfxfilter.h declares these, but only under GFXFILTER, which this build does
++ * not define. picasso96.c exports them either way. */
++uae_u8 *uaegfx_getrtgbuffer(int monid, int *widthp, int *heightp, int *pitch, int *depth, uae_u8 *palette);
++void uaegfx_freertgbuffer(int monid, uae_u8 *dst);
++#endif
++
+ struct autoconfig_info;
+ bool gfxboard_set(int monid, bool rtg) { return false; }
+ uae_u32 gfxboard_get_romtype(struct rtgboardconfig *rbc) { return 0; }
+-const TCHAR *gfxboard_get_configname(int type) { return NULL; }
+ void gfxboard_reset (void) {}
+ void gfxboard_free (void) {}
+ void gfxboard_refresh (int monid) {}
+-int gfxboard_get_configtype(struct rtgboardconfig *rbc) { return 0; }
+ struct gfxboard_func *gfxboard_get_func(struct rtgboardconfig *rbc) { return NULL; }
+-bool gfxboard_is_registers (struct rtgboardconfig *rbc) { return false; }
++int gfxboard_is_registers (struct rtgboardconfig *rbc) { return 0; }
+ int gfxboard_num_boards (struct rtgboardconfig *rbc) { return 0; }
+-int gfxboard_get_vram_min (struct rtgboardconfig *rbc) { return 0; }
+-int gfxboard_get_vram_max (struct rtgboardconfig *rbc) { return 0; }
++int gfxboard_get_vram_min (struct rtgboardconfig *rbc) { return -1; }
++int gfxboard_get_vram_max (struct rtgboardconfig *rbc) { return -1; }
++
++/* The two uaegfx types are not hardware boards and never reached find_board()
++ * even upstream, so these two keep their real answers: expansion.c reads the
++ * config type to decide whether the RTG window autoconfigs as Zorro II or III,
++ * and cfgfile.c matches gfxcard_type= against the config name. */
++const TCHAR *gfxboard_get_configname(int type)
++{
++	if (type == GFXBOARD_UAE_Z2)
++		return _T("ZorroII");
++	if (type == GFXBOARD_UAE_Z3)
++		return _T("ZorroIII");
++	return NULL;
++}
++int gfxboard_get_configtype(struct rtgboardconfig *rbc)
++{
++	if (rbc->rtgmem_type == GFXBOARD_UAE_Z3)
++		return 3;
++	return 2;
++}
+ 
+ bool gfxboard_init_board(struct autoconfig_info *aci) { return false; }
+ bool gfxboard_init_memory (struct autoconfig_info *aci) { return false; }
+@@ -7003,4 +7035,45 @@
+ bool gfxboard_init_registers (struct autoconfig_info *aci) { return false; }
+ bool gfxboard_init_registers2 (struct autoconfig_info *aci) { return false; }
+ 
++/* PEEKaboo: the rest of the tree only calls these once PICASSO96 is on, so they
++ * were never needed while this whole file compiled to nothing. uaegfx is not a
++ * board in gfxboard.c's sense - it is the Zorro RAM window picasso96.c owns -
++ * so "no hardware board here" is the right answer to every one of them. */
++void gfxboard_vsync_handler(bool full_redraw_required, bool redraw_required) {}
++int gfxboard_toggle(int monid, int mode, int msg) { return 0; }
++void gfxboard_rtg_disable(int monid, int index) {}
++bool gfxboard_rtg_enable_initial(int monid, int index) { return false; }
++bool gfxboard_switch_away(int monid) { return false; }
++bool gfxboard_isgfxboardscreen(int monid) { return false; }
++bool gfxboard_need_byteswap(struct rtgboardconfig *rbc) { return false; }
++int gfxboard_get_autoconfig_size(struct rtgboardconfig *rbc) { return -1; }
++double gfxboard_get_vsync(void) { return 0; }
++int gfxboard_get_devnum(struct uae_prefs *p, int index) { return 0; }
++int gfxboard_get_index_from_id(int id) { return -1; }
++int gfxboard_get_id_from_index(int index) { return -1; }
++const TCHAR *gfxboard_get_name(int type) { return NULL; }
++const TCHAR *gfxboard_get_manufacturername(int type) { return NULL; }
++bool gfxboard_allocate_slot(int board, int idx) { return false; }
++void gfxboard_free_slot(int board) {}
++void gfxboard_get_a8_vram(int index) {}
++void gfxboard_free_vram(int index) {}
++void gfxboard_resize(int width, int height, int hmult, int vmult, void *p) {}
++uae_u8 *gfxboard_getrtgbuffer(int monid, int *widthp, int *heightp, int *pitch, int *depth, uae_u8 *palette)
++{
++#ifdef PICASSO96
++	return uaegfx_getrtgbuffer(monid, widthp, heightp, pitch, depth, palette);
++#else
++	return NULL;
++#endif
++}
++void gfxboard_freertgbuffer(int monid, uae_u8 *dst)
++{
++#ifdef PICASSO96
++	uaegfx_freertgbuffer(monid, dst);
++#else
++	xfree(dst);
++#endif
++}
++int pcem_getvramsize(void) { return 0; }
++
+ #endif

@@ -1,0 +1,250 @@
+{
+    "name": "ROOTBLOCK",
+    "fields": [
+        {
+            "name": "type",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "block primary type = T_HEADER (value 2)",
+            "lookup": "primary_types"
+        },
+        {
+            "name": "header_key",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "unused in rootblock (value 0)"
+        },
+        {
+            "name": "high_seq",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "unused (value 0)"
+        },
+        {
+            "name": "ht_size",
+            "type": "ulong",
+            "format": "decimal",
+            "comment": "Hash table size in long (= BSIZE/4 - 56). For floppy disk value 0x48"
+        },
+        {
+            "name": "first_data",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "unused (value 0)"
+        },
+        {
+            "name": "chksum",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "Rootblock checksum",
+            "checksumType": "standard",
+            "checksumOffset": 20,
+            "color": {
+                "foreground": "Aqua",
+                "background": "Gray"
+            }
+        },
+        {
+            "name": "ht",
+            "type": "ulong",
+            "size": 72,
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "hash table (entry block number) (= (BSIZE/4) - 56) for floppy disk: size= 72 longwords"
+        },
+        {
+            "name": "bm_flag",
+            "type": "long",
+            "format": "decimal",
+            "comment": "bitmap flag, -1 means VALID",
+            "lookup": "bm_flag"
+        },
+        {
+            "name": "bm_pages",
+            "type": "ulong",
+            "size": 25,
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "bitmap blocks pointers (first one at bm_pages[0])"
+        },
+        {
+            "name": "bm_ext",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "first bitmap extension block (Hard disks only)"
+        },
+        {
+            "name": "Disk Date",
+            "type": "struct",
+            "struct_type": "date",
+            "comment": "The last time any file or directory on the disk was altered",
+            "fields": [
+                {
+                    "name": "r_days",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "days since 1 Jan 78"
+                },
+                {
+                    "name": "r_mins",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "minutes since midnight"
+                },
+                {
+                    "name": "r_ticks",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "1/50th of a second ticks since the last minute"
+                }
+            ]
+        },
+        {
+            "name": "name_len",
+            "type": "uchar",
+            "format": "decimal",
+            "comment": "volume name length"
+        },
+        {
+            "name": "diskname",
+            "type": "char",
+            "size": 30,
+            "format": "string",
+            "comment": "volume name",
+            "color": {
+                "foreground": "Yellow",
+                "background": "Navy"
+            }
+        },
+        {
+            "name": "unused",
+            "type": "uchar",
+            "format": "hex",
+            "comment": "set to 0"
+        },
+        {
+            "name": "unused",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "set to 0"
+        },
+        {
+            "name": "unused",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "set to 0"
+        },
+        {
+            "name": "Software Date",
+            "type": "struct",
+            "struct_type": "date",
+            "comment": "The date the disk was last formatted or renamed",
+            "fields": [
+                {
+                    "name": "v_days",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "days since 1 Jan 78"
+                },
+                {
+                    "name": "v_mins",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "minutes since midnight"
+                },
+                {
+                    "name": "v_ticks",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "1/50th of a second ticks since the last minute"
+                }
+            ]
+        },
+        {
+            "name": "Volume Date",
+            "type": "struct",
+            "struct_type": "date",
+            "comment": "The 'Creation Date' of the file system structure",
+            "fields": [
+                {
+                    "name": "c_days",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "days since 1 Jan 78"
+                },
+                {
+                    "name": "c_mins",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "minutes since midnight"
+                },
+                {
+                    "name": "c_ticks",
+                    "type": "ulong",
+                    "format": "decimal",
+                    "comment": "1/50th of a second ticks since the last minute"
+                }
+            ]
+        },
+        {
+            "name": "next_hash",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "unused (value = 0)"
+        },
+        {
+            "name": "parent_dir",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "unused (value = 0)"
+        },
+        {
+            "name": "extension",
+            "type": "ulong",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "FFS: first directory cache block, 0 otherwise"
+        },
+        {
+            "name": "sec_type",
+            "type": "long",
+            "format": "hex",
+            "comment": "block secondary type = ST_ROOT (value 1)",
+            "lookup": "secondary_types"
+        }
+    ],
+    "lookups": {
+        "primary_types": {
+            "type": "index",
+            "values": {
+                "2": "T_HEADER",
+                "8": "T_DATA",
+                "16": "T_LIST",
+                "33": "T_DIRC"
+            }
+        },
+        "secondary_types": {
+            "type": "index",
+            "values": {
+                "1": "ST_ROOT",
+                "2": "ST_DIR",
+                "-3": "ST_FILE",
+                "-4": "ST_LFILE",
+                "3": "ST_LSOFT",
+                "4": "ST_LDIR"
+            }
+        },
+        "bm_flag": {
+            "type": "index",
+            "values": {
+                "0": "INVALID",
+                "-1": "VALID"
+            }
+        }
+    }
+}

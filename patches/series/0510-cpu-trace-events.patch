@@ -1,0 +1,138 @@
+libretro-core.c: CPU trace ring buffer
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index d257aad..98cd861 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9862,4 +9862,125 @@ RETRO_API int adm_get_reg_write_events(void* buf, int maxCount, int* overflow) {
+ 
+ RETRO_API void adm_clear_reg_write_events(void) {
+     adm_reg_write_pos = 0;
++}
++// --- Per-instruction CPU trace (ADM) ---
++typedef struct {
++    uint16_t vpos;
++    uint16_t hpos;
++    uint32_t pc;
++    uint8_t  raw[10];
++    uint8_t  raw_len;
++    uint8_t  pad[1];
++    uint32_t d[8];
++    uint32_t a[8];
++    uint16_t sr;
++    uint16_t pad2;
++    uint32_t cycle;  /* absolute CCK at execution (get_cycles()/512) */
++} adm_cpu_trace_entry_t;
++
++#define ADM_MAX_CPU_TRACE_ENTRIES 50000
++static adm_cpu_trace_entry_t adm_cpu_trace_buf[ADM_MAX_CPU_TRACE_ENTRIES];
++static uint64_t adm_cpu_write_pos = 0;
++static uint32_t adm_cpu_ring_index = 0;
++static uint64_t adm_cpu_frame_begin_pos = 0;
++static uint64_t adm_cpu_frame_end_pos = 0;
++int adm_cpu_trace_enabled = 0;  /* non-static: extern from newcpu.c */
++
++/* Called at the exact vpos=0 hardware boundary. The pair identifies the completed
++ * frame even though retro_run() may capture a few instructions from the next frame
++ * before returning to the host. */
++void adm_cpu_trace_frame_boundary(void) {
++    adm_cpu_frame_begin_pos = adm_cpu_frame_end_pos;
++    adm_cpu_frame_end_pos = adm_cpu_write_pos;
++}
++
++static int adm_copy_cpu_trace_range(uint64_t begin, uint64_t end, void* buf,
++                                    int maxCount, int* overflow) {
++    uint64_t count = end >= begin ? end - begin : 0;
++    int truncated = 0;
++    if (count > ADM_MAX_CPU_TRACE_ENTRIES) {
++        begin = end - ADM_MAX_CPU_TRACE_ENTRIES;
++        count = ADM_MAX_CPU_TRACE_ENTRIES;
++        truncated = 1;
++    }
++    if (maxCount < 0)
++        maxCount = 0;
++    if (count > (uint64_t)maxCount) {
++        count = (uint64_t)maxCount;
++        truncated = 1;
++    }
++    if (overflow)
++        *overflow = truncated;
++    if (count == 0 || !buf)
++        return (int)count;
++
++    {
++        uint32_t start = (uint32_t)(begin % ADM_MAX_CPU_TRACE_ENTRIES);
++        uint32_t n = (uint32_t)count;
++        uint32_t first = n < ADM_MAX_CPU_TRACE_ENTRIES - start
++                             ? n : ADM_MAX_CPU_TRACE_ENTRIES - start;
++        memcpy(buf, &adm_cpu_trace_buf[start], first * sizeof(adm_cpu_trace_entry_t));
++        if (first < n)
++            memcpy((char*)buf + first * sizeof(adm_cpu_trace_entry_t),
++                   adm_cpu_trace_buf, (n - first) * sizeof(adm_cpu_trace_entry_t));
++    }
++    return (int)count;
++}
++
++void adm_record_cpu_trace(uint16_t vpos_v, uint16_t hpos_v, uint32_t pc_v,
++                           const uint8_t* raw_v, uint8_t raw_len_v,
++                           const uint32_t* regs_v, uint16_t sr_v) {
++    adm_cpu_trace_entry_t *ev = &adm_cpu_trace_buf[adm_cpu_ring_index];
++    ev->vpos    = vpos_v;
++    ev->hpos    = hpos_v;
++    ev->pc      = pc_v;
++    ev->raw_len = raw_len_v;
++    ev->pad[0]  = 0;
++    ev->pad2    = 0;
++    if (raw_v) {
++        memcpy(ev->raw, raw_v, raw_len_v);
++        if (raw_len_v < sizeof(ev->raw))
++            memset(ev->raw + raw_len_v, 0, sizeof(ev->raw) - raw_len_v);
++    } else {
++        memset(ev->raw, 0, sizeof(ev->raw));
++    }
++    if (regs_v) {
++        memcpy(ev->d, regs_v, sizeof(ev->d));
++        memcpy(ev->a, regs_v + 8, sizeof(ev->a));
++    } else {
++        memset(ev->d, 0, sizeof(ev->d));
++        memset(ev->a, 0, sizeof(ev->a));
++    }
++    ev->sr    = sr_v;
++    ev->cycle = (uint32_t)(get_cycles() / 512);
++    adm_cpu_write_pos++;
++    if (++adm_cpu_ring_index == ADM_MAX_CPU_TRACE_ENTRIES)
++        adm_cpu_ring_index = 0;
++}
++
++RETRO_API void adm_set_cpu_trace_enabled(int enabled) {
++    adm_cpu_trace_enabled = enabled;
++}
++
++RETRO_API int adm_get_cpu_trace(void* buf, int maxCount, int* overflow) {
++    uint64_t begin = adm_cpu_write_pos > ADM_MAX_CPU_TRACE_ENTRIES
++                         ? adm_cpu_write_pos - ADM_MAX_CPU_TRACE_ENTRIES : 0;
++    int count = adm_copy_cpu_trace_range(begin, adm_cpu_write_pos, buf, maxCount, NULL);
++    if (overflow)
++        *overflow = adm_cpu_write_pos > ADM_MAX_CPU_TRACE_ENTRIES ? 1 : 0;
++    return count;
++}
++
++/* Copies only the exact completed hardware frame captured between the two most
++ * recent vpos=0 boundaries. This avoids copying and filtering the whole ring. */
++RETRO_API int adm_get_cpu_trace_frame(void* buf, int maxCount, int* overflow) {
++    return adm_copy_cpu_trace_range(adm_cpu_frame_begin_pos, adm_cpu_frame_end_pos,
++                                    buf, maxCount, overflow);
++}
++
++RETRO_API void adm_clear_cpu_trace(void) {
++    adm_cpu_write_pos = 0;
++    adm_cpu_ring_index = 0;
++    adm_cpu_frame_begin_pos = 0;
++    adm_cpu_frame_end_pos = 0;
+ }
+\ No newline at end of file

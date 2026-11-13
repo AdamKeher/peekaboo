@@ -1,0 +1,40 @@
+debug.c: memory watchpoint hit capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/debug.c b/sources/src/debug.c
+index 9912b13..0d17968 100644
+--- a/sources/src/debug.c
++++ b/sources/src/debug.c
+@@ -3834,6 +3834,11 @@ static void memwatch_hit_msg(int mw)
+ 	}
+ }
+ 
++#ifdef __LIBRETRO__
++uae_u32 adm_memwatch_hit_pc, adm_memwatch_hit_addr, adm_memwatch_hit_val;
++int adm_memwatch_hit_rwi, adm_memwatch_hit_size, adm_memwatch_hit_valid;
++uae_u32 adm_memwatch_hit_access_mask, adm_memwatch_hit_reg;
++#endif
+ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp, uae_u32 accessmask, uae_u32 reg)
+ {
+ 	uae_u32 val = *valp;
+@@ -3987,6 +3992,16 @@ static int memwatch_func (uaecptr addr, int rwi, int size, uae_u32 *valp, uae_u3
+ 			mwhit.val = val;
+ 		mwhit.pc = M68K_GETPC;
+ 		memwatch_triggered = i + 1;
++#ifdef __LIBRETRO__
++		adm_memwatch_hit_pc = regs.instruction_pc;
++		adm_memwatch_hit_addr = mwhit.addr;
++		adm_memwatch_hit_val = mwhit.val;
++		adm_memwatch_hit_rwi = mwhit.rwi;
++		adm_memwatch_hit_size = mwhit.size;
++		adm_memwatch_hit_access_mask = mwhit.access_mask;
++		adm_memwatch_hit_reg = mwhit.reg;
++		adm_memwatch_hit_valid = 1;
++#endif
+ 		if (m->reportonly) {
+ 			memwatch_hit_msg(memwatch_triggered - 1);
+ 		}

@@ -1,0 +1,10 @@
+{
+    "name": "NoiseTracker Module",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "4E2E542E"
+        }
+    ]
+}

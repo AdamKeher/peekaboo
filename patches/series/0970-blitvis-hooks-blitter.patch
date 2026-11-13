@@ -1,0 +1,40 @@
+blitter.c: blitter-vis write hooks
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/blitter.c b/sources/src/blitter.c
+index ca48cb4..7259786 100644
+--- a/sources/src/blitter.c
++++ b/sources/src/blitter.c
+@@ -491,6 +491,15 @@ static void blitter_done_except_d(int hpos)
+ }
+ 
+ 
++/* ADM blitter-vis: stamp the provenance map on every blitter D write.
++   This is the single choke point for blitter_dofast, blitter_dofast_desc,
++   line mode and the cycle-exact path, so one hook covers all of them.
++   ADM blit-data capture rides the same choke point, recording the word
++   value with its address so the host can rebuild what the blit drew. */
++extern int adm_blitvis_enabled;
++extern void adm_blitvis_record_write(uaecptr addr);
++extern int adm_blit_data_enabled;
++extern void adm_record_blit_write(uaecptr addr, uae_u16 w);
+ static void blit_chipmem_agnus_wput(uaecptr addr, uae_u32 w, uae_u32 typemask)
+ {
+ 	if (!(log_blitter & 4)) {
+@@ -501,6 +510,12 @@ static void blit_chipmem_agnus_wput(uaecptr addr, uae_u32 w, uae_u32 typemask)
+ 		debug_putpeekdma_chipram(addr, w, typemask, 0x000, 0x054);
+ #endif
+ 		chipmem_wput_indirect(addr, w);
++		if (adm_blitvis_enabled) {
++			adm_blitvis_record_write(addr);
++		}
++		if (adm_blit_data_enabled) {
++			adm_record_blit_write(addr, (uae_u16)w);
++		}
+ 		regs.chipset_latch_rw = w;
+ 	}
+ }

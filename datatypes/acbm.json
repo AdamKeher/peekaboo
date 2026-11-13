@@ -1,0 +1,14 @@
+{
+    "name": "Amiga Continuous Bitmap (ACBM)",
+    "group": "Image",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "464F524D"
+        },
+        {
+            "offset": 8,
+            "bytes": "4143424D"
+        }
+    ]
+}

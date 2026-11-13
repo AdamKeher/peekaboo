@@ -1,0 +1,37 @@
+
+Files:
+  validation.s:  code 0(19c), ValidationChipData.MEMF_CHIP 0(48) hex
+
+
+Section mapping (numbers in hex):
+------------------------------
+  00000000 code  (size 19c)
+           00000000 - 0000019c validation.s(code)
+------------------------------
+  00000000 ValidationChipData.MEMF_CHIP  (size 48, allocated 44)
+           00000000 - 00000048 validation.s(ValidationChipData.MEMF_CHIP)
+
+
+Symbols of code:
+  0x00000000 _start: global reloc, size 0
+  0x0000000c poll: local reloc, size 0
+  0x00000042 publish: local reloc, size 0
+  0x0000004c wait_continue: local reloc, size 0
+  0x00000060 exit: local reloc, size 0
+  0x0000006a scenario_cpu: local reloc, size 0
+  0x000000aa ptv_checkpoint_cpu: global reloc, size 0
+  0x000000ac scenario_copper: local reloc, size 0
+  0x000000f6 ptv_checkpoint_copper: global reloc, size 0
+  0x000000fa scenario_blitter: local reloc, size 0
+  0x00000172 ptv_checkpoint_blitter: global reloc, size 0
+  0x00000176 scenario_alignment: local reloc, size 0
+  0x00000196 ptv_checkpoint_alignment: global reloc, size 0
+
+Symbols of ValidationChipData.MEMF_CHIP:
+  0x00000000 ptv_mailbox: global reloc, size 0
+  0x0000002c copper_list: local reloc, size 0
+  0x00000040 blit_a: local reloc, size 0
+  0x00000042 blit_b: local reloc, size 0
+  0x00000044 blit_d: global reloc, size 0
+
+Linker symbols:

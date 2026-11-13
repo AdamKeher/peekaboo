@@ -1,0 +1,23 @@
+thread.h: uae_sem_destroy zeroes sem->sem after close
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/retrodep/threaddep/thread.h b/retrodep/threaddep/thread.h
+index a3777bf..99a3297 100644
+--- a/retrodep/threaddep/thread.h
++++ b/retrodep/threaddep/thread.h
+@@ -164,8 +164,10 @@ void uae_sem_init (uae_sem_t *sem, int pshared, unsigned int value);
+ 
+ STATIC_INLINE void uae_sem_destroy (uae_sem_t *sem)
+ {
+-    if (sem && sem->sem)
++    if (sem && sem->sem) {
+        sem_close (sem->sem);
++       sem->sem = 0;  /* after close: prevent double-close on re-init */
++    }
+ }
+ 
+ STATIC_INLINE void uae_sem_post (uae_sem_t *sem)

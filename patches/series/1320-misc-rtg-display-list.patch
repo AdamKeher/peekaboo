@@ -1,0 +1,68 @@
+The RTG display list: struct ScreenResolution, and one Displays[]
+
+Two things stop sources/src/misc.c compiling once PICASSO96 is on.
+
+struct PicassoResolution in misc.h opens with a struct ScreenResolution that is declared
+nowhere in this tree - WinUAE keeps it in od-win32/render.h, which is unusable here because it
+starts by including d3d9.h. It is two uae_u32s; they go in beside the struct that needs them,
+along with MAX_PICASSO_MODES, which comes from the same header.
+
+misc.c then redefines MAX_DISPLAYS to 10 and declares Displays[MAX_DISPLAYS], while misc.h has
+MAX_DISPLAYS 1 and declares Displays[MAX_DISPLAYS + 1]. The two disagree, which gcc rejects
+outright. misc.h wins: one host display plus the NULL terminator picasso96.c walks to
+(`while (Displays[mon].monitorname)`).
+
+The rest of that block - getdisplay2(), getdisplay(), target_get_display() and
+target_get_display_name() - is put behind #ifndef __LIBRETRO__. The libretro build already
+defines the last two a few lines above, and nothing in this port calls the first two; leaving
+them in made the two definitions collide. Entry 0 is filled by retrodep/picasso_host.c instead,
+which is also where the mode list it points at is built.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/sources/src/include/misc.h
++++ b/sources/src/include/misc.h
+@@ -120,6 +120,15 @@
+ extern struct AmigaMonitor AMonitors[MAX_AMIGAMONITORS];
+ 
+ #ifdef PICASSO96
++/* WinUAE keeps this in od-win32/render.h, which is unusable here (d3d9.h). */
++struct ScreenResolution
++{
++	uae_u32 width;  /* in pixels */
++	uae_u32 height; /* in pixels */
++};
++
++#define MAX_PICASSO_MODES 300
++
+ struct PicassoResolution
+ {
+ 	struct ScreenResolution res;
+--- a/sources/src/misc.c
++++ b/sources/src/misc.c
+@@ -890,9 +890,14 @@
+ ///////////////////////////////////////////////////
+ // win32gfx.cpp
+ ///////////////////////////////////////////////////
+-#define MAX_DISPLAYS 10
+-struct MultiDisplay Displays[MAX_DISPLAYS];
++/* PEEKaboo: MAX_DISPLAYS is 1 in misc.h, which is what the declaration of this
++ * array uses; redefining it to 10 here made the two disagree. The trailing entry
++ * is the NULL terminator picasso96.c's `while (Displays[mon].monitorname)` walks
++ * to. retrodep/picasso_host.c fills entry 0 - target_get_display() and
++ * target_get_display_name() are already defined for __LIBRETRO__ above. */
++struct MultiDisplay Displays[MAX_DISPLAYS + 1];
+ 
++#ifndef __LIBRETRO__
+ static struct MultiDisplay *getdisplay2 (struct uae_prefs *p, int index)
+ {
+ 	write_log ("Multimonitor detection disabled\n");
+@@ -957,6 +962,7 @@
+ 		return md->monitorname;
+ 	return md->monitorid;
+ }
++#endif /* !__LIBRETRO__ */
+ #endif
+ static int isfullscreen_2 (struct uae_prefs *p)
+ {

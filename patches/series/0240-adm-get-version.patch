@@ -1,0 +1,23 @@
+libretro-core.c: adm_get_version()
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index d55520f..2cf5913 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9221,4 +9221,10 @@ RETRO_API uint8_t adm_get_audio_channel_mask(void) {
+ // (0 none, 1 A500, 2 A1200, 3 A500 fixed-only).
+ RETRO_API int adm_get_audio_filter_state(void) {
+     return adm_audio_filter_state;
++}
++
++// --- ADM PuAE build version (patch revision + pinned upstream commit) ---
++static const char adm_puae_version_str[] = "1.81.0+2b0ed42";
++RETRO_API const char* adm_get_version(void) {
++    return adm_puae_version_str;
+ }
+\ No newline at end of file

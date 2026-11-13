@@ -1,0 +1,43 @@
+libretro-core.c: adm_get_debug_break_pending / adm_arm_debug
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 673690d..b3ed7a9 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9287,4 +9287,30 @@ RETRO_API int adm_debug_command(const char *cmd, char *output_buf, int buf_len)
+         return (int)strlen(output_buf);
+     }
+     return 0;
++}
++// --- ADM debugger break-pending and arm-trace exports ---
++#ifdef DEBUGGER
++extern int adm_debug_break_pending;
++extern void adm_arm_breakpoint_trace(void);
++#endif
++
++RETRO_API int adm_get_debug_break_pending(void) {
++#ifdef DEBUGGER
++    if (!adm_debug_break_pending) return 0;
++    adm_debug_break_pending = 0;
++    return 1;
++#else
++    return 0;
++#endif
++}
++
++RETRO_API void adm_arm_debug(void) {
++#ifdef DEBUGGER
++    // Clear any break left pending by a prior synchronous step. Step-into uses
++    // RunForStep() and leaves adm_debug_break_pending set without draining it, so
++    // a subsequent resume/step-over would auto-pause on that stale flag after one
++    // frame instead of running until its own trace (TRACE_MATCH_PC) fires.
++    adm_debug_break_pending = 0;
++    adm_arm_breakpoint_trace();
++#endif
+ }
+\ No newline at end of file

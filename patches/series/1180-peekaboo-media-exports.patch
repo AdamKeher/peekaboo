@@ -1,0 +1,573 @@
+libretro-core.c: WHDLoad, CD and archive exports for host-generated boots
+
+PEEKaboo boots WHDLoad archives and CD images from a .uae it writes itself, so the core's
+content-loader paths never run for them. Three additions:
+
+- adm_whdload_prepare() installs the embedded WHDLoad payload exactly as a WHDLoad content
+  load does. The WHDLoad.prefs rewrite and the file-mode installation move out of
+  retro_create_config() into whdload_prepare_prefs() / whdload_prepare_file_mode(), which
+  both paths now call, so there is one implementation.
+- adm_cd_insert() / adm_cd_eject() / adm_cd_get_image() change CD0 while the machine runs.
+  The disk-control index selects a floppy drive in this build, so a disc cannot go through it.
+- adm_extract_archive() exposes zip_uncompress / sevenzip_uncompress, so .7z disc sets can be
+  unpacked without the host linking 7-Zip.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 7ee1382..d447bb7 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -6059,6 +6059,318 @@ static void whdload_quitkey(void)
+    libretro_runloop_active = true;
+ }
+ 
++/* PEEKaboo: WHDLoad.prefs preparation, split out of retro_create_config() so
++ * adm_whdload_prepare() runs the same code for a boot the host generates. */
++static void whdload_prepare_prefs(void)
++{
++   int WHDLoad_ConfigDelay = 0;
++   int WHDLoad_SplashDelay = 0;
++   int WHDLoad_WriteDelay  = (opt_use_whdload == 2) ? 50 : 0;
++
++   switch (opt_use_whdload_prefs)
++   {
++      case 1:
++         WHDLoad_ConfigDelay = -1;
++         break;
++      case 2:
++         WHDLoad_SplashDelay = 200;
++         break;
++      case 3:
++         WHDLoad_ConfigDelay = -1;
++         WHDLoad_SplashDelay = -1;
++         break;
++   }
++
++   FILE *whdload_prefs_fp;
++   char whdload_prefs_path[RETRO_PATH_MAX];
++   path_join(whdload_prefs_path, retro_system_directory, "WHDLoad.prefs");
++
++   if (!path_is_valid(whdload_prefs_path))
++   {
++      log_cb(RETRO_LOG_INFO, "WHDLoad.prefs \"%s\" not found, attempting to create...\n", whdload_prefs_path);
++
++      char whdload_prefs_gz_path[RETRO_PATH_MAX];
++      path_join(whdload_prefs_gz_path, retro_system_directory, "WHDLoad.prefs.gz");
++
++      FILE *whdload_prefs_gz_fp;
++      if ((whdload_prefs_gz_fp = fopen(whdload_prefs_gz_path, "wb")))
++      {
++         /* Write GZ */
++         fwrite(___whdload_WHDLoad_prefs_gz, ___whdload_WHDLoad_prefs_gz_len, 1, whdload_prefs_gz_fp);
++         fclose(whdload_prefs_gz_fp);
++
++         /* Extract GZ */
++         gz_uncompress(whdload_prefs_gz_path, whdload_prefs_path);
++         retro_remove(whdload_prefs_gz_path);
++      }
++      else
++         log_cb(RETRO_LOG_ERROR, "Unable to create WHDLoad.prefs: \"%s\".\n", whdload_prefs_path);
++   }
++
++   FILE *whdload_prefs_new_fp;
++   char whdload_prefs_new_path[RETRO_PATH_MAX];
++   path_join(whdload_prefs_new_path, retro_system_directory, "WHDLoad.prefs_new");
++
++   char whdload_prefs_backup_path[RETRO_PATH_MAX];
++   path_join(whdload_prefs_backup_path, retro_system_directory, "WHDLoad.prefs_backup");
++
++   char whdload_buf[256]      = {0};
++   char whdload_buf_row[256]  = {0};
++   char whdload_buf_new[4096] = {0};
++   if ((whdload_prefs_fp = fopen(whdload_prefs_path, "r")))
++   {
++      bool whdload_prefs_changes  = false;
++      bool whdload_quitkey_set    = false;
++      const char *whdload_quitkey = "$2b"; /* AK_NUMBERSIGN = RETROK_HASH */
++
++      while (fgets(whdload_buf, sizeof(whdload_buf), whdload_prefs_fp))
++      {
++         if (opt_use_whdload_buttonwait
++               && strstr(whdload_buf, "ButtonWait") && whdload_buf[0] == ';')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "%s", whdload_buf + 1);
++         else if (!opt_use_whdload_buttonwait
++               && strstr(whdload_buf, "ButtonWait") && whdload_buf[0] == 'B')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), ";%s", whdload_buf);
++         else if (opt_use_whdload_nowritecache
++               && strstr(whdload_buf, "NoWriteCache") && whdload_buf[0] == ';')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "%s", whdload_buf + 1);
++         else if (!opt_use_whdload_nowritecache
++               && strstr(whdload_buf, "NoWriteCache") && whdload_buf[0] == 'N')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), ";%s", whdload_buf);
++         else if (!opt_use_whdload_nowritecache
++               && strstr(whdload_buf, "QuitKey=") && whdload_buf[0] == 'Q')
++         {
++            /* WHDLoad save data quit requires having a standard quit key */
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "QuitKey=%s\n", whdload_quitkey);
++            whdload_quitkey_set = true;
++         }
++         else if (strstr(whdload_buf, "ConfigDelay=") && whdload_buf[0] == 'C')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "ConfigDelay=%d\n", WHDLoad_ConfigDelay);
++         else if (strstr(whdload_buf, "SplashDelay=") && whdload_buf[0] == 'S')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "SplashDelay=%d\n", WHDLoad_SplashDelay);
++         else if (strstr(whdload_buf, "WriteDelay=") && whdload_buf[0] == 'W')
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "WriteDelay=%d\n", WHDLoad_WriteDelay);
++         else
++            snprintf(whdload_buf_row, sizeof(whdload_buf_row), "%s", whdload_buf);
++
++         if (memcmp(whdload_buf, whdload_buf_row, sizeof(whdload_buf)))
++            whdload_prefs_changes = true;
++
++         strlcat(whdload_buf_new, whdload_buf_row, sizeof(whdload_buf_new));
++      }
++
++      /* retro_unload triggers QuitKey (RETROK_HASH) and runs a few frames so that data gets saved */
++      if (!opt_use_whdload_nowritecache && !whdload_quitkey_set)
++      {
++         snprintf(whdload_buf_row, sizeof(whdload_buf_row), "QuitKey=%s\n", whdload_quitkey);
++         strlcat(whdload_buf_new, whdload_buf_row, sizeof(whdload_buf_new));
++         whdload_prefs_changes = true;
++      }
++
++      fclose(whdload_prefs_fp);
++
++      if (whdload_prefs_changes)
++      {
++         if ((whdload_prefs_new_fp = fopen(whdload_prefs_new_path, "w")))
++         {
++            fprintf(whdload_prefs_new_fp, "%s", whdload_buf_new);
++            fclose(whdload_prefs_new_fp);
++         }
++         else
++            log_cb(RETRO_LOG_ERROR, "Unable to create new WHDLoad.prefs: \"%s\".\n", whdload_prefs_new_path);
++
++         /* Remove old backup prefs */
++         retro_remove(whdload_prefs_backup_path);
++
++         /* Backup old and update new prefs */
++         rename(whdload_prefs_path, whdload_prefs_backup_path);
++         rename(whdload_prefs_new_path, whdload_prefs_path);
++      }
++   }
++}
++
++/* PEEKaboo: WHDLoad file-mode installation (WHDLoad/ and WHDSaves/ in the save directory),
++ * split out of retro_create_config() for the same reason. Fills both paths; true when all
++ * three directories exist. */
++static bool whdload_prepare_file_mode(char *whdload_path, char *whdsaves_path)
++{
++   char whdload_prefs_path[RETRO_PATH_MAX];
++   path_join(whdload_prefs_path, retro_system_directory, "WHDLoad.prefs");
++
++   path_join(whdload_path, retro_save_directory, "WHDLoad");
++
++   char whdload_c_path[RETRO_PATH_MAX];
++   path_join(whdload_c_path, retro_save_directory, "WHDLoad/C");
++
++   /* Verify WHDLoad */
++   if (!path_is_directory(whdload_path) || (path_is_directory(whdload_path) && !path_is_directory(whdload_c_path)))
++   {
++      log_cb(RETRO_LOG_INFO, "WHDLoad image directory \"%s\" not found, attempting to create...\n", whdload_path);
++      path_mkdir(whdload_path);
++
++      char whdload_files_zip_path[RETRO_PATH_MAX];
++      path_join(whdload_files_zip_path, retro_save_directory, "WHDLoad_files.zip");
++
++      FILE *whdload_files_zip_fp;
++      if ((whdload_files_zip_fp = fopen(whdload_files_zip_path, "wb")))
++      {
++         /* Write ZIP */
++         fwrite(___whdload_WHDLoad_files_zip, ___whdload_WHDLoad_files_zip_len, 1, whdload_files_zip_fp);
++         fclose(whdload_files_zip_fp);
++
++         /* Extract ZIP */
++         zip_uncompress(whdload_files_zip_path, whdload_path, NULL);
++         retro_remove(whdload_files_zip_path);
++      }
++
++      if (!path_is_directory(whdload_c_path))
++         log_cb(RETRO_LOG_ERROR, "Unable to create WHDLoad image directory: \"%s\".\n", whdload_path);
++   }
++   if (path_is_directory(whdload_path) && path_is_directory(whdload_c_path))
++   {
++      /* Check and copy Kickstarts */
++      whdload_kscopy(false);
++
++      /* Copy required files host-wise with file mode */
++      if (path_is_valid(whdload_prefs_path))
++         whdload_prefs_copy();
++
++      /* Rename theme prefs if necessary */
++      char whdload_theme_path[RETRO_PATH_MAX];
++      path_join(whdload_theme_path, retro_save_directory, "WHDLoad/Devs/system-configuration");
++      char whdload_theme_default_path[RETRO_PATH_MAX];
++      path_join(whdload_theme_default_path, retro_save_directory, "WHDLoad/Devs/system-configuration-default");
++      char whdload_theme_native_path[RETRO_PATH_MAX];
++      path_join(whdload_theme_native_path, retro_save_directory, "WHDLoad/Devs/system-configuration-native");
++
++      /* Default (black) */
++      if (!opt_use_whdload_theme)
++      {
++         if (path_is_valid(whdload_theme_path) && path_is_valid(whdload_theme_default_path))
++         {
++            if (fcmp(whdload_theme_path, whdload_theme_default_path))
++            {
++               if (fcopy(whdload_theme_default_path, whdload_theme_path) < 0)
++                  log_cb(RETRO_LOG_INFO, "WHDLoad failed to change theme to \"Default\".\n");
++               else
++                  log_cb(RETRO_LOG_INFO, "WHDLoad changed theme to \"Default\".\n");
++            }
++         }
++         else if (!path_is_valid(whdload_theme_default_path) && !path_is_valid(whdload_theme_native_path))
++            ; /* No-op fallback */
++         else
++            log_cb(RETRO_LOG_INFO, "WHDLoad theme \"Default\" not found. Delete \"WHDLoad\" directory to reinstall!\n");
++      }
++      /* Native (gray) */
++      else
++      {
++         if (path_is_valid(whdload_theme_path) && path_is_valid(whdload_theme_native_path))
++         {
++            if (fcmp(whdload_theme_path, whdload_theme_native_path))
++            {
++               if (fcopy(whdload_theme_native_path, whdload_theme_path) < 0)
++                  log_cb(RETRO_LOG_INFO, "WHDLoad failed to change theme to \"Native\".\n");
++               else
++                  log_cb(RETRO_LOG_INFO, "WHDLoad changed theme to \"Native\".\n");
++            }
++         }
++         else
++            log_cb(RETRO_LOG_INFO, "WHDLoad theme \"Native\" not found. Delete \"WHDLoad\" directory to reinstall!\n");
++      }
++   }
++
++   /* Verify WHDSaves */
++   path_join(whdsaves_path, retro_save_directory, "WHDSaves");
++   if (!path_is_directory(whdsaves_path))
++      path_mkdir(whdsaves_path);
++
++   return path_is_directory(whdload_path) && path_is_directory(whdload_c_path)
++       && path_is_directory(whdsaves_path);
++}
++
++/* PEEKaboo: WHDLoad, CD and archive exports.
++ *
++ * PEEKaboo boots WHDLoad archives and CD images from a .uae it generates itself, so it never
++ * reaches the content-loader paths in retro_create_config() that prepare WHDLoad or insert a
++ * disc. These exports hand it the same preparation, and a way to change the disc while the
++ * machine runs: in this build the libretro disk-control index selects a floppy drive, so a CD
++ * cannot be swapped through it. */
++
++RETRO_API int adm_whdload_prepare(int button_wait, int no_write_cache, int prefs_mode, int theme,
++                                  char *out_whdload_dir, char *out_saves_dir, int len)
++{
++   char whdload_path[RETRO_PATH_MAX]  = {0};
++   char whdsaves_path[RETRO_PATH_MAX] = {0};
++   bool ok;
++
++   if (string_is_empty(retro_save_directory) || string_is_empty(retro_system_directory))
++      return 0;
++
++   opt_use_whdload_buttonwait   = button_wait != 0;
++   opt_use_whdload_nowritecache = no_write_cache != 0;
++   opt_use_whdload_prefs        = (prefs_mode >= 0 && prefs_mode <= 3) ? (uint8_t)prefs_mode : 0;
++   opt_use_whdload_theme        = theme ? 1 : 0;
++
++   /* whdload_prepare_prefs() reads opt_use_whdload for WriteDelay: file mode is the only mode
++    * this export prepares. */
++   opt_use_whdload = 1;
++
++   path_mkdir(retro_save_directory);
++   whdload_prepare_prefs();
++   ok = whdload_prepare_file_mode(whdload_path, whdsaves_path);
++
++   if (out_whdload_dir && len > 0)
++      strlcpy(out_whdload_dir, whdload_path, (size_t)len);
++   if (out_saves_dir && len > 0)
++      strlcpy(out_saves_dir, whdsaves_path, (size_t)len);
++   return ok ? 1 : 0;
++}
++
++RETRO_API int adm_cd_insert(const char *path)
++{
++   if (!path || !path[0] || strlen(path) >= sizeof(changed_prefs.cdslots[0].name))
++      return 0;
++   strlcpy(changed_prefs.cdslots[0].name, path, sizeof(changed_prefs.cdslots[0].name));
++   changed_prefs.cdslots[0].inuse = true;
++   set_config_changed();
++   return 1;
++}
++
++RETRO_API void adm_cd_eject(void)
++{
++   changed_prefs.cdslots[0].name[0] = 0;
++   changed_prefs.cdslots[0].inuse   = false;
++   set_config_changed();
++}
++
++/* 1 when a disc is in CD0 as far as the running machine knows, 0 when it is empty. The image
++ * path is copied out either way (empty when there is none). */
++RETRO_API int adm_cd_get_image(char *out, int len)
++{
++   if (out && len > 0)
++      strlcpy(out, currprefs.cdslots[0].name, (size_t)len);
++   return currprefs.cdslots[0].name[0] ? 1 : 0;
++}
++
++/* Extract a .zip or .7z into dest_dir, which is created if needed. Returns 1 on success. */
++RETRO_API int adm_extract_archive(const char *archive, const char *dest_dir)
++{
++   if (!archive || !dest_dir || !path_is_valid(archive))
++      return 0;
++   if (!path_is_directory(dest_dir))
++      path_mkdir(dest_dir);
++   if (!path_is_directory(dest_dir))
++      return 0;
++   if (strendswith(archive, ".zip") || strendswith(archive, ".ZIP"))
++      zip_uncompress((char *)archive, (char *)dest_dir, NULL);
++   else if (strendswith(archive, ".7z") || strendswith(archive, ".7Z"))
++      sevenzip_uncompress((char *)archive, (char *)dest_dir, NULL);
++   else
++      return 0;
++   return 1;
++}
++
++
+ static char* emu_config_string(const char *mode, int config)
+ {
+    if (!strcmp(mode, "model"))
+@@ -6675,165 +6987,18 @@ static bool retro_create_config(void)
+             /* WHDLoad support */
+             if (opt_use_whdload)
+             {
+-               /* Manipulate WHDLoad.prefs */
+-               int WHDLoad_ConfigDelay = 0;
+-               int WHDLoad_SplashDelay = 0;
+-               int WHDLoad_WriteDelay  = (opt_use_whdload == 2) ? 50 : 0;
+-
+-               switch (opt_use_whdload_prefs)
+-               {
+-                  case 1:
+-                     WHDLoad_ConfigDelay = -1;
+-                     break;
+-                  case 2:
+-                     WHDLoad_SplashDelay = 200;
+-                     break;
+-                  case 3:
+-                     WHDLoad_ConfigDelay = -1;
+-                     WHDLoad_SplashDelay = -1;
+-                     break;
+-               }
+-
+-               FILE *whdload_prefs_fp;
+-               char whdload_prefs_path[RETRO_PATH_MAX];
+-               path_join(whdload_prefs_path, retro_system_directory, "WHDLoad.prefs");
+-
+-               if (!path_is_valid(whdload_prefs_path))
+-               {
+-                  log_cb(RETRO_LOG_INFO, "WHDLoad.prefs \"%s\" not found, attempting to create...\n", whdload_prefs_path);
+-
+-                  char whdload_prefs_gz_path[RETRO_PATH_MAX];
+-                  path_join(whdload_prefs_gz_path, retro_system_directory, "WHDLoad.prefs.gz");
+-
+-                  FILE *whdload_prefs_gz_fp;
+-                  if ((whdload_prefs_gz_fp = fopen(whdload_prefs_gz_path, "wb")))
+-                  {
+-                     /* Write GZ */
+-                     fwrite(___whdload_WHDLoad_prefs_gz, ___whdload_WHDLoad_prefs_gz_len, 1, whdload_prefs_gz_fp);
+-                     fclose(whdload_prefs_gz_fp);
+-
+-                     /* Extract GZ */
+-                     gz_uncompress(whdload_prefs_gz_path, whdload_prefs_path);
+-                     retro_remove(whdload_prefs_gz_path);
+-                  }
+-                  else
+-                     log_cb(RETRO_LOG_ERROR, "Unable to create WHDLoad.prefs: \"%s\".\n", whdload_prefs_path);
+-               }
+-
+-               FILE *whdload_prefs_new_fp;
+-               char whdload_prefs_new_path[RETRO_PATH_MAX];
+-               path_join(whdload_prefs_new_path, retro_system_directory, "WHDLoad.prefs_new");
+-
+-               char whdload_prefs_backup_path[RETRO_PATH_MAX];
+-               path_join(whdload_prefs_backup_path, retro_system_directory, "WHDLoad.prefs_backup");
+-
+-               char whdload_buf[256]      = {0};
+-               char whdload_buf_row[256]  = {0};
+-               char whdload_buf_new[4096] = {0};
+-               if ((whdload_prefs_fp = fopen(whdload_prefs_path, "r")))
+-               {
+-                  bool whdload_prefs_changes  = false;
+-                  bool whdload_quitkey_set    = false;
+-                  const char *whdload_quitkey = "$2b"; /* AK_NUMBERSIGN = RETROK_HASH */
+-
+-                  while (fgets(whdload_buf, sizeof(whdload_buf), whdload_prefs_fp))
+-                  {
+-                     if (opt_use_whdload_buttonwait
+-                           && strstr(whdload_buf, "ButtonWait") && whdload_buf[0] == ';')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "%s", whdload_buf + 1);
+-                     else if (!opt_use_whdload_buttonwait
+-                           && strstr(whdload_buf, "ButtonWait") && whdload_buf[0] == 'B')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), ";%s", whdload_buf);
+-                     else if (opt_use_whdload_nowritecache
+-                           && strstr(whdload_buf, "NoWriteCache") && whdload_buf[0] == ';')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "%s", whdload_buf + 1);
+-                     else if (!opt_use_whdload_nowritecache
+-                           && strstr(whdload_buf, "NoWriteCache") && whdload_buf[0] == 'N')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), ";%s", whdload_buf);
+-                     else if (!opt_use_whdload_nowritecache
+-                           && strstr(whdload_buf, "QuitKey=") && whdload_buf[0] == 'Q')
+-                     {
+-                        /* WHDLoad save data quit requires having a standard quit key */
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "QuitKey=%s\n", whdload_quitkey);
+-                        whdload_quitkey_set = true;
+-                     }
+-                     else if (strstr(whdload_buf, "ConfigDelay=") && whdload_buf[0] == 'C')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "ConfigDelay=%d\n", WHDLoad_ConfigDelay);
+-                     else if (strstr(whdload_buf, "SplashDelay=") && whdload_buf[0] == 'S')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "SplashDelay=%d\n", WHDLoad_SplashDelay);
+-                     else if (strstr(whdload_buf, "WriteDelay=") && whdload_buf[0] == 'W')
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "WriteDelay=%d\n", WHDLoad_WriteDelay);
+-                     else
+-                        snprintf(whdload_buf_row, sizeof(whdload_buf_row), "%s", whdload_buf);
+-
+-                     if (memcmp(whdload_buf, whdload_buf_row, sizeof(whdload_buf)))
+-                        whdload_prefs_changes = true;
+-
+-                     strlcat(whdload_buf_new, whdload_buf_row, sizeof(whdload_buf_new));
+-                  }
+-
+-                  /* retro_unload triggers QuitKey (RETROK_HASH) and runs a few frames so that data gets saved */
+-                  if (!opt_use_whdload_nowritecache && !whdload_quitkey_set)
+-                  {
+-                     snprintf(whdload_buf_row, sizeof(whdload_buf_row), "QuitKey=%s\n", whdload_quitkey);
+-                     strlcat(whdload_buf_new, whdload_buf_row, sizeof(whdload_buf_new));
+-                     whdload_prefs_changes = true;
+-                  }
+-
+-                  fclose(whdload_prefs_fp);
+-
+-                  if (whdload_prefs_changes)
+-                  {
+-                     if ((whdload_prefs_new_fp = fopen(whdload_prefs_new_path, "w")))
+-                     {
+-                        fprintf(whdload_prefs_new_fp, "%s", whdload_buf_new);
+-                        fclose(whdload_prefs_new_fp);
+-                     }
+-                     else
+-                        log_cb(RETRO_LOG_ERROR, "Unable to create new WHDLoad.prefs: \"%s\".\n", whdload_prefs_new_path);
+-
+-                     /* Remove old backup prefs */
+-                     retro_remove(whdload_prefs_backup_path);
+-
+-                     /* Backup old and update new prefs */
+-                     rename(whdload_prefs_path, whdload_prefs_backup_path);
+-                     rename(whdload_prefs_new_path, whdload_prefs_path);
+-                  }
+-               }
++               whdload_prepare_prefs();
+ 
+                /* WHDLoad file mode */
+                if (opt_use_whdload == 1)
+                {
+                   char whdload_path[RETRO_PATH_MAX];
+-                  path_join(whdload_path, retro_save_directory, "WHDLoad");
++                  char whdsaves_path[RETRO_PATH_MAX];
++                  whdload_prepare_file_mode(whdload_path, whdsaves_path);
+ 
+                   char whdload_c_path[RETRO_PATH_MAX];
+                   path_join(whdload_c_path, retro_save_directory, "WHDLoad/C");
+ 
+-                  /* Verify WHDLoad */
+-                  if (!path_is_directory(whdload_path) || (path_is_directory(whdload_path) && !path_is_directory(whdload_c_path)))
+-                  {
+-                     log_cb(RETRO_LOG_INFO, "WHDLoad image directory \"%s\" not found, attempting to create...\n", whdload_path);
+-                     path_mkdir(whdload_path);
+-
+-                     char whdload_files_zip_path[RETRO_PATH_MAX];
+-                     path_join(whdload_files_zip_path, retro_save_directory, "WHDLoad_files.zip");
+-
+-                     FILE *whdload_files_zip_fp;
+-                     if ((whdload_files_zip_fp = fopen(whdload_files_zip_path, "wb")))
+-                     {
+-                        /* Write ZIP */
+-                        fwrite(___whdload_WHDLoad_files_zip, ___whdload_WHDLoad_files_zip_len, 1, whdload_files_zip_fp);
+-                        fclose(whdload_files_zip_fp);
+-
+-                        /* Extract ZIP */
+-                        zip_uncompress(whdload_files_zip_path, whdload_path, NULL);
+-                        retro_remove(whdload_files_zip_path);
+-                     }
+-
+-                     if (!path_is_directory(whdload_c_path))
+-                        log_cb(RETRO_LOG_ERROR, "Unable to create WHDLoad image directory: \"%s\".\n", whdload_path);
+-                  }
+                   /* Attach directory */
+                   if (path_is_directory(whdload_path) && path_is_directory(whdload_c_path))
+                   {
+@@ -6845,63 +7010,8 @@ static bool retro_create_config(void)
+                      retro_config_append("filesystem2=rw,WHDLoad:WHDLoad:\"%s\",0\n", tmp_str);
+                      free(tmp_str);
+                      tmp_str = NULL;
+-
+-                     /* Check and copy Kickstarts */
+-                     whdload_kscopy(false);
+-
+-                     /* Copy required files host-wise with file mode */
+-                     if (path_is_valid(whdload_prefs_path))
+-                        whdload_prefs_copy();
+-
+-                     /* Rename theme prefs if necessary */
+-                     char whdload_theme_path[RETRO_PATH_MAX];
+-                     path_join(whdload_theme_path, retro_save_directory, "WHDLoad/Devs/system-configuration");
+-                     char whdload_theme_default_path[RETRO_PATH_MAX];
+-                     path_join(whdload_theme_default_path, retro_save_directory, "WHDLoad/Devs/system-configuration-default");
+-                     char whdload_theme_native_path[RETRO_PATH_MAX];
+-                     path_join(whdload_theme_native_path, retro_save_directory, "WHDLoad/Devs/system-configuration-native");
+-
+-                     /* Default (black) */
+-                     if (!opt_use_whdload_theme)
+-                     {
+-                        if (path_is_valid(whdload_theme_path) && path_is_valid(whdload_theme_default_path))
+-                        {
+-                           if (fcmp(whdload_theme_path, whdload_theme_default_path))
+-                           {
+-                              if (fcopy(whdload_theme_default_path, whdload_theme_path) < 0)
+-                                 log_cb(RETRO_LOG_INFO, "WHDLoad failed to change theme to \"Default\".\n");
+-                              else
+-                                 log_cb(RETRO_LOG_INFO, "WHDLoad changed theme to \"Default\".\n");
+-                           }
+-                        }
+-                        else if (!path_is_valid(whdload_theme_default_path) && !path_is_valid(whdload_theme_native_path))
+-                           ; /* No-op fallback */
+-                        else
+-                           log_cb(RETRO_LOG_INFO, "WHDLoad theme \"Default\" not found. Delete \"WHDLoad\" directory to reinstall!\n");
+-                     }
+-                     /* Native (gray) */
+-                     else
+-                     {
+-                        if (path_is_valid(whdload_theme_path) && path_is_valid(whdload_theme_native_path))
+-                        {
+-                           if (fcmp(whdload_theme_path, whdload_theme_native_path))
+-                           {
+-                              if (fcopy(whdload_theme_native_path, whdload_theme_path) < 0)
+-                                 log_cb(RETRO_LOG_INFO, "WHDLoad failed to change theme to \"Native\".\n");
+-                              else
+-                                 log_cb(RETRO_LOG_INFO, "WHDLoad changed theme to \"Native\".\n");
+-                           }
+-                        }
+-                        else
+-                           log_cb(RETRO_LOG_INFO, "WHDLoad theme \"Native\" not found. Delete \"WHDLoad\" directory to reinstall!\n");
+-                     }
+                   }
+ 
+-                  /* Verify WHDSaves */
+-                  char whdsaves_path[RETRO_PATH_MAX];
+-                  path_join(whdsaves_path, retro_save_directory, "WHDSaves");
+-                  if (!path_is_directory(whdsaves_path))
+-                     path_mkdir(whdsaves_path);
+                   /* Attach directory */
+                   if (path_is_directory(whdsaves_path))
+                   {

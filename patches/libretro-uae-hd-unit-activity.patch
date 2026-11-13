@@ -1,0 +1,52 @@
+diff --git a/retrodep/gui.c b/retrodep/gui.c
+index db44836..17e971e 100644
+--- a/retrodep/gui.c
++++ b/retrodep/gui.c
+@@ -13,6 +13,34 @@
+ #include "libretro-glue.h"
+ extern retro_log_printf_t log_cb;
+ 
++/* PEEKaboo optional extension: retain filesystem-unit activity instead of collapsing all
++ * directory and hardfile traffic into libretro LED 7. Counts are exchanged atomically because
++ * directory units can execute on PuAE filesystem worker threads. */
++#define ADM_HD_ACTIVITY_UNITS 32
++static volatile unsigned adm_hd_reads[ADM_HD_ACTIVITY_UNITS];
++static volatile unsigned adm_hd_writes[ADM_HD_ACTIVITY_UNITS];
++
++typedef struct adm_hd_activity_event {
++    int unit;
++    int status;
++    unsigned count;
++} adm_hd_activity_event_t;
++
++RETRO_API int adm_drain_hd_activity(void *output, int maximum)
++{
++    adm_hd_activity_event_t *events = (adm_hd_activity_event_t *)output;
++    int count = 0;
++    for (int unit = 0; unit < ADM_HD_ACTIVITY_UNITS && count < maximum; ++unit) {
++        unsigned reads = __atomic_exchange_n(&adm_hd_reads[unit], 0, __ATOMIC_ACQ_REL);
++        unsigned writes = __atomic_exchange_n(&adm_hd_writes[unit], 0, __ATOMIC_ACQ_REL);
++        if (reads && count < maximum)
++            events[count++] = (adm_hd_activity_event_t){unit, 1, reads};
++        if (writes && count < maximum)
++            events[count++] = (adm_hd_activity_event_t){unit, 2, writes};
++    }
++    return count;
++}
++
+ void gui_disk_image_change (int unitnum, const TCHAR *name, bool writeprotected)
+ {
+ }
+@@ -105,6 +133,12 @@ static void gui_flicker_led2 (int led, int unitnum, int status)
+ 
+ void gui_flicker_led (int led, int unitnum, int status)
+ {
++    if (led == LED_HD && unitnum >= 0 && unitnum < ADM_HD_ACTIVITY_UNITS) {
++        if (status == 1)
++            __atomic_fetch_add(&adm_hd_reads[unitnum], 1, __ATOMIC_RELAXED);
++        else if (status == 2)
++            __atomic_fetch_add(&adm_hd_writes[unitnum], 1, __ATOMIC_RELAXED);
++    }
+     if (led < 0) {
+         if (gui_data.hd >= 0)
+             gui_flicker_led2(LED_HD, 0, 0);

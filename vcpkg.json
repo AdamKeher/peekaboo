@@ -1,0 +1,37 @@
+{
+  "name": "amiga-disk-manager",
+  "version": "0.1.0",
+  "dependencies": [
+    "cpr",
+    "crc32c",
+    "fmt",
+    "glad",
+    "glfw3",
+    "glm",
+    "gtest",
+    {
+      "name": "imgui",
+      "features": [
+        "docking-experimental",
+        "freetype",
+        "glfw-binding",
+        "opengl3-binding"
+      ]
+    },
+    "libopenmpt",
+    "libzip",
+    "nativefiledialog-extended",
+    "nlohmann-json",
+    "pkgconf",
+    "tinyxml2",
+    "zlib",
+    "md4c"
+  ],
+  "builtin-baseline": "81de6771512413aaf89ea77add5ad1fda126b9d0",
+  "overrides": [
+    {
+      "name": "imgui",
+      "version": "1.92.8"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+drawing.c: bitplane/sprite mask visibility control
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/drawing.c b/sources/src/drawing.c
+index 53c17c3..cf70ab9 100644
+--- a/sources/src/drawing.c
++++ b/sources/src/drawing.c
+@@ -83,6 +83,7 @@ int lores_shift, shres_shift;
+ static void pfield_set_linetoscr(void);
+ 
+ int debug_bpl_mask = 0xff, debug_bpl_mask_one;
++int adm_sprite_mask_expanded = 0xffff;
+ 
+ static struct decision *dp_for_drawing;
+ static struct draw_info *dip_for_drawing;
+@@ -1823,6 +1824,7 @@ static uae_u8 render_sprites(int pos, int dualpf, uae_u8 apixel, int aga)
+ 	maskshift = shift_lookup[apixel];
+ 	plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
+ 	v &= ~plfmask;
++	v &= (unsigned int)adm_sprite_mask_expanded;
+ 	/* Extra 1 sprite pixel at DDFSTRT is only possible if at least 1 plane is active */
+ 	if (pos >= sprite_playfield_start && pos < sprite_end && (v != 0 || SPRITE_DEBUG)) {
+ 		unsigned int vlo, vhi, col;
+@@ -1915,6 +1917,7 @@ static uae_u8 sh_render_sprites(int pos, int dualpf, uae_u8 apixel, int aga)
+ 	maskshift = shift_lookup[apixel];
+ 	plfmask = (plf_sprite_mask >> maskshift) >> maskshift;
+ 	v &= ~plfmask;
++	v &= (unsigned int)adm_sprite_mask_expanded;
+ 	if (pos >= sprite_playfield_start && pos < sprite_end && v != 0) {
+ 		uae_u32 col;
+ 		uae_u32 v1 = v & 255;

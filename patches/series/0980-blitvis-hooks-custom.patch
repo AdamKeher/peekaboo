@@ -1,0 +1,99 @@
+custom.c: blitter-vis fetch hooks
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/custom.c b/sources/src/custom.c
+index 3f9c8b4..a99202a 100644
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -1056,6 +1056,8 @@ static int output_res(int res)
+ 
+ static void reset_bpl_vars()
+ {
++	/* ADM blitter-vis: per-plane fetch pixel cursors restart each line. */
++	{ extern void adm_blitvis_reset_line_cursors(void); adm_blitvis_reset_line_cursors(); }
+ 	out_subpix[0] = 0;
+ 	out_subpix[1] = 0;
+ 	out_nbits = 0;
+@@ -3103,6 +3105,18 @@ static bool fetch(int nr, int fm, int hpos, bool addmodulo)
+ 	}
+ #endif
+ 
++	/* ADM blitter-vis: tag this fetch with whichever blit last wrote the
++	   word.  The pixel coordinates come from the real fetch, so BPLxMOD,
++	   fetch mode, x-scroll delay and plane number are already correct. */
++	{
++		extern int adm_blitvis_enabled;
++		extern void adm_blitvis_fetch(int, uaecptr, int, int, int, int);
++		if (adm_blitvis_enabled) {
++			adm_blitvis_fetch(next_lineno, p, nr, fm, toscr_delay_adjusted[nr & 1],
++				plane0_first_done ? (16 << fm) : 0);
++		}
++	}
++
+ 	switch (fm)
+ 	{
+ 	case 0:
+@@ -4519,6 +4533,16 @@ STATIC_INLINE void long_fetch_16(int plane, int nwords, int weird_number_of_bits
+ 
+ 	bplpt[plane] += nwords * 2;
+ 	bplptx[plane] += nwords * 2;
++	/* ADM blitter-vis: bpladdr still holds this run's base here -- it is
++	   only advanced further down, inside the real_pt == NULL branch.
++	   nwords counts 16-bit words in all three long_fetch variants. */
++	{
++		extern int adm_blitvis_enabled;
++		extern void adm_blitvis_long_fetch(int, uaecptr, int, int, int);
++		if (adm_blitvis_enabled) {
++			adm_blitvis_long_fetch(next_lineno, bpladdr, plane, nwords, delay);
++		}
++	}
+ 
+ 	if (real_pt == NULL) {
+ 		if (nwords > MAX_FETCH_TEMP) {
+@@ -4588,6 +4612,16 @@ STATIC_INLINE void long_fetch_32 (int plane, int nwords, int weird_number_of_bit
+ 
+ 	bplpt[plane] += nwords * 2;
+ 	bplptx[plane] += nwords * 2;
++	/* ADM blitter-vis: bpladdr still holds this run's base here -- it is
++	   only advanced further down, inside the real_pt == NULL branch.
++	   nwords counts 16-bit words in all three long_fetch variants. */
++	{
++		extern int adm_blitvis_enabled;
++		extern void adm_blitvis_long_fetch(int, uaecptr, int, int, int);
++		if (adm_blitvis_enabled) {
++			adm_blitvis_long_fetch(next_lineno, bpladdr, plane, nwords, delay);
++		}
++	}
+ 
+ 	if (real_pt == NULL) {
+ 		if (nwords > MAX_FETCH_TEMP) {
+@@ -4710,6 +4744,16 @@ STATIC_INLINE void long_fetch_64(int plane, int nwords, int weird_number_of_bits
+ 
+ 	bplpt[plane] += nwords * 2;
+ 	bplptx[plane] += nwords * 2;
++	/* ADM blitter-vis: bpladdr still holds this run's base here -- it is
++	   only advanced further down, inside the real_pt == NULL branch.
++	   nwords counts 16-bit words in all three long_fetch variants. */
++	{
++		extern int adm_blitvis_enabled;
++		extern void adm_blitvis_long_fetch(int, uaecptr, int, int, int);
++		if (adm_blitvis_enabled) {
++			adm_blitvis_long_fetch(next_lineno, bpladdr, plane, nwords, delay);
++		}
++	}
+ 
+ 	if (real_pt == NULL) {
+ 		if (nwords * 2 > MAX_FETCH_TEMP) {
+@@ -12096,6 +12140,8 @@ static int calculate_lineno(int vp)
+ // vsync start
+ void init_hardware_for_drawing_frame(void)
+ {
++	/* ADM blitter-vis: collapse last frame's tags into spans, start a new frame. */
++	{ extern void adm_blitvis_frame_begin(void); adm_blitvis_frame_begin(); }
+ 	/* Avoid this code in the first frame after a customreset.  */
+ 	if (prev_sprite_entries) {
+ 		int first_pixel = prev_sprite_entries[0].first_pixel;

@@ -1,0 +1,84 @@
+#peekaboo-overlay {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 2147483647;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 20, 20, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+#peekaboo-overlay:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+#peekaboo-overlay img {
+  width: 38px;
+  height: 38px;
+  display: block;
+  transition: opacity 0.15s ease;
+}
+
+#peekaboo-overlay.peekaboo-loading img {
+  opacity: 0.4;
+}
+
+#peekaboo-overlay.peekaboo-success {
+  box-shadow: 0 2px 12px rgba(80, 200, 80, 0.7);
+}
+
+#peekaboo-overlay.peekaboo-error {
+  box-shadow: 0 2px 12px rgba(220, 60, 60, 0.7);
+}
+
+#peekaboo-spinner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: peekaboo-spin 0.7s linear infinite;
+  display: none;
+}
+
+#peekaboo-overlay.peekaboo-loading #peekaboo-spinner {
+  display: block;
+}
+
+@keyframes peekaboo-spin {
+  to { transform: rotate(360deg); }
+}
+
+#peekaboo-tooltip {
+  position: fixed;
+  left: 72px;
+  top: 22px;
+  background: rgba(20, 20, 20, 0.9);
+  color: #eee;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2147483647;
+}
+
+#peekaboo-overlay:hover + #peekaboo-tooltip,
+#peekaboo-overlay:hover ~ #peekaboo-tooltip {
+  opacity: 1;
+}

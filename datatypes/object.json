@@ -1,0 +1,10 @@
+{
+    "name": "Amiga Object",
+    "group": "Executable",
+    "rules": [
+        {
+            "offset": 0,
+            "bytes": "000003E7"
+        }
+    ]
+}

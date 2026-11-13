@@ -1,0 +1,51 @@
+disk.c: per-drive write protect
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/disk.c b/sources/src/disk.c
+index 7afb721..be8d8f8 100644
+--- a/sources/src/disk.c
++++ b/sources/src/disk.c
+@@ -5836,6 +5836,39 @@ int adm_bridge_shutdown_all(void)
+ }
+ 
+ 
++
++// --- ADM per-drive floppy write protect --------------------------------------
++// Forces one drive's write protection the way the tab on a real disk does.
++// Deliberately NOT disk_setwriteprotect(): that one chmods the host file (which
++// is why the host app carries ClearReadOnlyAttribute) and clears forcedwrprot as
++// its last act. drive_writeprotected() reads forcedwrprot live and
++// DISK_status_ciaa() feeds it to the CIAA PRA /WPRO bit the guest polls, so the
++// change takes effect without ejecting. Every re-insert path is covered too, and
++// they do not all read the same field - see below.
++int adm_floppy_set_write_protect(int drive_idx, int wp)
++{
++    if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES)
++        return 0;
++    floppy[drive_idx].forcedwrprot = wp != 0;
++    /* The delayed insert in DISK_hsync() - which every libretro insert ends in,
++       because set_eject_state(false) calls DISK_reinsert() - re-applies
++       drv->newnamewriteprotected, NOT the prefs. Without this line the slot
++       silently becomes writable about two seconds after each insert. */
++    floppy[drive_idx].newnamewriteprotected = wp != 0;
++    /* Both prefs copies, so the df-diff re-insert DISK_vsync() performs keeps it. */
++    currprefs.floppyslots[drive_idx].forcedwriteprotect = wp != 0;
++    changed_prefs.floppyslots[drive_idx].forcedwriteprotect = wp != 0;
++    return 1;
++}
++
++// What the emulation actually sees, which is broader than the forced flag: an
++// empty drive and the global floppy_read_only option both read as protected.
++int adm_floppy_get_write_protect(int drive_idx)
++{
++    if (drive_idx < 0 || drive_idx >= MAX_FLOPPY_DRIVES)
++        return 0;
++    return drive_writeprotected(&floppy[drive_idx]) ? 1 : 0;
++}
+ void DISK_init (void)
+ {
+ 	for (int dr = MAX_FLOPPY_DRIVES - 1; dr >= 0; dr--) {

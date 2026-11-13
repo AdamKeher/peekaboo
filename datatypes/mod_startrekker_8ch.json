@@ -1,0 +1,10 @@
+{
+    "name": "StarTrekker Module (8 channel)",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "464C5438"
+        }
+    ]
+}

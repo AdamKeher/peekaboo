@@ -1,0 +1,94 @@
+libretro-core.c: frame-start save-state capture
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index bd99eb0..a9878bd 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9653,6 +9653,7 @@ void adm_record_frame_start(void) {
+     adm_prev_frame_start_cycle_val = adm_frame_start_cycle_val;
+     adm_frame_start_cycle_val = (uint32_t)(get_cycles() / 512);
+     adm_cpu_trace_frame_boundary();
++    { extern int adm_capture_pending; adm_capture_pending = 1; }
+ }
+ /* Current beam position — lets the host place a "playhead" at a mid-frame breakpoint
+    stop and clip per-frame event views to [frame start, break]. cycle is in the same
+@@ -9661,4 +9662,73 @@ RETRO_API void adm_get_beampos(uint32_t* cycle, int* vp, int* hp) {
+     if (cycle) *cycle = (uint32_t)(get_cycles() / 512);
+     if (vp) *vp = vpos;
+     if (hp) *hp = current_hpos();
++}
++/* --- Frame-start save-state capture ---------------------------------------------
++   See the build script for why this exists: a PUAE save state only round-trips when it
++   is captured at vpos 0, which is where a restore always resumes. This runs inside the
++   vpos = 0 reset, so the state it takes is self-consistent with the restore.
++
++   Off by default; one full serialize per frame when enabled. */
++static uae_u8 *adm_fs_state_buf = NULL;
++static size_t adm_fs_state_cap = 0;
++static size_t adm_fs_state_len = 0;
++static uint64_t adm_fs_state_seq = 0;
++static int adm_fs_capture_enabled = 0;
++
++/* Armed by the chipset at its vpos = 0 reset; consumed by the CPU loop at the next
++   instruction boundary. Capturing straight from the chipset event caught the CPU
++   mid-instruction, and a save state can only record whole instructions - so the restored
++   CPU re-ran part of one and came out one shift ahead. See docs/handover-framereplay.md
++   sections 4.4.7 and 4.4.9. */
++int adm_capture_pending = 0;
++
++RETRO_API void adm_set_state_capture(int enable) {
++    adm_fs_capture_enabled = enable ? 1 : 0;
++    if (!adm_fs_capture_enabled)
++        adm_fs_state_len = 0;
++}
++
++/* Size of the newest frame-start state, 0 if none has been captured. Copies it into dst
++   when dst is non-NULL and max is big enough; pass dst = NULL to size the buffer first.
++   seq advances once per capture, so the host can tell a fresh state from the same one
++   read twice - which is how it knows whether a frame boundary was really crossed. */
++RETRO_API size_t adm_get_frame_start_state(void *dst, size_t max, uint64_t *seq) {
++    if (seq)
++        *seq = adm_fs_state_seq;
++    if (!adm_fs_state_len || !dst || max < adm_fs_state_len)
++        return adm_fs_state_len;
++    memcpy(dst, adm_fs_state_buf, adm_fs_state_len);
++    return adm_fs_state_len;
++}
++
++void adm_capture_frame_start_state(void) {
++    struct zfile *sf;
++    uae_s64 sz;
++
++    if (!adm_fs_capture_enabled)
++        return;
++    /* A restore is in flight. Serializing on top of it would capture a half-applied
++       machine, and save_state() is not re-entrant with the restore path. */
++    if (savestate_state)
++        return;
++
++    sf = save_state("libretro_fs", (uae_u64)save_state_file_size);
++    if (!sf)
++        return;
++    sz = zfile_size(sf);
++    if (sz > 0) {
++        if ((size_t)sz > adm_fs_state_cap) {
++            uae_u8 *nb = (uae_u8 *)realloc(adm_fs_state_buf, (size_t)sz);
++            if (nb) {
++                adm_fs_state_buf = nb;
++                adm_fs_state_cap = (size_t)sz;
++            }
++        }
++        if (adm_fs_state_buf && adm_fs_state_cap >= (size_t)sz &&
++            zfile_fread(adm_fs_state_buf, 1, (size_t)sz, sf) == (size_t)sz) {
++            adm_fs_state_len = (size_t)sz;
++            adm_fs_state_seq++;
++        }
++    }
++    zfile_fclose(sf);
+ }
+\ No newline at end of file

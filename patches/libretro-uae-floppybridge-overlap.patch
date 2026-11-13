@@ -1,0 +1,280 @@
+FloppyBridge RotationExtractor: a runtime overlap search window.
+
+Applied to sources/src/floppybridge/ after the portability and latency patches
+(neither touches RotationExtractor.* any more, so this is diffed against the
+pristine donor files).
+
+WHY
+
+RotationExtractor will not declare a revolution ready until
+OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER = 1024 * 6 = 6144 sequences have
+arrived PAST the revolution point. 1024 of those are the overlap marker it
+matches; the other 5120 are the +-search window getOverlapPosition() and
+getTrueIndexPosition() sweep, sized for real-flux jitter and an arbitrary
+anchor (the capture start, or the index pulse). At the ~5 us per sequence a DD
+AmigaDOS track measures, that is ~30 ms of every buffered read.
+
+A driver whose anchor is a sync word (AdmXCopyBufferedBridge, driver 5, anchors
+48 cells past the first 0x4489 - docs/floppy-xcopy-buffered.md section 5) knows
+its offset to within the pulse jitter (~70 sequences), so a 5120-sequence window
+is ~70x more than it needs and the revolution can be declared that much sooner.
+
+WHAT
+
+- MFMExtractionTarget::setOverlapSearchWindow(sequences): a virtual with a no-op
+  default, so a driver reaches it through BridgePLL::rotationExtractor() without
+  RTTI. LinearExtractor keeps the no-op.
+- RotationExtractor: m_overlapSearchWindow, default
+  OVERLAP_SEQUENCE_MATCHES * (OVERLAP_EXTRA_BUFFER - 1) = 5120, clamped to
+  [1, 5120]; overlapSequences() = marker + window. Every use of the fixed
+  1024 * 6 (both search loops, the index-mode pre-index ring, both ready checks)
+  now goes through those. The m_initialSequences allocation stays at the
+  compile-time maximum, which the clamp never exceeds. Survives reset().
+- MFMExtractionTarget::setOverlapMatches(sequences) / RotationExtractor::
+  m_overlapMatches: the MARKER length, default OVERLAP_SEQUENCE_MATCHES = 1024,
+  clamped to [64, 1024]. Both search loops, their thresholds and range checks
+  use it; the IndexSequenceMarker array keeps its compile-time length and is
+  always filled in full, only the first m_overlapMatches compared. Driver 5
+  sets 256 (its anchor is inside a sector header, so 256 sequences are unique).
+
+At the default the extractor is byte-for-byte the upstream behaviour, so the
+Greaseweazle, DrawBridge and SuperCard Pro drivers are unchanged; only a driver
+that calls the setter sees a difference. GreaseWeazleInterface's own 49 ms bound
+(OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER * 8000 ns) is deliberately not
+touched.
+
+Build scripts: applied from BOTH scripts/build_puae.ps1 and scripts/build_puae.sh,
+marker-guarded ("ADM: overlap search window" in RotationExtractor.h). Regenerated
+with `git diff --no-index` from pre/post copies - the hunk counts are machine
+made, not hand edited (docs/floppy-xcopy.md section 7 on why that matters).
+
+--- a/sources/src/floppybridge/RotationExtractor.cpp
++++ b/sources/src/floppybridge/RotationExtractor.cpp
+@@ -47,11 +47,12 @@ RotationExtractor::~RotationExtractor() {
+ uint32_t RotationExtractor::getOverlapPosition(uint32_t& numberOfBadMatches) const {
+ 	numberOfBadMatches = 0;
+ 
+-	int bestScore = OVERLAP_SEQUENCE_MATCHES / 2;     // must have *some* kind of match to be worthy
++	int bestScore = (int)m_overlapMatches / 2;     // must have *some* kind of match to be worthy
+ 	uint32_t bestScoreIndex = m_revolutionReadyAt;
+ 
+ 	// Working back from the mid-point
+-	for (uint32_t midPoint = 0; midPoint < OVERLAP_SEQUENCE_MATCHES * (OVERLAP_EXTRA_BUFFER - 1); midPoint++) {
++	// ADM: the search window is runtime configurable; the default is upstream's.
++	for (uint32_t midPoint = 0; midPoint < m_overlapSearchWindow; midPoint++) {
+ 
+ 		// Count the number of matching sequences
+ 		int scoreL = 0;
+@@ -59,10 +60,10 @@ uint32_t RotationExtractor::getOverlapPosition(uint32_t& numberOfBadMatches) con
+ 		const int startPositionR = m_revolutionReadyAt + midPoint;
+ 		const int startPositionL = m_revolutionReadyAt - midPoint;
+ 
+-		if (startPositionL + OVERLAP_SEQUENCE_MATCHES >= (int32_t)m_sequencePos) continue;
+-		if (startPositionR + OVERLAP_SEQUENCE_MATCHES >= (int32_t)m_sequencePos) {
++		if (startPositionL + (int)m_overlapMatches >= (int32_t)m_sequencePos) continue;
++		if (startPositionR + (int)m_overlapMatches >= (int32_t)m_sequencePos) {
+ 			if (startPositionL >= 0) {
+-				for (uint32_t pos = 0; pos < OVERLAP_SEQUENCE_MATCHES; pos++) {
++				for (uint32_t pos = 0; pos < m_overlapMatches; pos++) {
+ 					if (m_indexSequence.sequences[pos] == m_sequences[startPositionL + pos].mfm) scoreL++;
+ 				}
+ 			}
+@@ -70,13 +71,13 @@ uint32_t RotationExtractor::getOverlapPosition(uint32_t& numberOfBadMatches) con
+ 		}
+ 		else {
+ 			if (startPositionL >= 0) {
+-				for (uint32_t pos = 0; pos < OVERLAP_SEQUENCE_MATCHES; pos++) {
++				for (uint32_t pos = 0; pos < m_overlapMatches; pos++) {
+ 					if (m_sequences[pos].mfm == m_sequences[startPositionR + pos].mfm) scoreR++;
+ 					if (m_sequences[pos].mfm == m_sequences[startPositionL + pos].mfm) scoreL++;
+ 				}
+ 			}
+ 			else {
+-			for (uint32_t pos = 0; pos < OVERLAP_SEQUENCE_MATCHES; pos++) {
++			for (uint32_t pos = 0; pos < m_overlapMatches; pos++) {
+ 					if (m_sequences[pos].mfm == m_sequences[startPositionR + pos].mfm) scoreR++;
+ 				}
+ 			}
+@@ -92,7 +93,7 @@ uint32_t RotationExtractor::getOverlapPosition(uint32_t& numberOfBadMatches) con
+ 			bestScoreIndex = startPositionR;
+ 		}
+ 
+-		if (bestScore == OVERLAP_SEQUENCE_MATCHES) return bestScoreIndex;
++		if (bestScore == (int)m_overlapMatches) return bestScoreIndex;
+ 	}
+ 
+ 	// If we got here then there wasn't a perfect match.  This would only happen if:
+@@ -100,7 +101,7 @@ uint32_t RotationExtractor::getOverlapPosition(uint32_t& numberOfBadMatches) con
+ 	// 2. The overlap is unformatted, in which case it doesn't really matter anyway
+ 	// 3. The disk/head is damaged or dirty, so then there's no hope anyway
+ 
+-	numberOfBadMatches = OVERLAP_SEQUENCE_MATCHES - bestScore;
++	numberOfBadMatches = (int)m_overlapMatches - bestScore;
+ 
+ 	return bestScoreIndex;
+ }
+@@ -121,11 +122,12 @@ uint32_t RotationExtractor::getTrueIndexPosition(const uint32_t nextRevolutionSt
+ 		return firstPoint;
+ 	}
+ 
+-	int bestScore = OVERLAP_SEQUENCE_MATCHES_INDEXMODE / 4;     // must have *some* kind of match to be worthy
++	int bestScore = (int)m_overlapMatches / 4;     // must have *some* kind of match to be worthy
+ 	uint32_t bestScoreIndex = firstPoint;
+ 
+ 	// Working back from the mid-point
+-	for (uint32_t midPoint = 0; midPoint < OVERLAP_SEQUENCE_MATCHES_INDEXMODE * (OVERLAP_EXTRA_BUFFER - 1); midPoint++) {
++	// ADM: the search window is runtime configurable; the default is upstream's.
++	for (uint32_t midPoint = 0; midPoint < m_overlapSearchWindow; midPoint++) {
+ 
+ 		// Count the number of matching sequences
+ 		int scoreL = 0;
+@@ -134,10 +136,10 @@ uint32_t RotationExtractor::getTrueIndexPosition(const uint32_t nextRevolutionSt
+ 		const int startPositionL = firstPoint - midPoint;
+ 
+ 		// If this happens then nothing is going to work
+-		if (startPositionL + OVERLAP_SEQUENCE_MATCHES_INDEXMODE >= (int32_t)m_sequencePos) continue;
+-		if (startPositionR + OVERLAP_SEQUENCE_MATCHES_INDEXMODE >= (int32_t)m_sequencePos) {
++		if (startPositionL + (int)m_overlapMatches >= (int32_t)m_sequencePos) continue;
++		if (startPositionR + (int)m_overlapMatches >= (int32_t)m_sequencePos) {
+ 			if (startPositionL >= 0) {
+-				for (uint32_t pos = 0; pos < OVERLAP_SEQUENCE_MATCHES_INDEXMODE; pos++) {
++				for (uint32_t pos = 0; pos < m_overlapMatches; pos++) {
+ 					if (m_indexSequence.sequences[pos] == m_sequences[startPositionL + pos].mfm) scoreL++;
+ 				}
+ 			}
+@@ -145,13 +147,13 @@ uint32_t RotationExtractor::getTrueIndexPosition(const uint32_t nextRevolutionSt
+ 		}
+ 		else {
+ 			if (startPositionL >= 0) {
+-				for (uint32_t pos = 0; pos < OVERLAP_SEQUENCE_MATCHES_INDEXMODE; pos++) {
++				for (uint32_t pos = 0; pos < m_overlapMatches; pos++) {
+ 					if (m_indexSequence.sequences[pos] == m_sequences[startPositionR + pos].mfm) scoreR++;
+ 					if (m_indexSequence.sequences[pos] == m_sequences[startPositionL + pos].mfm) scoreL++;
+ 				}
+ 			}
+ 			else {
+-				for (uint32_t pos = 0; pos < OVERLAP_SEQUENCE_MATCHES_INDEXMODE; pos++) {
++				for (uint32_t pos = 0; pos < m_overlapMatches; pos++) {
+ 					if (m_indexSequence.sequences[pos] == m_sequences[startPositionR + pos].mfm) scoreR++;
+ 				}
+ 			}
+@@ -167,7 +169,7 @@ uint32_t RotationExtractor::getTrueIndexPosition(const uint32_t nextRevolutionSt
+ 			bestScoreIndex = startPositionR;
+ 		}
+ 
+-		if (bestScore == OVERLAP_SEQUENCE_MATCHES_INDEXMODE) return bestScoreIndex;
++		if (bestScore == (int)m_overlapMatches) return bestScoreIndex;
+ 	}
+ 
+ 	// If we got here then there wasn't a perfect match.  This would only happen if:
+@@ -255,14 +257,15 @@ void RotationExtractor::submitSequence(const MFMSequenceInfo& sequence, const bo
+ 	if (m_useIndex) {
+ 		if (m_sequenceIndex == INDEX_NOT_FOUND) {
+ 			// Store the data in the circular buffer
++			// ADM: sized to the window in use (allocation is the compile-time maximum)
+ 			m_initialSequences[m_initialSequencesWritePos] = sequence;
+-			m_initialSequencesWritePos = (m_initialSequencesWritePos + 1) % (OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER);
+-			if (m_initialSequencesLength < OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER) m_initialSequencesLength++;
++			m_initialSequencesWritePos = (m_initialSequencesWritePos + 1) % overlapSequences();
++			if (m_initialSequencesLength < overlapSequences()) m_initialSequencesLength++;
+ 			m_revolutionReady = false;
+ 		}
+ 		else {
+ 			// Was the FIRST index detected?
+-			if ((isIndex) && (m_nextSequenceIndex == INDEX_NOT_FOUND) && (m_initialSequencesLength == OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER)) {
++			if ((isIndex) && (m_nextSequenceIndex == INDEX_NOT_FOUND) && (m_initialSequencesLength == overlapSequences())) {
+ 				// Ok, shunt the buffer we have onto the output, this is a short buffer of samples collected before INDEX was detected.
+ 				m_sequencePos = m_initialSequencesLength;
+ 				m_sequenceIndex = m_initialSequencesLength;
+@@ -272,7 +275,7 @@ void RotationExtractor::submitSequence(const MFMSequenceInfo& sequence, const bo
+ 					// Wind back one
+ 					m_initialSequencesLength--;
+ 					// Handle wrap-around buffer
+-					if (m_initialSequencesWritePos == 0) m_initialSequencesWritePos = (OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER) - 1; else m_initialSequencesWritePos--;
++					if (m_initialSequencesWritePos == 0) m_initialSequencesWritePos = overlapSequences() - 1; else m_initialSequencesWritePos--;
+ 					// Save it
+ 					m_sequences[m_initialSequencesLength] = m_initialSequences[m_initialSequencesWritePos];
+ 				}
+@@ -284,7 +287,7 @@ void RotationExtractor::submitSequence(const MFMSequenceInfo& sequence, const bo
+ 
+ 			// Check if ready
+ 			if (m_nextSequenceIndex != INDEX_NOT_FOUND) {
+-				if (m_sequencePos > m_nextSequenceIndex + (OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER)) {
++				if (m_sequencePos > m_nextSequenceIndex + overlapSequences()) {
+ 					m_revolutionReadyAt = m_nextSequenceIndex;
+ 					m_revolutionReady = true;
+ 				}
+@@ -300,7 +303,7 @@ void RotationExtractor::submitSequence(const MFMSequenceInfo& sequence, const bo
+ 			if (m_revolutionReadyAt == INDEX_NOT_FOUND) 
+ 				m_revolutionReadyAt = m_sequencePos; 
+ 			else
+-				if (m_sequencePos > m_revolutionReadyAt + (OVERLAP_SEQUENCE_MATCHES * OVERLAP_EXTRA_BUFFER))
++				if (m_sequencePos > m_revolutionReadyAt + overlapSequences())
+ 					m_revolutionReady = true;
+ 		}
+ 	}
+--- a/sources/src/floppybridge/RotationExtractor.h
++++ b/sources/src/floppybridge/RotationExtractor.h
+@@ -117,6 +117,20 @@ public:
+ 	// Reset this back to "empty"
+ 	virtual void reset(bool isHD) = 0;
+ 
++	// ADM: overlap search window. How far either side of the expected revolution point
++	// the extractor searches for the 1024-sequence overlap match, in sequences. The
++	// default is upstream's OVERLAP_SEQUENCE_MATCHES * (OVERLAP_EXTRA_BUFFER - 1) = 5120,
++	// sized for real-flux jitter and an arbitrary anchor; a driver whose anchor is a
++	// sync word knows its offset to within the pulse jitter and can set this small,
++	// which brings the revolution forward by the same number of sequences. A no-op
++	// for extractors that do not search.
++	virtual void setOverlapSearchWindow(uint32_t sequences) { (void)sequences; }
++	// ADM: overlap marker length, in sequences: how many sequences at the anchor are
++	// matched against the next lap. Upstream's OVERLAP_SEQUENCE_MATCHES = 1024 (~8 ms).
++	// A driver whose anchor is inside a sector header can match far fewer. A no-op for
++	// extractors that do not search.
++	virtual void setOverlapMatches(uint32_t sequences) { (void)sequences; }
++
+ 	// Submit a single sequence to the list - abstract function
+ 	virtual void submitSequence(const MFMSequenceInfo& sequence, bool isIndex, bool discardEarlySamples = true) = 0;
+ 
+@@ -174,6 +188,17 @@ private:
+ 	uint32_t m_initialSequencesLength = 0;
+ 	// Where we're writing to as its a circular buffer
+ 	uint32_t m_initialSequencesWritePos = 0;
++	// ADM: overlap search window (see MFMExtractionTarget::setOverlapSearchWindow).
++	// Default = upstream's fixed window, so every existing driver behaves exactly as
++	// before. Bounded above by the m_initialSequences allocation.
++	uint32_t m_overlapSearchWindow = OVERLAP_SEQUENCE_MATCHES * (OVERLAP_EXTRA_BUFFER - 1);
++	// ADM: overlap marker length (see MFMExtractionTarget::setOverlapMatches). Default =
++	// upstream's. The IndexSequenceMarker array stays OVERLAP_SEQUENCE_MATCHES_INDEXMODE
++	// long and is always filled in full; only the first m_overlapMatches are compared.
++	uint32_t m_overlapMatches = OVERLAP_SEQUENCE_MATCHES;
++	// Sequences needed past the revolution point before a revolution is declared
++	// ready: the overlap marker plus the search window. Upstream: 1024 * 6 = 6144.
++	[[nodiscard]] uint32_t overlapSequences() const { return m_overlapMatches + m_overlapSearchWindow; }
+ 	// Sequences discovered around the index marker
+ 	IndexSequenceMarker m_indexSequence;
+ 
+@@ -223,6 +248,23 @@ public:
+ 	// Sets the code so it always uses the index marker when finding revolutions
+ 	void setAlwaysUseIndex(bool useIndex) { m_useIndex = useIndex; }
+ 
++	// ADM: overlap search window, in sequences, clamped to [1, upstream's 5120]. Survives
++	// reset(): it is configuration, not per-revolution state.
++	virtual void setOverlapSearchWindow(uint32_t sequences) override {
++		const uint32_t maxWindow = OVERLAP_SEQUENCE_MATCHES * (OVERLAP_EXTRA_BUFFER - 1);
++		if (sequences < 1) sequences = 1;
++		if (sequences > maxWindow) sequences = maxWindow;
++		m_overlapSearchWindow = sequences;
++	}
++	[[nodiscard]] uint32_t overlapSearchWindow() const { return m_overlapSearchWindow; }
++	// ADM: overlap marker length, clamped to [64, upstream's 1024]. Survives reset().
++	virtual void setOverlapMatches(uint32_t sequences) override {
++		if (sequences < 64) sequences = 64;
++		if (sequences > OVERLAP_SEQUENCE_MATCHES) sequences = OVERLAP_SEQUENCE_MATCHES;
++		m_overlapMatches = sequences;
++	}
++	[[nodiscard]] uint32_t overlapMatches() const { return m_overlapMatches; }
++
+ 	// In simple mode, the rotation is matched purely on Index pulses alone, the data is not matched. Index mode must be enabled. This is fine for SCP reading etc
+ 	void setSimpleMode(bool simpleMode) { m_useSimpleMode = simpleMode; }
+ 

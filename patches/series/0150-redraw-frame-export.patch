@@ -1,0 +1,49 @@
+libretro-core.c: adm_redraw_frame()
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index 33f9f6a..8e684a0 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9001,4 +9001,36 @@ RETRO_API void adm_set_palette_vis(uint8_t enabled) {
+ RETRO_API void adm_set_blitter_writes(uint8_t enabled) {
+     extern int adm_blitter_writes_enabled;
+     adm_blitter_writes_enabled = enabled ? 1 : 0;
++}
++RETRO_API void adm_redraw_frame(void) {
++    struct amigadisplay *ad = &adisplays[0];
++    if (!ad->picasso_on) {
++        /* draw_frame() reads curr_* double-buffer pointers, but after retro_run()
++         * exits, init_hardware_for_drawing_frame() has already swapped curr<->prev,
++         * leaving curr_* pointing at the empty next-frame buffer.
++         * Swap back to prev (the last rendered frame's valid data) before drawing,
++         * then restore so the next retro_run() sees the correct layout. */
++        extern struct sprite_entry *curr_sprite_entries, *prev_sprite_entries;
++        extern struct draw_info    *curr_drawinfo,       *prev_drawinfo;
++        extern struct color_change *curr_color_changes,  *prev_color_changes;
++        extern struct color_entry  *curr_color_tables,   *prev_color_tables;
++        if (prev_sprite_entries && prev_drawinfo) {
++            struct sprite_entry *se = curr_sprite_entries; curr_sprite_entries = prev_sprite_entries; prev_sprite_entries = se;
++            struct draw_info    *di = curr_drawinfo;       curr_drawinfo       = prev_drawinfo;       prev_drawinfo       = di;
++            struct color_change *cc = curr_color_changes;  curr_color_changes  = prev_color_changes;  prev_color_changes  = cc;
++            struct color_entry  *ct = curr_color_tables;   curr_color_tables   = prev_color_tables;   prev_color_tables   = ct;
++            draw_frame(&adisplays[0].gfxvidinfo.drawbuffer);
++            se = curr_sprite_entries; curr_sprite_entries = prev_sprite_entries; prev_sprite_entries = se;
++            di = curr_drawinfo;       curr_drawinfo       = prev_drawinfo;       prev_drawinfo       = di;
++            cc = curr_color_changes;  curr_color_changes  = prev_color_changes;  prev_color_changes  = cc;
++            ct = curr_color_tables;   curr_color_tables   = prev_color_tables;   prev_color_tables   = ct;
++        } else {
++            draw_frame(&adisplays[0].gfxvidinfo.drawbuffer);
++        }
++    }
++    if (video_cb) {
++        video_cb(retro_bmp + retro_bmp_offset,
++                 retrow_crop, retroh_crop,
++                 retrow << (pix_bytes >> 1));
++    }
+ }
+\ No newline at end of file

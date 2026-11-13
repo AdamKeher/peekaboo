@@ -1,0 +1,43 @@
+DMA record: horizontal display-window events land at the clock they happen
+
+decide_hdiw_check_start() records DMA_EVENT_HDIWS twice and decide_hdiw_check_stop() records
+DMA_EVENT_HDIWE once, all through diw_to_hpos(), which converts a Denise position in shres
+units (8 per colour clock) to an Agnus hpos. The first HDIWS passes val, which is in those
+units. The second HDIWS and the HDIWE pass first/last instead: coord_diw_shres_to_window_x()
+of val, a window x in the OUTPUT resolution. Only a super-hires frame has shres window units,
+so on the usual hires frame every horizontal DIW event was recorded at about half its clock.
+
+Seen in Peekaboo's raster overlay on an OCS A500 at hires, DIWSTRT $3491 / DIWSTOP $FCC1: the
+record put HDIWS at hpos 40 and HDIWE at 116 on every display line, where the window opens at
+Denise clock 72.5 and closes at 224.5 (hpos 76 and 228 once diw_to_hpos() adds its 4 clocks).
+The "Per-line DDF/DIW" layer drew its display-window marks at those wrong clocks, while the DDF
+marks next to them (recorded in hpos directly) were right.
+
+Both now pass val. Only the debugger's record changes; drawing uses first/last as before.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/sources/src/custom.c
++++ b/sources/src/custom.c
+@@ -1663,7 +1663,9 @@ static void decide_hdiw_check_start(int start_diw_hpos, int end_diw_hpos)
+ 				}
+ #ifdef DEBUGGER
+ 				if (debug_dma) {
+-					record_dma_event(DMA_EVENT_HDIWS, diw_to_hpos(first), vpos);
++					// ADM: val, not first - diw_to_hpos() takes Denise shres units, and first is
++					// a window x in the output resolution (right only for a super-hires frame).
++					record_dma_event(DMA_EVENT_HDIWS, diw_to_hpos(val), vpos);
+ 				}
+ #endif
+ 			}
+@@ -1692,7 +1694,8 @@ static void decide_hdiw_check_stop(int start_diw_hpos, int end_diw_hpos)
+ 				last_diwlastword = val;
+ #ifdef DEBUGGER
+ 				if (debug_dma) {
+-					record_dma_event(DMA_EVENT_HDIWE, diw_to_hpos(last), vpos);
++					// ADM: val, not last - see DMA_EVENT_HDIWS above.
++					record_dma_event(DMA_EVENT_HDIWE, diw_to_hpos(val), vpos);
+ 				}
+ #endif
+ 			}

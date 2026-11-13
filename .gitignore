@@ -1,0 +1,108 @@
+# CMake
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.ninja
+*.cmake
+# ... but not the project's own modules, or the vcpkg overlay ports' portfiles
+!cmake/*.cmake
+!vcpkg-overlay-ports/**/*.cmake
+
+# Vcpkg
+vcpkg_installed/
+vcpkg/
+
+# IDEs
+.vscode/
+.idea/
+*.sln
+*.vcxproj
+*.vcxproj.user
+.DS_Store
+
+# Outputs
+bin/
+lib/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+vscode-extension/*.vsix
+
+# Local specific
+*.log
+recent_files.txt
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+.vs/
+*.swp
+*.swo
+
+# Project specific
+external/adflib_build/
+external/libretro-uae/
+# The build script downloads a zip and extracts to a sha-named directory before renaming;
+# both are build artefacts and neither was covered by the line above.
+external/libretro-uae-*/
+external/libretro-uae.zip
+external/*.zip
+# Same story for the pinned FloppyBridge driver sources.
+external/FloppyDriveBridge/
+external/FloppyDriveBridge-*/
+# And for WinUAE's Picasso96 module, fetched by @vendor-picasso96.
+external/winuae-picasso96/
+.firecrawl/
+imgui.ini
+
+# Secrets
+Secrets.h
+
+# Emulation
+*.A500
+*.A600
+*.A1000
+*.A1200
+*.A2000
+*.A4000
+*.CD32
+*.CD32.ext
+*.CDTV
+# Amiga system files are copyrighted and never belong in the repo:
+# Amiga Forever / TOSEC ROM names, rom.key, hardfiles
+*.rom
+*.key
+*.hdf
+*.hdz
+*.vhd
+
+harddisks/
+
+# Test media that is not ours to publish (a third-party demo, ...): kept on the machine that has
+# it, and the tests that need it are only registered when it is there
+tests/smoke/fixtures/local/
+
+tosec.json
+# Bulk TOSEC build inputs/outputs and the pre-2026 backup (regenerate with tosec/build_tosec_json.py)
+tosec/turran_index.json
+
+# Runtime annotation store
+memory_annotations.json
+# Python venv for the MCP bridge
+mcp/.venv/
+mcp/__pycache__/
+*.pyc
+
+# Packaged Peekaboo builds (scripts/package_peekaboo.ps1)
+/dist/
+
+# peekaboo_smoke run by hand from the repo root writes its failure artifacts here
+/smoke-artifacts/
+
+# Claude Code personal instructions for this clone
+/CLAUDE.local.md

@@ -1,0 +1,91 @@
+{
+  "exocet": 1,
+  "production": "exotest",
+  "songs": [
+    {"module": null, "order": [0, 7, 7, 1, 1, 2, 3, 2, 3, 4, 5, 4, 5, 6, 6, 8, 9, 8, 9, 10, 11, 10, 11, 7, 12, 13, 14, 13, 14, 15, 16, 17, 18, 17, 18, 2, 3, 2, 3, 19, 20, 21, 22, 21, 22, 2, 3, 2, 3, 6, 6, 8, 9, 8, 9, 23, 24, 25], "digest": "0x111f7093"}
+  ],
+  "kit": null,
+  "manifest": {
+    "groups": [
+      {"name": "director", "text": "the cuts"},
+      {"name": "a", "text": "the first group: one of each type"},
+      {"name": "b", "text": "the second group, turned off and on"}
+    ],
+    "tracks": [
+      {"name": "director.cut", "group": "director", "type": "event", "min": -32768, "max": 32767, "default": 0, "text": "the part the demo cuts to", "entries": [{"value": 1, "name": "one", "symbol": "CUT_ONE"}, {"value": 2, "name": "two", "symbol": "CUT_TWO"}, {"value": 3, "name": "three", "symbol": "CUT_THREE"}, {"value": 15, "name": "the last a UWORD of cuts holds", "symbol": "CUT_LAST"}]},
+      {"name": "a.fix", "group": "a", "type": "fix", "min": -100.5, "max": 16000.25, "default": 1.5, "text": "16.16, every interpolation", "entries": []},
+      {"name": "a.level", "group": "a", "type": "int", "min": -32768, "max": 32767, "default": -7, "text": "a WORD, across its whole range", "entries": []},
+      {"name": "a.pick", "group": "a", "type": "index", "min": 0, "max": 4, "default": 2, "text": "an index, step only", "entries": []},
+      {"name": "a.table", "group": "a", "type": "ptr", "min": 0, "max": 2, "default": 1, "table": "exotest_table", "text": "a pointer, step only", "entries": [{"value": 0, "name": "first"}, {"value": 1, "name": "second"}, {"value": 2, "name": "third"}]},
+      {"name": "b.hit", "group": "b", "type": "event", "min": -32768, "max": 32767, "default": 0, "text": "a hit, several on neighbouring rows", "entries": []},
+      {"name": "b.flash", "group": "b", "type": "int", "min": 0, "max": 16, "default": 0, "text": "0..16, lst.flash's shape", "entries": []},
+      {"name": "b.big", "group": "b", "type": "fix", "min": -16383.0, "max": 16383.0, "default": 0, "text": "the widest 16.16 span", "entries": []},
+      {"name": "b.tint", "group": "b", "type": "color", "min": 0, "max": 4294967295, "default": 305419896, "text": "0xRRGGBBAA, every interpolation, each channel up and down", "entries": []}
+    ],
+    "hash": "0x0cc723e4"
+  },
+  "keys": {
+    "director.cut": [
+      {"pos": 1, "row": 9, "pass": 0, "value": 1, "interp": "step"},
+      {"pos": 1, "row": 49, "pass": 0, "value": 2, "interp": "step", "tick": 2},
+      {"pos": 1, "row": 50, "pass": 0, "value": 3, "interp": "step"},
+      {"pos": 4, "row": 7, "pass": 0, "value": 15, "interp": "step"}
+    ],
+    "a.fix": [
+      {"pos": 1, "row": 4, "pass": 0, "value": -100.5, "interp": "linear"},
+      {"pos": 1, "row": 16, "pass": 0, "value": 16000.25, "interp": "smooth"},
+      {"pos": 1, "row": 29, "pass": 0, "value": 3.75, "interp": "ramp", "tick": 1},
+      {"pos": 1, "row": 30, "pass": 0, "value": -50.125, "interp": "step", "tick": 1},
+      {"pos": 1, "row": 39, "pass": 0, "value": 0.5, "interp": "linear"},
+      {"pos": 5, "row": 43, "pass": 0, "value": 12.0, "interp": "linear", "tick": 1}
+    ],
+    "a.level": [
+      {"pos": 0, "row": 0, "pass": 0, "value": -32768, "interp": "linear"},
+      {"pos": 1, "row": 0, "pass": 0, "value": 32767, "interp": "linear"},
+      {"pos": 2, "row": 35, "pass": 0, "value": -1, "interp": "smooth", "tick": 3},
+      {"pos": 2, "row": 36, "pass": 0, "value": 0, "interp": "ramp", "tick": 1},
+      {"pos": 3, "row": 35, "pass": 0, "value": 32767, "interp": "step"},
+      {"pos": 3, "row": 41, "pass": 0, "value": 5, "interp": "linear"}
+    ],
+    "a.pick": [
+      {"pos": 1, "row": 2, "pass": 0, "value": 0, "interp": "step"},
+      {"pos": 1, "row": 8, "pass": 0, "value": 4, "interp": "step", "tick": 2},
+      {"pos": 1, "row": 59, "pass": 0, "value": 1, "interp": "step"},
+      {"pos": 1, "row": 60, "pass": 0, "value": 3, "interp": "step"}
+    ],
+    "a.table": [
+      {"pos": 1, "row": 19, "pass": 0, "value": 2, "interp": "step"},
+      {"pos": 1, "row": 20, "pass": 0, "value": 0, "interp": "step"},
+      {"pos": 2, "row": 15, "pass": 0, "value": 1, "interp": "step"}
+    ],
+    "b.hit": [
+      {"pos": 1, "row": 11, "pass": 0, "value": 7, "interp": "step"},
+      {"pos": 1, "row": 12, "pass": 0, "value": -3, "interp": "step", "tick": 1},
+      {"pos": 1, "row": 13, "pass": 0, "value": 32767, "interp": "step"},
+      {"pos": 2, "row": 25, "pass": 0, "value": -32768, "interp": "step"},
+      {"pos": 2, "row": 26, "pass": 0, "value": 1, "interp": "step"}
+    ],
+    "b.flash": [
+      {"pos": 1, "row": 39, "pass": 0, "value": 16, "interp": "linear", "tick": 2},
+      {"pos": 1, "row": 41, "pass": 0, "value": 0, "interp": "step", "tick": 1},
+      {"pos": 1, "row": 55, "pass": 0, "value": 16, "interp": "linear"},
+      {"pos": 1, "row": 57, "pass": 0, "value": 0, "interp": "step"}
+    ],
+    "b.big": [
+      {"pos": 1, "row": 1, "pass": 0, "value": -16383.0, "interp": "linear"},
+      {"pos": 4, "row": 57, "pass": 0, "value": 16383.0, "interp": "smooth", "tick": 2},
+      {"pos": 4, "row": 58, "pass": 0, "value": -16383.0, "interp": "ramp"},
+      {"pos": 7, "row": 15, "pass": 0, "value": 16383.0, "interp": "step"}
+    ],
+    "b.tint": [
+      {"pos": 1, "row": 3, "pass": 0, "value": "#00FF80FF", "interp": "linear"},
+      {"pos": 1, "row": 10, "pass": 0, "value": "#FF0001", "interp": "smooth", "tick": 3},
+      {"pos": 1, "row": 21, "pass": 0, "value": "#7F80FF00", "interp": "ramp"},
+      {"pos": 1, "row": 33, "pass": 0, "value": "#FFFFFFFF", "interp": "linear"},
+      {"pos": 1, "row": 34, "pass": 0, "value": "#00000000", "interp": "step"},
+      {"pos": 1, "row": 47, "pass": 0, "value": "#A5C3E781", "interp": "linear"},
+      {"pos": 5, "row": 12, "pass": 0, "value": "#0102FEFD", "interp": "smooth"},
+      {"pos": 6, "row": 30, "pass": 0, "value": "#FEFD0201", "interp": "step"}
+    ]
+  }
+}

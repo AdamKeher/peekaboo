@@ -1,0 +1,41 @@
+audio.c: Paula per-channel telemetry tap
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/audio.c b/sources/src/audio.c
+index 01115ec..bfb8909 100644
+--- a/sources/src/audio.c
++++ b/sources/src/audio.c
+@@ -396,6 +396,8 @@ static int saved_ptr, saved_ptr2;
+ 
+ static int mixed_on, mixed_stereo_size, mixed_mul1, mixed_mul2;
+ static int led_filter_forced, sound_use_filter, sound_use_filter_sinc, led_filter_on;
++/* ADM: non-static mirror of the filter state so the host can read it back. */
++int adm_audio_filter_state = 0;
+ 
+ #define PAULARATE 3740000
+ static float Sinc(float x)
+@@ -1584,9 +1586,12 @@ static void setirq(int nr, int which)
+ 	INTREQ_INT(nr + 7, CYCLE_UNIT);
+ }
+ 
++/* ADM: per-channel Paula waveform capture (implemented in libretro-core.c) */
++extern void adm_record_audio_sample(int nr, int sample, int vol, int per, int dmaon);
+ static void newsample(int nr, sample8_t sample)
+ {
+ 	struct audio_channel_data *cdp = audio_channel + nr;
++	adm_record_audio_sample(nr, (int)sample, cdp->data.audvol, (int)(cdp->per / CYCLE_UNIT), cdp->dmaenstore ? 1 : 0);
+ #if DEBUG_AUDIO > 0
+ 	if (!debugchannel(nr))
+ 		sample = 0;
+@@ -2804,6 +2809,7 @@ void led_filter_audio (void)
+ 	led_filter_on = 0;
+ 	if (led_filter_forced > 0 || (gui_data.powerled && led_filter_forced >= 0))
+ 		led_filter_on = 1;
++	adm_audio_filter_state = (led_filter_on ? 1 : 0) | (sound_use_filter << 1);
+ }
+ 
+ void audio_vsync (void)

@@ -1,0 +1,82 @@
+newcpu.c: CPU trace capture in every m68k_run variant
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/newcpu.c b/sources/src/newcpu.c
+index e554ec7..ef75a61 100644
+--- a/sources/src/newcpu.c
++++ b/sources/src/newcpu.c
+@@ -132,6 +132,26 @@ struct cputbl_data
+ 	uae_s8 branch;
+ };
+ static struct cputbl_data cpudatatbl[65536];
++/* ADM: per-instruction CPU trace capture helper (called from m68k_run_1/1_ce) */
++extern int adm_cpu_trace_enabled;
++extern void adm_record_cpu_trace(uint16_t, uint16_t, uint32_t, const uint8_t*, uint8_t, const uint32_t*, uint16_t);
++static void adm_cpu_trace_pre(struct regstruct *r) {
++	int adm_i, adm_wlen;
++	uint8_t adm_raw[10];
++	if (!adm_cpu_trace_enabled) return;
++	adm_wlen = (int)cpudatatbl[r->opcode].length;
++	if (adm_wlen < 1) adm_wlen = 1;
++	if (adm_wlen > 5) adm_wlen = 5;
++	adm_raw[0] = (uint8_t)(r->opcode >> 8);
++	adm_raw[1] = (uint8_t)(r->opcode & 0xFF);
++	for (adm_i = 1; adm_i < adm_wlen; adm_i++) {
++		uae_u16 adm_w = get_word(r->instruction_pc + (uaecptr)(adm_i * 2));
++		adm_raw[adm_i * 2] = (uint8_t)(adm_w >> 8);
++		adm_raw[adm_i * 2 + 1] = (uint8_t)(adm_w & 0xFF);
++	}
++	MakeSR();
++	adm_record_cpu_trace((uint16_t)vpos, (uint16_t)current_hpos(), (uint32_t)r->instruction_pc, adm_raw, (uint8_t)(adm_wlen * 2), r->regs, regs.sr);
++}
+ 
+ struct mmufixup mmufixup[2];
+ 
+@@ -5029,6 +5049,7 @@ static void m68k_run_1 (void)
+ 				}
+ #endif
+ 				r->instruction_pc = m68k_getpc ();
++				adm_cpu_trace_pre(r);
+ 				cpu_cycles = (*cpufunctbl[r->opcode])(r->opcode) & 0xffff;
+ 				if (!regs.loop_mode)
+ 					regs.ird = regs.opcode;
+@@ -5157,7 +5178,8 @@ static void m68k_run_1_ce (void)
+ 				}
+ #endif
+ 
+-				(*cpufunctbl_noret[r->opcode])(r->opcode);
++								adm_cpu_trace_pre(r);
++(*cpufunctbl_noret[r->opcode])(r->opcode);
+ 				if (!regs.loop_mode)
+ 					regs.ird = regs.opcode;
+ 				regs.instruction_cnt++;
+@@ -6256,7 +6278,8 @@ static void m68k_run_2ce (void)
+ 				}
+ #endif
+ 
+-				(*cpufunctbl_noret[r->opcode])(r->opcode);
++								adm_cpu_trace_pre(r);
++(*cpufunctbl_noret[r->opcode])(r->opcode);
+ 		
+ 				wait_memory_cycles();
+ 				regs.instruction_cnt++;
+@@ -6384,6 +6407,7 @@ static void m68k_run_2p (void)
+ 				}
+ #endif
+ 
++				adm_cpu_trace_pre(r);
+ 				if (currprefs.cpu_memory_cycle_exact) {
+ 
+ 					evt_t c = get_cycles();
+@@ -6530,6 +6554,7 @@ static void m68k_run_2_020(void)
+ 				}
+ #endif
+ 
++				adm_cpu_trace_pre(r);
+ 				cpu_cycles = (*cpufunctbl[r->opcode])(r->opcode) >> 16;
+ 				cpu_cycles = adjust_cycles(cpu_cycles);
+ 				do_cycles(cpu_cycles);

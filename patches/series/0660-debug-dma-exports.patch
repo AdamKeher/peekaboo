@@ -1,0 +1,76 @@
+debug.c: DMA debugger exports
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/debug.c b/sources/src/debug.c
+index 9f19fe1..9912b13 100644
+--- a/sources/src/debug.c
++++ b/sources/src/debug.c
+@@ -8858,3 +8858,63 @@ bool debug_sprintf(uaecptr addr, uae_u32 val, int size)
+ 	}
+ 	return true;
+ }
++
++/* ---- ADM DMA Stats Exports ---- */
++#ifdef __LIBRETRO__
++
++int adm_get_dma_record(void** out_ptr, int* out_hpos_count, int* out_vpos_count)
++{
++    if (!debug_dma || !dma_record[0] || !dma_record[1]) {
++        if (out_ptr)
++            *out_ptr = NULL;
++        if (out_hpos_count)
++            *out_hpos_count = 0;
++        if (out_vpos_count)
++            *out_vpos_count = 0;
++        return 0;
++    }
++    int completed = dma_record_toggle ^ 1;
++    if (out_ptr)
++        *out_ptr = dma_record[completed];
++    if (out_hpos_count)
++        *out_hpos_count = NR_DMA_REC_HPOS;
++    if (out_vpos_count)
++        *out_vpos_count = NR_DMA_REC_VPOS;
++    return NR_DMA_REC_HPOS * NR_DMA_REC_VPOS;
++}
++
++/* Live (in-progress) frame's dma_record — the buffer currently being filled. Used while
++   paused at a mid-frame breakpoint so the scrubber shows the partial frame's DMA up to the
++   break. Slots past the break are cleared (record_dma_reset clears the new buffer at frame
++   start), so they read as "no DMA", which the host dims as not-yet-executed. */
++int adm_get_dma_record_live(void** out_ptr, int* out_hpos_count, int* out_vpos_count)
++{
++    if (!debug_dma || !dma_record[0] || !dma_record[1]) {
++        if (out_ptr)
++            *out_ptr = NULL;
++        if (out_hpos_count)
++            *out_hpos_count = 0;
++        if (out_vpos_count)
++            *out_vpos_count = 0;
++        return 0;
++    }
++    if (out_ptr)
++        *out_ptr = dma_record[dma_record_toggle];
++    if (out_hpos_count)
++        *out_hpos_count = NR_DMA_REC_HPOS;
++    if (out_vpos_count)
++        *out_vpos_count = NR_DMA_REC_VPOS;
++    return NR_DMA_REC_HPOS * NR_DMA_REC_VPOS;
++}
++
++void adm_set_debug_dma(int mode)
++{
++    debug_dma = mode;
++    if (mode && !dma_record[0]) {
++        record_dma_reset(0);
++    }
++}
++
++int adm_get_debug_dma(void) { return debug_dma; }
++
++#endif /* __LIBRETRO__ */
+\ No newline at end of file

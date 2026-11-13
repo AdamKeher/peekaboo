@@ -1,0 +1,57 @@
+libretro-core.c: bounded one-shot checkpoint exports
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/libretro/libretro-core.c b/libretro/libretro-core.c
+index b3ed7a9..2e85ff2 100644
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -9313,4 +9313,44 @@ RETRO_API void adm_arm_debug(void) {
+     adm_debug_break_pending = 0;
+     adm_arm_breakpoint_trace();
+ #endif
++}
++// --- ADM bounded one-shot checkpoint exports ---
++#ifdef __LIBRETRO__
++extern int adm_oneshot_status;
++extern uint32_t adm_oneshot_target_pc;
++extern uint32_t adm_oneshot_stop_pc;
++extern uint32_t adm_oneshot_budget;
++extern uint32_t adm_oneshot_executed;
++#endif
++
++RETRO_API int adm_arm_oneshot_breakpoint(uint32_t pc, uint32_t instruction_budget) {
++#ifdef __LIBRETRO__
++    if (instruction_budget == 0) return 0;
++    adm_oneshot_target_pc = pc;
++    adm_oneshot_stop_pc = 0;
++    adm_oneshot_budget = instruction_budget;
++    adm_oneshot_executed = 0;
++    adm_oneshot_status = 1;
++    return 1;
++#else
++    return 0;
++#endif
++}
++
++RETRO_API void adm_cancel_oneshot_breakpoint(void) {
++#ifdef __LIBRETRO__
++    if (adm_oneshot_status != 0) adm_oneshot_status = 4;
++#endif
++}
++
++RETRO_API int adm_get_oneshot_breakpoint_status(uint32_t *stop_pc, uint32_t *executed) {
++#ifdef __LIBRETRO__
++    if (stop_pc) *stop_pc = adm_oneshot_stop_pc;
++    if (executed) *executed = adm_oneshot_executed;
++    return adm_oneshot_status;
++#else
++    if (stop_pc) *stop_pc = 0;
++    if (executed) *executed = 0;
++    return 0;
++#endif
+ }
+\ No newline at end of file

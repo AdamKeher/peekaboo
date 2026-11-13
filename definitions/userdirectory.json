@@ -1,0 +1,279 @@
+{
+    "name": "USERDIRECTORYBLOCK",
+    "fields": [
+        {
+            "name": "type",
+            "type": "long",
+            "format": "hex",
+            "comment": "Block primary type (T_HEADER)",
+            "lookup": "primary_types",
+            "color": {
+                "background": "Maroon",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "header_key",
+            "type": "long",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "Self pointer",
+            "color": {
+                "background": "Navy",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "unused",
+            "type": "long",
+            "size": 3,
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "chksum",
+            "type": "ulong",
+            "format": "hex",
+            "comment": "Checksum",
+            "checksumType": "standard",
+            "checksumOffset": 20,
+            "color": {
+                "background": "Gray",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "hash_table",
+            "type": "long",
+            "size": 72,
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "Hash table (entry block numbers)"
+        },
+        {
+            "name": "unused",
+            "type": "long",
+            "size": 2,
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "UID",
+            "type": "ushort",
+            "format": "decimal",
+            "comment": "User ID"
+        },
+        {
+            "name": "GID",
+            "type": "ulong",
+            "format": "decimal",
+            "comment": "Group ID"
+        },
+        {
+            "name": "protect",
+            "type": "long",
+            "comment": "Protection flags",
+            "lookup": "access_flags",
+            "format": "hex"
+        },
+        {
+            "name": "unused",
+            "type": "long",
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "comm_len",
+            "type": "char",
+            "format": "decimal",
+            "comment": "Comment length"
+        },
+        {
+            "name": "comment",
+            "type": "char",
+            "size": 79,
+            "format": "string",
+            "comment": "Comment string"
+        },
+        {
+            "name": "unused",
+            "type": "char",
+            "size": 6,
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "Last Modification Date",
+            "type": "struct",
+            "struct_type": "date",
+            "comment": "Last modification date",
+            "fields": [
+                {
+                    "name": "days",
+                    "type": "long",
+                    "format": "decimal",
+                    "comment": "days since 1 Jan 78"
+                },
+                {
+                    "name": "mins",
+                    "type": "long",
+                    "format": "decimal",
+                    "comment": "minutes since midnight"
+                },
+                {
+                    "name": "ticks",
+                    "type": "long",
+                    "format": "decimal",
+                    "comment": "1/50th of a second ticks since the last minute"
+                }
+            ]
+        },
+        {
+            "name": "name_len",
+            "type": "char",
+            "format": "decimal",
+            "comment": "Directory name length"
+        },
+        {
+            "name": "dirname",
+            "type": "char",
+            "size": 30,
+            "format": "string",
+            "comment": "Directory name",
+            "color": {
+                "background": "Blue",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "unused",
+            "type": "uchar",
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "unused",
+            "type": "long",
+            "size": 2,
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "next_link",
+            "type": "long",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "Hardlinks chained list (FFS)"
+        },
+        {
+            "name": "unused",
+            "type": "long",
+            "size": 5,
+            "format": "hex",
+            "comment": "Unused (0)"
+        },
+        {
+            "name": "hash_chain",
+            "type": "long",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "Next entry with same hash",
+            "color": {
+                "background": "Red",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "parent_dir",
+            "type": "long",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "Parent directory",
+            "color": {
+                "background": "Navy",
+                "foreground": "White"
+            }
+        },
+        {
+            "name": "extension",
+            "type": "long",
+            "format": "hex",
+            "blocktarget": "true",
+            "comment": "First directory cache block (FFS)"
+        },
+        {
+            "name": "sec_type",
+            "type": "long",
+            "format": "hex",
+            "comment": "Secondary type (ST_USERDIR)",
+            "lookup": "secondary_types",
+            "color": {
+                "background": "Maroon",
+                "foreground": "White"
+            }
+        }
+    ],
+    "lookups": {
+        "primary_types": {
+            "type": "index",
+            "values": {
+                "2": "T_HEADER",
+                "8": "T_DATA",
+                "16": "T_LIST",
+                "33": "T_DIRC"
+            }
+        },
+        "secondary_types": {
+            "type": "index",
+            "values": {
+                "1": "ST_ROOT",
+                "2": "ST_USERDIR",
+                "-3": "ST_FILE",
+                "-4": "ST_LFILE",
+                "3": "ST_LSOFT",
+                "4": "ST_LDIR"
+            }
+        },
+        "access_flags": {
+            "type": "flag_string",
+            "values": [
+                {
+                    "mask": 128,
+                    "char": "H"
+                },
+                {
+                    "mask": 64,
+                    "char": "S"
+                },
+                {
+                    "mask": 32,
+                    "char": "P"
+                },
+                {
+                    "mask": 16,
+                    "char": "A"
+                },
+                {
+                    "mask": 8,
+                    "char": "R",
+                    "inverted": true
+                },
+                {
+                    "mask": 4,
+                    "char": "W",
+                    "inverted": true
+                },
+                {
+                    "mask": 2,
+                    "char": "E",
+                    "inverted": true
+                },
+                {
+                    "mask": 1,
+                    "char": "D",
+                    "inverted": true
+                }
+            ]
+        }
+    }
+}

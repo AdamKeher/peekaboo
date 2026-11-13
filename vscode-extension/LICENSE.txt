@@ -1,0 +1,3 @@
+Copyright (c) Peekaboo contributors.
+
+This extension is distributed as part of Peekaboo. All rights reserved.

@@ -1,0 +1,113 @@
+uaelib.c: Bartman JSR gate + diagnostic
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/uaelib.c b/sources/src/uaelib.c
+index 38fc0c1..760360b 100644
+--- a/sources/src/uaelib.c
++++ b/sources/src/uaelib.c
+@@ -503,6 +503,59 @@ static uae_u32 REGPARAM2 uaelib_demux (TrapContext *ctx)
+ /*
+ * Installs the UAE LIBRARY
+ */
++#ifdef __LIBRETRO__
++extern int adm_force_boot_rom;
++/* ADM: Bartman debug gate handler. Reached via a JSR at rtarea_base+0xFF60 (opcode
++   word 0x4eb9, which Bartman's debug_cmd() guard accepts). Two return addresses are on
++   the stack (caller JSR to gate + gate JSR to this stub), so args start at a7+8. Non-88
++   calls are forwarded to the normal uaelib dispatcher so uaelib devices keep working. */
++static uae_u32 REGPARAM2 adm_uaelib_gate (TrapContext *ctx)
++{
++	uae_u32 sp = trap_get_areg (ctx, 7);
++	uae_u32 a0 = trap_get_long (ctx, sp + 8);
++	uae_u32 a1 = trap_get_long (ctx, sp + 12);
++	uae_u32 a2 = trap_get_long (ctx, sp + 16);
++	uae_u32 a3 = trap_get_long (ctx, sp + 20);
++	uae_u32 a4 = trap_get_long (ctx, sp + 24);
++	uae_u32 a5 = trap_get_long (ctx, sp + 28);
++	/* ADM: handle the Bartman debug gateway (uaelib fn 88) HERE, where ctx is always valid.
++	   uaelib_demux_common() is reached with ctx==NULL for these calls, so its case 88 cannot
++	   read the (stack-resident) debug_resource struct. a1 = barto command, a2 = pointer to the
++	   resource (register) or the address (unregister). */
++	if (a0 == 88) {
++		extern void adm_debug_register_resource(uint32_t, uint32_t, const char*, uint16_t, uint16_t, int16_t, int16_t, int16_t, int16_t);
++		extern void adm_debug_unregister_resource(uint32_t);
++		extern void adm_record_idle(int);
++		if (a1 == 4 /* barto_cmd_register_resource */) {
++			char nm[33];
++			int ci;
++			uae_u32 address = trap_get_long (ctx, a2 + 0);
++			uae_u32 size    = trap_get_long (ctx, a2 + 4);
++			uae_u16 rtype   = trap_get_word (ctx, a2 + 40);
++			uae_u16 rflags  = trap_get_word (ctx, a2 + 42);
++			uae_s16 w       = (uae_s16)trap_get_word (ctx, a2 + 44);
++			uae_s16 h       = (uae_s16)trap_get_word (ctx, a2 + 46);
++			uae_s16 np      = (uae_s16)trap_get_word (ctx, a2 + 48);
++			for (ci = 0; ci < 32; ci++)
++				nm[ci] = (char)trap_get_byte (ctx, a2 + 8 + ci);
++			nm[32] = 0;
++			/* width field (offset 44) doubles as palette numEntries */
++			adm_debug_register_resource (address, size, nm, rtype, rflags, w, h, np, w);
++		} else if (a1 == 5 /* barto_cmd_set_idle */) {
++			/* a2 = 1 -> start idle region, 0 -> stop idle region */
++			adm_record_idle ((int)a2);
++		} else if (a1 == 6 /* barto_cmd_unregister_resource */) {
++			adm_debug_unregister_resource (a2);
++		}
++		return 0;
++	}
++#ifdef PICASSO96
++	if (a0 >= 16 && a0 <= 39)
++		return picasso_demux (a0, ctx);
++#endif
++	return uaelib_demux_common (ctx, a0, a1, a2, a3, a4, a5);
++}
++#endif
+ void emulib_install (void)
+ {
+ 	uaecptr a;
+@@ -510,8 +563,41 @@ void emulib_install (void)
+ 		return;
+ 	a = here ();
+ 	currprefs.mmkeyboard = 0;
++#ifdef __LIBRETRO__
++	if (adm_force_boot_rom) {
++		/* ADM: JSR-based gate (opcode 0x4eb9) recognised by Bartman's debug_cmd(). */
++		uaecptr stub = a;
++		org (stub);
++		calltrap (deftrap2 (adm_uaelib_gate, 0, _T("adm_uaelib_gate")));
++		dw (RTS);
++		{
++			uaecptr after = here ();
++			org (rtarea_base + 0xFF60);
++			dw (0x4eb9);
++			add_rom_absolute (stub);
++			dw (RTS);
++			org (after);
++		}
++		return;
++	}
++#endif
+ 	org (rtarea_base + 0xFF60);
+ 	calltrap (deftrapres (uaelib_demux, 0, _T("uaelib_demux")));
+ 	dw (RTS);
+ 	org (a);
+ }
++
++#ifdef __LIBRETRO__
++/* ADM diagnostic: reports the gate address, the opcode word currently at the gate,
++   uae_boot_rom_type and the force flag so the host can verify the gate is installed.
++   NOTE: this symbol (and the other Bartman adm_* exports) is only exported because it is
++   listed in libretro/link.T — the link uses --version-script, so dllexport alone is ignored. */
++void adm_get_debug_gate_info (uint32_t *gate_addr, uint32_t *opcode, int *boot_rom_type, int *force)
++{
++	uaecptr addr = rtarea_base + 0xFF60;
++	if (gate_addr) *gate_addr = (uint32_t) addr;
++	if (opcode) *opcode = (uint32_t) get_word (addr);
++	if (boot_rom_type) { extern int uae_boot_rom_type; *boot_rom_type = uae_boot_rom_type; }
++	if (force) *force = adm_force_boot_rom;
++}
++#endif

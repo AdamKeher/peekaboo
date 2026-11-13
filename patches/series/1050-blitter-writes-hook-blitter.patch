@@ -1,0 +1,46 @@
+blitter.c: blitter write-log hook
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/sources/src/blitter.c b/sources/src/blitter.c
+index 7259786..7f1dc2c 100644
+--- a/sources/src/blitter.c
++++ b/sources/src/blitter.c
+@@ -496,6 +496,10 @@ static void blitter_done_except_d(int hpos)
+    line mode and the cycle-exact path, so one hook covers all of them.
+    ADM blit-data capture rides the same choke point, recording the word
+    value with its address so the host can rebuild what the blit drew. */
++/* ADM blitter kill switch: 0 suppresses the blitter's destination writes while
++   leaving the blit itself running. See PATCHES.md. */
++int adm_blitter_writes_enabled = 1;
++
+ extern int adm_blitvis_enabled;
+ extern void adm_blitvis_record_write(uaecptr addr);
+ extern int adm_blit_data_enabled;
+@@ -509,12 +513,17 @@ static void blit_chipmem_agnus_wput(uaecptr addr, uae_u32 w, uae_u32 typemask)
+ #ifdef DEBUGGER
+ 		debug_putpeekdma_chipram(addr, w, typemask, 0x000, 0x054);
+ #endif
+-		chipmem_wput_indirect(addr, w);
+-		if (adm_blitvis_enabled) {
+-			adm_blitvis_record_write(addr);
+-		}
+-		if (adm_blit_data_enabled) {
+-			adm_record_blit_write(addr, (uae_u16)w);
++		/* ADM blitter kill switch: drop the D write (and its provenance tag) but leave
++		   everything else alone - cycles, BLTSIZE, BUSY and the interrupt are unchanged,
++		   and the chipset bus latch below still updates as it would have. */
++		if (adm_blitter_writes_enabled) {
++			chipmem_wput_indirect(addr, w);
++			if (adm_blitvis_enabled) {
++				adm_blitvis_record_write(addr);
++			}
++			if (adm_blit_data_enabled) {
++				adm_record_blit_write(addr, (uae_u16)w);
++			}
+ 		}
+ 		regs.chipset_latch_rw = w;
+ 	}

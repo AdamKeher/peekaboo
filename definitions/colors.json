@@ -1,0 +1,29 @@
+{
+    "colors": {
+        "Black": "#000000ff",
+        "White": "#ffffffff",
+        "Red": "#550000ff",
+        "Green": "#00ff00ff",
+        "Blue": "#0000ffff",
+        "Yellow": "#ffff00ff",
+        "Aqua": "#00ffffff",
+        "Fuchsia": "#ff00ffff",
+        "Purple": "#800080ff",
+        "Gray": "#707070ff",
+        "Silver": "#c0c0c0ff",
+        "Maroon": "#800000ff",
+        "Olive": "#808000ff",
+        "Navy": "#000080ff",
+        "Teal": "#008080ff",
+        "LtGray": "#d3d3d3ff",
+        "LtBlue": "#add8e6ff",
+        "LtGreen": "#90ee90ff",
+        "LtCyan": "#e0ffffff",
+        "LtRed": "#ffcccbff",
+        "LtMagenta": "#ff80ffff",
+        "LtYellow": "#ffffe0ff",
+        "Unused": "#a0a0a0ff",
+        "None": "#00000000",
+        "MintGreen": "#98fb98ff"
+    }
+}

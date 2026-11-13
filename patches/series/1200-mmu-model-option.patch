@@ -1,0 +1,112 @@
+libretro-core.c: MMU model option
+
+A 68030, 68040 or 68060 always gets a full MMU here: the cpu_model option writes
+mmu_model=<cpu> for any of them, and the A4030/A4040 presets do the same. There was no way to
+run one without MMU emulation (faster, and what an A4000/030's 68EC030 really is) or as an EC
+CPU, and a config row cannot change it, because cpu_model rewrites changed_prefs.mmu_model on
+every option update while running.
+
+- puae_mmu_model: auto (the core's choice), full, ec or none.
+- adm_machine_overrides_config() appends mmu_model= after the preset's row, against the CPU
+  the cpu_model option resolves to; adm_machine_overrides_runtime() re-applies it, and
+  mmu_ec, after every option update.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -1035,6 +1035,23 @@
+          },
+          "auto"
+       },
++      /* PEEKaboo: MMU emulation, which a 68030/040/060 otherwise always gets in full */
++      {
++         "puae_mmu_model",
++         "System > MMU",
++         "MMU",
++         "68030 and up only. 'Automatic' is a full MMU. 'EC' is a CPU without one: MMU instructions run but translate nothing. 'None' leaves MMU emulation out, the fastest.\nCore restart required.",
++         NULL,
++         "system",
++         {
++            { "auto", "Automatic" },
++            { "full", "Full" },
++            { "ec", "EC" },
++            { "none", "None" },
++            { NULL, NULL },
++         },
++         "auto"
++      },
+       {
+          "puae_cpu_throttle",
+          "System > CPU Speed",
+@@ -3495,6 +3512,25 @@
+ static char opt_adm_agnus_model[16]        = "auto";
+ static char opt_adm_agnus_size[16]         = "auto";
+ static char opt_adm_denise_model[16]       = "auto";
++/* auto, full, ec or none. Applied beside the chipset, and for the same reason: the
++ * cpu_model option sets mmu_model to the CPU on every update while running. */
++static char opt_adm_mmu_model[8]           = "auto";
++
++/* The mmu_model value for `cpu`, or -1 to leave the core's own choice. */
++static int adm_mmu_model_for(int cpu, bool *ec)
++{
++   *ec = false;
++   if (!strcmp(opt_adm_mmu_model, "none"))
++      return 0;
++   if (!strcmp(opt_adm_mmu_model, "full"))
++      return cpu >= 68030 ? cpu : 0;
++   if (!strcmp(opt_adm_mmu_model, "ec"))
++   {
++      *ec = true;
++      return cpu >= 68030 ? cpu : 0;
++   }
++   return -1;
++}
+ 
+ /* The cfgfile.c tables (csmode, cscompa, agnusmodel, agnussize, denisemodel), whose
+  * indices are the prefs values. Casablanca and DraCo are left out: this build has
+@@ -3552,6 +3588,15 @@
+          : chipset == 2 ? CSMASK_ECS_DENISE
+          : chipset == 3 ? CSMASK_ECS_DENISE | CSMASK_ECS_AGNUS
+          : CSMASK_AGA | CSMASK_ECS_DENISE | CSMASK_ECS_AGNUS);
++
++   /* cpu_model has just set mmu_model to the CPU, or 0 below a 68030 */
++   {
++      bool ec  = false;
++      int  mmu = adm_mmu_model_for(changed_prefs.cpu_model, &ec);
++      if (mmu >= 0)
++         changed_prefs.mmu_model = mmu;
++      changed_prefs.mmu_ec = ec;
++   }
+ }
+ 
+ static void update_variables(void)
+@@ -4141,6 +4186,8 @@
+    GET_VAR("denise_model")
+       strlcpy(opt_adm_denise_model, var.value, sizeof(opt_adm_denise_model));
+    adm_chipset_prefs_hook = adm_chipset_models_hook;
++   GET_VAR("mmu_model")
++      strlcpy(opt_adm_mmu_model, var.value, sizeof(opt_adm_mmu_model));
+ 
+    GET_VAR("cpu_throttle")
+    {
+@@ -6898,6 +6945,18 @@
+       retro_config_append("chipset_compatible=%s\n", adm_compatible_names[compatible]);
+    if (chipset >= 0)
+       retro_config_append("chipset=%s\n", adm_chipset_names[chipset]);
++
++   /* After the preset's and cpu_model's mmu_model rows. The CPU is the option's when it
++    * overrides the preset, as the cpu_model option decides. */
++   {
++      bool ec  = false;
++      int  cpu = override_opt.cpu_model > -1 ? override_opt.cpu_model : preset_opt.cpu_model;
++      int  mmu = adm_mmu_model_for(cpu, &ec);
++      if (mmu > 0 && ec)
++         retro_config_append("mmu_model=68ec0%d\n", mmu % 100);
++      else if (mmu >= 0)
++         retro_config_append("mmu_model=%d\n", mmu);
++   }
+ }
+ 
+ /* PEEKaboo: the machine the core is actually running, straight from currprefs, so the

@@ -1,0 +1,2150 @@
+{
+    "000": {
+        "name": "BLTDDAT",
+        "full_name": "Blitter destination early read",
+        "rw": "E",
+        "description": "Blitter destination early read (dummy address)",
+        "doc_name": "bltddat",
+        "address": "0xDFF000",
+        "chipset": "OCS"
+    },
+    "002": {
+        "name": "DMACONR",
+        "full_name": "DMA Control (read)",
+        "rw": "R",
+        "description": "DMA control register read (clear)",
+        "doc_name": "dmaconr",
+        "address": "0xDFF002",
+        "chipset": "OCS"
+    },
+    "004": {
+        "name": "VPOSR",
+        "full_name": "Read vertical most significant bit",
+        "rw": "R",
+        "description": "Read vertical most sig. bit (and frame flop)",
+        "doc_name": "vposr",
+        "address": "0xDFF004",
+        "chipset": "OCS"
+    },
+    "006": {
+        "name": "VHPOSR",
+        "full_name": "Read vertical and horizontal position",
+        "rw": "R",
+        "description": "Read vertical and horizontal position of electron beam",
+        "doc_name": "vhposr",
+        "address": "0xDFF006",
+        "chipset": "OCS"
+    },
+    "008": {
+        "name": "DSKDATR",
+        "full_name": "Disk data read",
+        "rw": "E",
+        "description": "Disk data read (early read for decrement)",
+        "doc_name": "dskdatr",
+        "address": "0xDFF008",
+        "chipset": "OCS"
+    },
+    "00A": {
+        "name": "JOY0DAT",
+        "full_name": "Joystick-mouse 0 data",
+        "rw": "R",
+        "description": "Joystick-mouse 0 data (logical drive 1)",
+        "doc_name": "joy0dat",
+        "address": "0xDFF00A",
+        "chipset": "OCS"
+    },
+    "00C": {
+        "name": "JOY1DAT",
+        "full_name": "Joystick-mouse 1 data",
+        "rw": "R",
+        "description": "Joystick-mouse 1 data (logical drive 2)",
+        "doc_name": "joy0dat",
+        "address": "0xDFF00C",
+        "chipset": "OCS"
+    },
+    "00E": {
+        "name": "CLXDAT",
+        "full_name": "Collision data read",
+        "rw": "R",
+        "description": "Collision data read (clear)",
+        "doc_name": "clxdat",
+        "address": "0xDFF00E",
+        "chipset": "OCS"
+    },
+    "010": {
+        "name": "ADKCONR",
+        "full_name": "Audio, disk, control register",
+        "rw": "R",
+        "description": "Audio, disk, UART, control register read (clear)",
+        "doc_name": "adkconr",
+        "address": "0xDFF010",
+        "chipset": "OCS"
+    },
+    "012": {
+        "name": "POT0DAT",
+        "full_name": "Potentiometer 0 data",
+        "rw": "R",
+        "description": "Potentiometer 0 data (logical drive 1)",
+        "doc_name": "pot0dat",
+        "address": "0xDFF012",
+        "chipset": "OCS"
+    },
+    "014": {
+        "name": "POT1DAT",
+        "full_name": "Potentiometer 1 data",
+        "rw": "R",
+        "description": "Potentiometer 1 data (logical drive 2)",
+        "doc_name": "pot0dat",
+        "address": "0xDFF014",
+        "chipset": "OCS"
+    },
+    "016": {
+        "name": "POTINP",
+        "full_name": "Potentiometer input data",
+        "rw": "R",
+        "description": "Potentiometer pin data read",
+        "doc_name": "potinp",
+        "address": "0xDFF016",
+        "chipset": "OCS"
+    },
+    "018": {
+        "name": "SERDATR",
+        "full_name": "Serial data read",
+        "rw": "R",
+        "description": "Serial port data and status read (clear)",
+        "doc_name": "serdatr",
+        "address": "0xDFF018",
+        "chipset": "OCS"
+    },
+    "01A": {
+        "name": "DSKBYTR",
+        "full_name": "Disk data byte",
+        "rw": "R",
+        "description": "Disk data byte and status read (clear)",
+        "doc_name": "dskbytr",
+        "address": "0xDFF01A",
+        "chipset": "OCS"
+    },
+    "01C": {
+        "name": "INTENAR",
+        "full_name": "Interrupt enable read",
+        "rw": "R",
+        "description": "Interrupt enable bits read",
+        "doc_name": "intenar",
+        "address": "0xDFF01C",
+        "chipset": "OCS"
+    },
+    "01E": {
+        "name": "INTREQR",
+        "full_name": "Interrupt request read",
+        "rw": "R",
+        "description": "Interrupt request bits read",
+        "doc_name": "intreqr",
+        "address": "0xDFF01E",
+        "chipset": "OCS"
+    },
+    "020": {
+        "name": "DSKPTH",
+        "full_name": "Disk pointer (high)",
+        "rw": "W",
+        "description": "Disk pointer (high 5 bits, clears 3 low bits)",
+        "doc_name": "dskpth",
+        "is_address": true,
+        "address": "0xDFF020",
+        "chipset": "OCS"
+    },
+    "022": {
+        "name": "DSKPTL",
+        "full_name": "Disk pointer (low)",
+        "rw": "W",
+        "description": "Disk pointer (low 15 bits)",
+        "doc_name": "dskpth",
+        "is_address": true,
+        "address": "0xDFF022",
+        "chipset": "OCS"
+    },
+    "024": {
+        "name": "DSKLEN",
+        "full_name": "Disk length",
+        "rw": "W",
+        "description": "Disk length",
+        "doc_name": "dsklen",
+        "address": "0xDFF024",
+        "chipset": "OCS"
+    },
+    "026": {
+        "name": "DSKDAT",
+        "full_name": "Disk DMA data write",
+        "rw": "W",
+        "description": "Disk DMA data write",
+        "doc_name": "dskdatr",
+        "address": "0xDFF026",
+        "chipset": "OCS"
+    },
+    "028": {
+        "name": "REFPTR",
+        "full_name": "Refresh pointer",
+        "rw": "W",
+        "description": "Refresh pointer",
+        "doc_name": "refptr",
+        "is_address": true,
+        "address": "0xDFF028",
+        "chipset": "OCS"
+    },
+    "02A": {
+        "name": "VPOSW",
+        "full_name": "Write vertical most significant bit",
+        "rw": "W",
+        "description": "Write vert most sig. bit (and frame flop)",
+        "doc_name": "vposr",
+        "address": "0xDFF02A",
+        "chipset": "OCS"
+    },
+    "02C": {
+        "name": "VHPOSW",
+        "full_name": "Write vertical and horizontal position",
+        "rw": "W",
+        "description": "Write vert and horiz position of electron beam",
+        "doc_name": "vhposr",
+        "address": "0xDFF02C",
+        "chipset": "OCS"
+    },
+    "02E": {
+        "name": "COPCON",
+        "full_name": "Coprocessor control",
+        "rw": "W",
+        "description": "Coprocessor control register (CDANG)",
+        "doc_name": "copcon",
+        "address": "0xDFF02E",
+        "chipset": "OCS"
+    },
+    "030": {
+        "name": "SERDAT",
+        "full_name": "Serial data write",
+        "rw": "W",
+        "description": "Serial port data and stop bits write",
+        "doc_name": "serdat",
+        "address": "0xDFF030",
+        "chipset": "OCS"
+    },
+    "032": {
+        "name": "SERPER",
+        "full_name": "Serial period",
+        "rw": "W",
+        "description": "Serial port period and control",
+        "doc_name": "serper",
+        "address": "0xDFF032",
+        "chipset": "OCS"
+    },
+    "034": {
+        "name": "POTGO",
+        "full_name": "Potentiometer GO",
+        "rw": "W",
+        "description": "Pot port data write and start",
+        "doc_name": "potgo",
+        "address": "0xDFF034",
+        "chipset": "OCS"
+    },
+    "036": {
+        "name": "JOYTEST",
+        "full_name": "Write to all four joystick-mouse counters",
+        "rw": "W",
+        "description": "Write to all four joystick-mouse counters at once",
+        "doc_name": "joytest",
+        "address": "0xDFF036",
+        "chipset": "OCS"
+    },
+    "038": {
+        "name": "STREQU",
+        "full_name": "Strobe for sync",
+        "rw": "S",
+        "description": "Strobe for sync equates with beam counter",
+        "doc_name": "strequ",
+        "address": "0xDFF038",
+        "chipset": "OCS"
+    },
+    "03A": {
+        "name": "STRVBL",
+        "full_name": "Strobe for vblank",
+        "rw": "S",
+        "description": "Strobe for VBLANK and equate with beam counter",
+        "doc_name": "strequ",
+        "address": "0xDFF03A",
+        "chipset": "OCS"
+    },
+    "03C": {
+        "name": "STRHOR",
+        "full_name": "Strobe for horizontal",
+        "rw": "S",
+        "description": "Strobe for horizontal equate with beam counter",
+        "doc_name": "strequ",
+        "address": "0xDFF03C",
+        "chipset": "OCS"
+    },
+    "03E": {
+        "name": "STRLONG",
+        "full_name": "Strobe for long horizontal",
+        "rw": "S",
+        "description": "Strobe for long horizontal line (non-standard)",
+        "doc_name": "strequ",
+        "address": "0xDFF03E",
+        "chipset": "OCS"
+    },
+    "040": {
+        "name": "BLTCON0",
+        "full_name": "Blitter control 0",
+        "rw": "W",
+        "description": "Blitter control register 0",
+        "doc_name": "bltcon0",
+        "address": "0xDFF040",
+        "chipset": "OCS"
+    },
+    "042": {
+        "name": "BLTCON1",
+        "full_name": "Blitter control 1",
+        "rw": "W",
+        "description": "Blitter control register 1",
+        "doc_name": "bltcon0",
+        "address": "0xDFF042",
+        "chipset": "OCS"
+    },
+    "044": {
+        "name": "BLTAFWM",
+        "full_name": "Blitter first word mask",
+        "rw": "W",
+        "description": "Blitter first word mask for source A",
+        "doc_name": "bltafwm",
+        "address": "0xDFF044",
+        "chipset": "OCS"
+    },
+    "046": {
+        "name": "BLTALWM",
+        "full_name": "Blitter last word mask",
+        "rw": "W",
+        "description": "Blitter last word mask for source A",
+        "doc_name": "bltafwm",
+        "address": "0xDFF046",
+        "chipset": "OCS"
+    },
+    "048": {
+        "name": "BLTCPTH",
+        "full_name": "Blitter pointer C (high)",
+        "rw": "W",
+        "description": "Blitter pointer to source C (high 5 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF048",
+        "chipset": "OCS"
+    },
+    "04A": {
+        "name": "BLTCPTL",
+        "full_name": "Blitter pointer C (low)",
+        "rw": "W",
+        "description": "Blitter pointer to source C (low 15 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF04A",
+        "chipset": "OCS"
+    },
+    "04C": {
+        "name": "BLTBPTH",
+        "full_name": "Blitter pointer B (high)",
+        "rw": "W",
+        "description": "Blitter pointer to source B (high 5 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF04C",
+        "chipset": "OCS"
+    },
+    "04E": {
+        "name": "BLTBPTL",
+        "full_name": "Blitter pointer B (low)",
+        "rw": "W",
+        "description": "Blitter pointer to source B (low 15 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF04E",
+        "chipset": "OCS"
+    },
+    "050": {
+        "name": "BLTAPTH",
+        "full_name": "Blitter pointer A (high)",
+        "rw": "W",
+        "description": "Blitter pointer to source A (high 5 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF050",
+        "chipset": "OCS"
+    },
+    "052": {
+        "name": "BLTAPTL",
+        "full_name": "Blitter pointer A (low)",
+        "rw": "W",
+        "description": "Blitter pointer to source A (low 15 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF052",
+        "chipset": "OCS"
+    },
+    "054": {
+        "name": "BLTDPTH",
+        "full_name": "Blitter pointer D (high)",
+        "rw": "W",
+        "description": "Blitter pointer to destination D (high 5 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF054",
+        "chipset": "OCS"
+    },
+    "056": {
+        "name": "BLTDPTL",
+        "full_name": "Blitter pointer D (low)",
+        "rw": "W",
+        "description": "Blitter pointer to destination D (low 15 bits)",
+        "doc_name": "bltxpth",
+        "is_address": true,
+        "address": "0xDFF056",
+        "chipset": "OCS"
+    },
+    "058": {
+        "name": "BLTSIZE",
+        "full_name": "Blitter start and size",
+        "rw": "W",
+        "description": "Blitter start and size (window width, height)",
+        "doc_name": "bltsize",
+        "address": "0xDFF058",
+        "chipset": "OCS"
+    },
+    "05A": {
+        "name": "BLTCON0L",
+        "full_name": "Blitter control 0 (lower 8 bits)",
+        "rw": "W",
+        "description": "Blitter control 0 (lower 8 bits) (minterms)",
+        "doc_name": "bltcon0",
+        "address": "0xDFF05A",
+        "chipset": "ECS"
+    },
+    "05C": {
+        "name": "BLTSIZV",
+        "full_name": "Blitter V size",
+        "rw": "W",
+        "description": "Blitter V size (for 15-bit vertical size)",
+        "doc_name": "bltsizv",
+        "address": "0xDFF05C",
+        "chipset": "ECS"
+    },
+    "05E": {
+        "name": "BLTSIZH",
+        "full_name": "Blitter H size",
+        "rw": "W",
+        "description": "Blitter H size (for 11-bit horizontal size)",
+        "doc_name": "bltsizh",
+        "address": "0xDFF05E",
+        "chipset": "ECS"
+    },
+    "060": {
+        "name": "BLTCMOD",
+        "full_name": "Blitter modulo C",
+        "rw": "W",
+        "description": "Blitter modulo for source C",
+        "doc_name": "bltxmod",
+        "address": "0xDFF060",
+        "chipset": "OCS"
+    },
+    "062": {
+        "name": "BLTBMOD",
+        "full_name": "Blitter modulo B",
+        "rw": "W",
+        "description": "Blitter modulo for source B",
+        "doc_name": "bltxmod",
+        "address": "0xDFF062",
+        "chipset": "OCS"
+    },
+    "064": {
+        "name": "BLTAMOD",
+        "full_name": "Blitter modulo A",
+        "rw": "W",
+        "description": "Blitter modulo for source A",
+        "doc_name": "bltxmod",
+        "address": "0xDFF064",
+        "chipset": "OCS"
+    },
+    "066": {
+        "name": "BLTDMOD",
+        "full_name": "Blitter modulo D",
+        "rw": "W",
+        "description": "Blitter modulo for destination D",
+        "doc_name": "bltxmod",
+        "address": "0xDFF066",
+        "chipset": "OCS"
+    },
+    "070": {
+        "name": "BLTCDAT",
+        "full_name": "Blitter source C data",
+        "rw": "W",
+        "description": "Blitter source C data register",
+        "doc_name": "bltxdat",
+        "address": "0xDFF070",
+        "chipset": "OCS"
+    },
+    "072": {
+        "name": "BLTBDAT",
+        "full_name": "Blitter source B data",
+        "rw": "W",
+        "description": "Blitter source B data register",
+        "doc_name": "bltxdat",
+        "address": "0xDFF072",
+        "chipset": "OCS"
+    },
+    "074": {
+        "name": "BLTADAT",
+        "full_name": "Blitter source A data",
+        "rw": "W",
+        "description": "Blitter source A data register",
+        "doc_name": "bltxdat",
+        "address": "0xDFF074",
+        "chipset": "OCS"
+    },
+    "07C": {
+        "name": "DENISEID",
+        "full_name": "Denise ID request",
+        "rw": "R",
+        "description": "Denise ID register (AGA/ECS identification)",
+        "doc_name": "deniseid",
+        "address": "0xDFF07C",
+        "chipset": "ECS"
+    },
+    "07E": {
+        "name": "DSKSYNC",
+        "full_name": "Disk sync register",
+        "rw": "W",
+        "description": "Disk sync pattern register for disk read",
+        "doc_name": "dsksync",
+        "address": "0xDFF07E",
+        "chipset": "OCS"
+    },
+    "080": {
+        "name": "COP1LCH",
+        "full_name": "Copper pointer 1 (high)",
+        "rw": "W",
+        "description": "Coprocessor first location register (high 5 bits)",
+        "doc_name": "cop1lch",
+        "is_address": true,
+        "address": "0xDFF080",
+        "chipset": "OCS"
+    },
+    "082": {
+        "name": "COP1LCL",
+        "full_name": "Copper pointer 1 (low)",
+        "rw": "W",
+        "description": "Coprocessor first location register (low 15 bits)",
+        "doc_name": "cop1lch",
+        "is_address": true,
+        "address": "0xDFF082",
+        "chipset": "OCS"
+    },
+    "084": {
+        "name": "COP2LCH",
+        "full_name": "Copper pointer 2 (high)",
+        "rw": "W",
+        "description": "Coprocessor second location register (high 5 bits)",
+        "doc_name": "cop2lch",
+        "is_address": true,
+        "address": "0xDFF084",
+        "chipset": "OCS"
+    },
+    "086": {
+        "name": "COP2LCL",
+        "full_name": "Copper pointer 2 (low)",
+        "rw": "W",
+        "description": "Coprocessor second location register (low 15 bits)",
+        "doc_name": "cop2lch",
+        "is_address": true,
+        "address": "0xDFF086",
+        "chipset": "OCS"
+    },
+    "088": {
+        "name": "COPJMP1",
+        "full_name": "Copper restart 1",
+        "rw": "S",
+        "description": "Coprocessor restart at first location",
+        "doc_name": "copjmp",
+        "address": "0xDFF088",
+        "chipset": "OCS"
+    },
+    "08A": {
+        "name": "COPJMP2",
+        "full_name": "Copper restart 2",
+        "rw": "S",
+        "description": "Coprocessor restart at second location",
+        "doc_name": "copjmp",
+        "address": "0xDFF08A",
+        "chipset": "OCS"
+    },
+    "08C": {
+        "name": "COPINS",
+        "full_name": "Coprocessor inst fetch identify",
+        "rw": "S",
+        "description": "Coprocessor instruction fetch identify",
+        "doc_name": "copins",
+        "address": "0xDFF08C",
+        "chipset": "OCS"
+    },
+    "08E": {
+        "name": "DIWSTRT",
+        "full_name": "Display window start",
+        "rw": "W",
+        "description": "Display window start (upper left)",
+        "doc_name": "diwstrt",
+        "address": "0xDFF08E",
+        "chipset": "OCS"
+    },
+    "090": {
+        "name": "DIWSTOP",
+        "full_name": "Display window stop",
+        "rw": "W",
+        "description": "Display window stop (lower right)",
+        "doc_name": "diwstrt",
+        "address": "0xDFF090",
+        "chipset": "OCS"
+    },
+    "092": {
+        "name": "DDFSTRT",
+        "full_name": "Display DMA data fetch start",
+        "rw": "W",
+        "description": "Display bitplane data fetch start (horiz pos)",
+        "doc_name": "ddfstrt",
+        "address": "0xDFF092",
+        "chipset": "OCS"
+    },
+    "094": {
+        "name": "DDFSTOP",
+        "full_name": "Display DMA data fetch stop",
+        "rw": "W",
+        "description": "Display bitplane data fetch stop (horiz pos)",
+        "doc_name": "ddfstrt",
+        "address": "0xDFF094",
+        "chipset": "OCS"
+    },
+    "096": {
+        "name": "DMACON",
+        "full_name": "DMA Control (write)",
+        "rw": "W",
+        "description": "DMA control write (clear or set)",
+        "doc_name": "dmaconr",
+        "address": "0xDFF096",
+        "chipset": "OCS"
+    },
+    "098": {
+        "name": "CLXCON",
+        "full_name": "Collision control",
+        "rw": "W",
+        "description": "Collision control register",
+        "doc_name": "clxcon",
+        "address": "0xDFF098",
+        "chipset": "OCS"
+    },
+    "09A": {
+        "name": "INTENA",
+        "full_name": "Interrupt enable (write)",
+        "rw": "W",
+        "description": "Interrupt enable bits (clear or set)",
+        "doc_name": "intenar",
+        "address": "0xDFF09A",
+        "chipset": "OCS"
+    },
+    "09C": {
+        "name": "INTREQ",
+        "full_name": "Interrupt request (write)",
+        "rw": "W",
+        "description": "Interrupt request bits (clear or set)",
+        "doc_name": "intreqr",
+        "address": "0xDFF09C",
+        "chipset": "OCS"
+    },
+    "09E": {
+        "name": "ADKCON",
+        "full_name": "Audio, disk, control register",
+        "rw": "W",
+        "description": "Audio, disk, UART control (clear or set)",
+        "doc_name": "adkconr",
+        "address": "0xDFF09E",
+        "chipset": "OCS"
+    },
+    "0A0": {
+        "name": "AUD0LCH",
+        "full_name": "Audio 0 pointer (high)",
+        "rw": "W",
+        "description": "Audio channel 0 location (high 5 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0A0",
+        "chipset": "OCS"
+    },
+    "0A2": {
+        "name": "AUD0LCL",
+        "full_name": "Audio 0 pointer (low)",
+        "rw": "W",
+        "description": "Audio channel 0 location (low 15 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0A2",
+        "chipset": "OCS"
+    },
+    "0A4": {
+        "name": "AUD0LEN",
+        "full_name": "Audio 0 length",
+        "rw": "W",
+        "description": "Audio channel 0 length",
+        "doc_name": "audxlen",
+        "address": "0xDFF0A4",
+        "chipset": "OCS"
+    },
+    "0A6": {
+        "name": "AUD0PER",
+        "full_name": "Audio 0 period",
+        "rw": "W",
+        "description": "Audio channel 0 period",
+        "doc_name": "audxper",
+        "address": "0xDFF0A6",
+        "chipset": "OCS"
+    },
+    "0A8": {
+        "name": "AUD0VOL",
+        "full_name": "Audio 0 volume",
+        "rw": "W",
+        "description": "Audio channel 0 volume",
+        "doc_name": "audxvol",
+        "address": "0xDFF0A8",
+        "chipset": "OCS"
+    },
+    "0AA": {
+        "name": "AUD0DAT",
+        "full_name": "Audio 0 data",
+        "rw": "W",
+        "description": "Audio channel 0 data",
+        "doc_name": "audxdat",
+        "address": "0xDFF0AA",
+        "chipset": "OCS"
+    },
+    "0B0": {
+        "name": "AUD1LCH",
+        "full_name": "Audio 1 pointer (high)",
+        "rw": "W",
+        "description": "Audio channel 1 location (high 5 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0B0",
+        "chipset": "OCS"
+    },
+    "0B2": {
+        "name": "AUD1LCL",
+        "full_name": "Audio 1 pointer (low)",
+        "rw": "W",
+        "description": "Audio channel 1 location (low 15 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0B2",
+        "chipset": "OCS"
+    },
+    "0B4": {
+        "name": "AUD1LEN",
+        "full_name": "Audio 1 length",
+        "rw": "W",
+        "description": "Audio channel 1 length",
+        "doc_name": "audxlen",
+        "address": "0xDFF0B4",
+        "chipset": "OCS"
+    },
+    "0B6": {
+        "name": "AUD1PER",
+        "full_name": "Audio 1 period",
+        "rw": "W",
+        "description": "Audio channel 1 period",
+        "doc_name": "audxper",
+        "address": "0xDFF0B6",
+        "chipset": "OCS"
+    },
+    "0B8": {
+        "name": "AUD1VOL",
+        "full_name": "Audio 1 volume",
+        "rw": "W",
+        "description": "Audio channel 1 volume",
+        "doc_name": "audxvol",
+        "address": "0xDFF0B8",
+        "chipset": "OCS"
+    },
+    "0BA": {
+        "name": "AUD1DAT",
+        "full_name": "Audio 1 data",
+        "rw": "W",
+        "description": "Audio channel 1 data",
+        "doc_name": "audxdat",
+        "address": "0xDFF0BA",
+        "chipset": "OCS"
+    },
+    "0C0": {
+        "name": "AUD2LCH",
+        "full_name": "Audio 2 pointer (high)",
+        "rw": "W",
+        "description": "Audio channel 2 location (high 5 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0C0",
+        "chipset": "OCS"
+    },
+    "0C2": {
+        "name": "AUD2LCL",
+        "full_name": "Audio 2 pointer (low)",
+        "rw": "W",
+        "description": "Audio channel 2 location (low 15 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0C2",
+        "chipset": "OCS"
+    },
+    "0C4": {
+        "name": "AUD2LEN",
+        "full_name": "Audio 2 length",
+        "rw": "W",
+        "description": "Audio channel 2 length",
+        "doc_name": "audxlen",
+        "address": "0xDFF0C4",
+        "chipset": "OCS"
+    },
+    "0C6": {
+        "name": "AUD2PER",
+        "full_name": "Audio 2 period",
+        "rw": "W",
+        "description": "Audio channel 2 period",
+        "doc_name": "audxper",
+        "address": "0xDFF0C6",
+        "chipset": "OCS"
+    },
+    "0C8": {
+        "name": "AUD2VOL",
+        "full_name": "Audio 2 volume",
+        "rw": "W",
+        "description": "Audio channel 2 volume",
+        "doc_name": "audxvol",
+        "address": "0xDFF0C8",
+        "chipset": "OCS"
+    },
+    "0CA": {
+        "name": "AUD2DAT",
+        "full_name": "Audio 2 data",
+        "rw": "W",
+        "description": "Audio channel 2 data",
+        "doc_name": "audxdat",
+        "address": "0xDFF0CA",
+        "chipset": "OCS"
+    },
+    "0D0": {
+        "name": "AUD3LCH",
+        "full_name": "Audio 3 pointer (high)",
+        "rw": "W",
+        "description": "Audio channel 3 location (high 5 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0D0",
+        "chipset": "OCS"
+    },
+    "0D2": {
+        "name": "AUD3LCL",
+        "full_name": "Audio 3 pointer (low)",
+        "rw": "W",
+        "description": "Audio channel 3 location (low 15 bits)",
+        "doc_name": "audxlch",
+        "is_address": true,
+        "address": "0xDFF0D2",
+        "chipset": "OCS"
+    },
+    "0D4": {
+        "name": "AUD3LEN",
+        "full_name": "Audio 3 length",
+        "rw": "W",
+        "description": "Audio channel 3 length",
+        "doc_name": "audxlen",
+        "address": "0xDFF0D4",
+        "chipset": "OCS"
+    },
+    "0D6": {
+        "name": "AUD3PER",
+        "full_name": "Audio 3 period",
+        "rw": "W",
+        "description": "Audio channel 3 period",
+        "doc_name": "audxper",
+        "address": "0xDFF0D6",
+        "chipset": "OCS"
+    },
+    "0D8": {
+        "name": "AUD3VOL",
+        "full_name": "Audio 3 volume",
+        "rw": "W",
+        "description": "Audio channel 3 volume",
+        "doc_name": "audxvol",
+        "address": "0xDFF0D8",
+        "chipset": "OCS"
+    },
+    "0DA": {
+        "name": "AUD3DAT",
+        "full_name": "Audio 3 data",
+        "rw": "W",
+        "description": "Audio channel 3 data",
+        "doc_name": "audxdat",
+        "address": "0xDFF0DA",
+        "chipset": "OCS"
+    },
+    "0E0": {
+        "name": "BPL1PTH",
+        "full_name": "Bitplane 1 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 1 pointer (high 5 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0E0",
+        "chipset": "OCS"
+    },
+    "0E2": {
+        "name": "BPL1PTL",
+        "full_name": "Bitplane 1 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 1 pointer (low 15 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0E2",
+        "chipset": "OCS"
+    },
+    "0E4": {
+        "name": "BPL2PTH",
+        "full_name": "Bitplane 2 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 2 pointer (high 5 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0E4",
+        "chipset": "OCS"
+    },
+    "0E6": {
+        "name": "BPL2PTL",
+        "full_name": "Bitplane 2 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 2 pointer (low 15 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0E6",
+        "chipset": "OCS"
+    },
+    "0E8": {
+        "name": "BPL3PTH",
+        "full_name": "Bitplane 3 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 3 pointer (high 5 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0E8",
+        "chipset": "OCS"
+    },
+    "0EA": {
+        "name": "BPL3PTL",
+        "full_name": "Bitplane 3 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 3 pointer (low 15 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0EA",
+        "chipset": "OCS"
+    },
+    "0EC": {
+        "name": "BPL4PTH",
+        "full_name": "Bitplane 4 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 4 pointer (high 5 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0EC",
+        "chipset": "OCS"
+    },
+    "0EE": {
+        "name": "BPL4PTL",
+        "full_name": "Bitplane 4 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 4 pointer (low 15 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0EE",
+        "chipset": "OCS"
+    },
+    "0F0": {
+        "name": "BPL5PTH",
+        "full_name": "Bitplane 5 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 5 pointer (high 5 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0F0",
+        "chipset": "OCS"
+    },
+    "0F2": {
+        "name": "BPL5PTL",
+        "full_name": "Bitplane 5 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 5 pointer (low 15 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0F2",
+        "chipset": "OCS"
+    },
+    "0F4": {
+        "name": "BPL6PTH",
+        "full_name": "Bitplane 6 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 6 pointer (high 5 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0F4",
+        "chipset": "OCS"
+    },
+    "0F6": {
+        "name": "BPL6PTL",
+        "full_name": "Bitplane 6 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 6 pointer (low 15 bits)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0F6",
+        "chipset": "OCS"
+    },
+    "0F8": {
+        "name": "BPL7PTH",
+        "full_name": "Bitplane 7 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 7 pointer (high 5 bits) (AGA)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0F8",
+        "chipset": "AGA"
+    },
+    "0FA": {
+        "name": "BPL7PTL",
+        "full_name": "Bitplane 7 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 7 pointer (low 15 bits) (AGA)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0FA",
+        "chipset": "AGA"
+    },
+    "0FC": {
+        "name": "BPL8PTH",
+        "full_name": "Bitplane 8 pointer (high)",
+        "rw": "W",
+        "description": "Bitplane 8 pointer (high 5 bits) (AGA)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0FC",
+        "chipset": "AGA"
+    },
+    "0FE": {
+        "name": "BPL8PTL",
+        "full_name": "Bitplane 8 pointer (low)",
+        "rw": "W",
+        "description": "Bitplane 8 pointer (low 15 bits) (AGA)",
+        "doc_name": "bplxpth",
+        "is_address": true,
+        "address": "0xDFF0FE",
+        "chipset": "AGA"
+    },
+    "100": {
+        "name": "BPLCON0",
+        "full_name": "Bitplane control 0",
+        "rw": "W",
+        "description": "Bitplane color and mode control",
+        "doc_name": "bplcon0",
+        "address": "0xDFF100",
+        "chipset": "OCS"
+    },
+    "102": {
+        "name": "BPLCON1",
+        "full_name": "Bitplane control 1",
+        "rw": "W",
+        "description": "Bitplane scroll control",
+        "doc_name": "bplcon1",
+        "address": "0xDFF102",
+        "chipset": "OCS"
+    },
+    "104": {
+        "name": "BPLCON2",
+        "full_name": "Bitplane control 2",
+        "rw": "W",
+        "description": "Bitplane playfield priority and sprite control",
+        "doc_name": "bplcon2",
+        "address": "0xDFF104",
+        "chipset": "OCS"
+    },
+    "106": {
+        "name": "BPLCON3",
+        "full_name": "Bitplane control 3",
+        "rw": "W",
+        "description": "Bitplane control (ECS/AGA features)",
+        "doc_name": "bplcon3",
+        "address": "0xDFF106",
+        "chipset": "OCS"
+    },
+    "108": {
+        "name": "BPL1MOD",
+        "full_name": "Bitplane modulo 1",
+        "rw": "W",
+        "description": "Bitplane modulo for odd planes (1,3,5)",
+        "doc_name": "bplhmod",
+        "address": "0xDFF108",
+        "chipset": "OCS"
+    },
+    "10A": {
+        "name": "BPL2MOD",
+        "full_name": "Bitplane modulo 2",
+        "rw": "W",
+        "description": "Bitplane modulo for even planes (2,4,6)",
+        "doc_name": "bplhmod",
+        "address": "0xDFF10A",
+        "chipset": "OCS"
+    },
+    "10C": {
+        "name": "BPLCON4",
+        "full_name": "Bitplane control 4",
+        "rw": "W",
+        "description": "Bitplane control (AGA bitplane/sprite mask)",
+        "doc_name": "bplcon4",
+        "address": "0xDFF10C",
+        "chipset": "AGA"
+    },
+    "10E": {
+        "name": "CLXCON2",
+        "full_name": "Extended Collision Control",
+        "rw": "W",
+        "description": "Extended collision control (AGA)",
+        "doc_name": "clxcon2",
+        "address": "0xDFF10E",
+        "chipset": "AGA"
+    },
+    "110": {
+        "name": "BPL1DAT",
+        "full_name": "Bitplane 1 data",
+        "rw": "W",
+        "description": "Bitplane 1 data write",
+        "doc_name": "bplxdat",
+        "address": "0xDFF110",
+        "chipset": "OCS"
+    },
+    "112": {
+        "name": "BPL2DAT",
+        "full_name": "Bitplane 2 data",
+        "rw": "W",
+        "description": "Bitplane 2 data write",
+        "doc_name": "bplxdat",
+        "address": "0xDFF112",
+        "chipset": "OCS"
+    },
+    "114": {
+        "name": "BPL3DAT",
+        "full_name": "Bitplane 3 data",
+        "rw": "W",
+        "description": "Bitplane 3 data write",
+        "doc_name": "bplxdat",
+        "address": "0xDFF114",
+        "chipset": "OCS"
+    },
+    "116": {
+        "name": "BPL4DAT",
+        "full_name": "Bitplane 4 data",
+        "rw": "W",
+        "description": "Bitplane 4 data write",
+        "doc_name": "bplxdat",
+        "address": "0xDFF116",
+        "chipset": "OCS"
+    },
+    "118": {
+        "name": "BPL5DAT",
+        "full_name": "Bitplane 5 data",
+        "rw": "W",
+        "description": "Bitplane 5 data write",
+        "doc_name": "bplxdat",
+        "address": "0xDFF118",
+        "chipset": "OCS"
+    },
+    "11A": {
+        "name": "BPL6DAT",
+        "full_name": "Bitplane 6 data",
+        "rw": "W",
+        "description": "Bitplane 6 data write",
+        "doc_name": "bplxdat",
+        "address": "0xDFF11A",
+        "chipset": "OCS"
+    },
+    "11C": {
+        "name": "BPL7DAT",
+        "full_name": "Bitplane 7 data",
+        "rw": "W",
+        "description": "Bitplane 7 data write (AGA)",
+        "doc_name": "bplxdat",
+        "address": "0xDFF11C",
+        "chipset": "AGA"
+    },
+    "11E": {
+        "name": "BPL8DAT",
+        "full_name": "Bitplane 8 data",
+        "rw": "W",
+        "description": "Bitplane 8 data write (AGA)",
+        "doc_name": "bplxdat",
+        "address": "0xDFF11E",
+        "chipset": "AGA"
+    },
+    "120": {
+        "name": "SPR0PTH",
+        "full_name": "Sprite 0 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 0 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF120",
+        "chipset": "OCS"
+    },
+    "122": {
+        "name": "SPR0PTL",
+        "full_name": "Sprite 0 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 0 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF122",
+        "chipset": "OCS"
+    },
+    "124": {
+        "name": "SPR1PTH",
+        "full_name": "Sprite 1 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 1 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF124",
+        "chipset": "OCS"
+    },
+    "126": {
+        "name": "SPR1PTL",
+        "full_name": "Sprite 1 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 1 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF126",
+        "chipset": "OCS"
+    },
+    "128": {
+        "name": "SPR2PTH",
+        "full_name": "Sprite 2 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 2 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF128",
+        "chipset": "OCS"
+    },
+    "12A": {
+        "name": "SPR2PTL",
+        "full_name": "Sprite 2 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 2 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF12A",
+        "chipset": "OCS"
+    },
+    "12C": {
+        "name": "SPR3PTH",
+        "full_name": "Sprite 3 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 3 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF12C",
+        "chipset": "OCS"
+    },
+    "12E": {
+        "name": "SPR3PTL",
+        "full_name": "Sprite 3 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 3 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF12E",
+        "chipset": "OCS"
+    },
+    "130": {
+        "name": "SPR4PTH",
+        "full_name": "Sprite 4 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 4 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF130",
+        "chipset": "OCS"
+    },
+    "132": {
+        "name": "SPR4PTL",
+        "full_name": "Sprite 4 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 4 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF132",
+        "chipset": "OCS"
+    },
+    "134": {
+        "name": "SPR5PTH",
+        "full_name": "Sprite 5 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 5 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF134",
+        "chipset": "OCS"
+    },
+    "136": {
+        "name": "SPR5PTL",
+        "full_name": "Sprite 5 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 5 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF136",
+        "chipset": "OCS"
+    },
+    "138": {
+        "name": "SPR6PTH",
+        "full_name": "Sprite 6 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 6 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF138",
+        "chipset": "OCS"
+    },
+    "13A": {
+        "name": "SPR6PTL",
+        "full_name": "Sprite 6 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 6 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF13A",
+        "chipset": "OCS"
+    },
+    "13C": {
+        "name": "SPR7PTH",
+        "full_name": "Sprite 7 pointer (high)",
+        "rw": "W",
+        "description": "Sprite 7 pointer (high 5 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF13C",
+        "chipset": "OCS"
+    },
+    "13E": {
+        "name": "SPR7PTL",
+        "full_name": "Sprite 7 pointer (low)",
+        "rw": "W",
+        "description": "Sprite 7 pointer (low 15 bits)",
+        "doc_name": "sprxpth",
+        "is_address": true,
+        "address": "0xDFF13E",
+        "chipset": "OCS"
+    },
+    "140": {
+        "name": "SPR0POS",
+        "full_name": "Sprite 0 position",
+        "rw": "W",
+        "description": "Sprite 0 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF140",
+        "chipset": "OCS"
+    },
+    "142": {
+        "name": "SPR0CTL",
+        "full_name": "Sprite 0 control",
+        "rw": "W",
+        "description": "Sprite 0 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF142",
+        "chipset": "OCS"
+    },
+    "144": {
+        "name": "SPR0DATA",
+        "full_name": "Sprite 0 data A",
+        "rw": "W",
+        "description": "Sprite 0 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF144",
+        "chipset": "OCS"
+    },
+    "146": {
+        "name": "SPR0DATB",
+        "full_name": "Sprite 0 data B",
+        "rw": "W",
+        "description": "Sprite 0 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF146",
+        "chipset": "OCS"
+    },
+    "148": {
+        "name": "SPR1POS",
+        "full_name": "Sprite 1 position",
+        "rw": "W",
+        "description": "Sprite 1 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF148",
+        "chipset": "OCS"
+    },
+    "14A": {
+        "name": "SPR1CTL",
+        "full_name": "Sprite 1 control",
+        "rw": "W",
+        "description": "Sprite 1 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF14A",
+        "chipset": "OCS"
+    },
+    "14C": {
+        "name": "SPR1DATA",
+        "full_name": "Sprite 1 data A",
+        "rw": "W",
+        "description": "Sprite 1 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF14C",
+        "chipset": "OCS"
+    },
+    "14E": {
+        "name": "SPR1DATB",
+        "full_name": "Sprite 1 data B",
+        "rw": "W",
+        "description": "Sprite 1 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF14E",
+        "chipset": "OCS"
+    },
+    "150": {
+        "name": "SPR2POS",
+        "full_name": "Sprite 2 position",
+        "rw": "W",
+        "description": "Sprite 2 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF150",
+        "chipset": "OCS"
+    },
+    "152": {
+        "name": "SPR2CTL",
+        "full_name": "Sprite 2 control",
+        "rw": "W",
+        "description": "Sprite 2 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF152",
+        "chipset": "OCS"
+    },
+    "154": {
+        "name": "SPR2DATA",
+        "full_name": "Sprite 2 data A",
+        "rw": "W",
+        "description": "Sprite 2 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF154",
+        "chipset": "OCS"
+    },
+    "156": {
+        "name": "SPR2DATB",
+        "full_name": "Sprite 2 data B",
+        "rw": "W",
+        "description": "Sprite 2 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF156",
+        "chipset": "OCS"
+    },
+    "158": {
+        "name": "SPR3POS",
+        "full_name": "Sprite 3 position",
+        "rw": "W",
+        "description": "Sprite 3 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF158",
+        "chipset": "OCS"
+    },
+    "15A": {
+        "name": "SPR3CTL",
+        "full_name": "Sprite 3 control",
+        "rw": "W",
+        "description": "Sprite 3 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF15A",
+        "chipset": "OCS"
+    },
+    "15C": {
+        "name": "SPR3DATA",
+        "full_name": "Sprite 3 data A",
+        "rw": "W",
+        "description": "Sprite 3 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF15C",
+        "chipset": "OCS"
+    },
+    "15E": {
+        "name": "SPR3DATB",
+        "full_name": "Sprite 3 data B",
+        "rw": "W",
+        "description": "Sprite 3 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF15E",
+        "chipset": "OCS"
+    },
+    "160": {
+        "name": "SPR4POS",
+        "full_name": "Sprite 4 position",
+        "rw": "W",
+        "description": "Sprite 4 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF160",
+        "chipset": "OCS"
+    },
+    "162": {
+        "name": "SPR4CTL",
+        "full_name": "Sprite 4 control",
+        "rw": "W",
+        "description": "Sprite 4 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF162",
+        "chipset": "OCS"
+    },
+    "164": {
+        "name": "SPR4DATA",
+        "full_name": "Sprite 4 data A",
+        "rw": "W",
+        "description": "Sprite 4 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF164",
+        "chipset": "OCS"
+    },
+    "166": {
+        "name": "SPR4DATB",
+        "full_name": "Sprite 4 data B",
+        "rw": "W",
+        "description": "Sprite 4 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF166",
+        "chipset": "OCS"
+    },
+    "168": {
+        "name": "SPR5POS",
+        "full_name": "Sprite 5 position",
+        "rw": "W",
+        "description": "Sprite 5 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF168",
+        "chipset": "OCS"
+    },
+    "16A": {
+        "name": "SPR5CTL",
+        "full_name": "Sprite 5 control",
+        "rw": "W",
+        "description": "Sprite 5 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF16A",
+        "chipset": "OCS"
+    },
+    "16C": {
+        "name": "SPR5DATA",
+        "full_name": "Sprite 5 data A",
+        "rw": "W",
+        "description": "Sprite 5 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF16C",
+        "chipset": "OCS"
+    },
+    "16E": {
+        "name": "SPR5DATB",
+        "full_name": "Sprite 5 data B",
+        "rw": "W",
+        "description": "Sprite 5 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF16E",
+        "chipset": "OCS"
+    },
+    "170": {
+        "name": "SPR6POS",
+        "full_name": "Sprite 6 position",
+        "rw": "W",
+        "description": "Sprite 6 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF170",
+        "chipset": "OCS"
+    },
+    "172": {
+        "name": "SPR6CTL",
+        "full_name": "Sprite 6 control",
+        "rw": "W",
+        "description": "Sprite 6 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF172",
+        "chipset": "OCS"
+    },
+    "174": {
+        "name": "SPR6DATA",
+        "full_name": "Sprite 6 data A",
+        "rw": "W",
+        "description": "Sprite 6 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF174",
+        "chipset": "OCS"
+    },
+    "176": {
+        "name": "SPR6DATB",
+        "full_name": "Sprite 6 data B",
+        "rw": "W",
+        "description": "Sprite 6 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF176",
+        "chipset": "OCS"
+    },
+    "178": {
+        "name": "SPR7POS",
+        "full_name": "Sprite 7 position",
+        "rw": "W",
+        "description": "Sprite 7 position and start vertical",
+        "doc_name": "sprxpos",
+        "address": "0xDFF178",
+        "chipset": "OCS"
+    },
+    "17A": {
+        "name": "SPR7CTL",
+        "full_name": "Sprite 7 control",
+        "rw": "W",
+        "description": "Sprite 7 control and stop vertical",
+        "doc_name": "sprxctl",
+        "address": "0xDFF17A",
+        "chipset": "OCS"
+    },
+    "17C": {
+        "name": "SPR7DATA",
+        "full_name": "Sprite 7 data A",
+        "rw": "W",
+        "description": "Sprite 7 image data register A",
+        "doc_name": "sprxdata",
+        "address": "0xDFF17C",
+        "chipset": "OCS"
+    },
+    "17E": {
+        "name": "SPR7DATB",
+        "full_name": "Sprite 7 data B",
+        "rw": "W",
+        "description": "Sprite 7 image data register B",
+        "doc_name": "sprxdata",
+        "address": "0xDFF17E",
+        "chipset": "OCS"
+    },
+    "180": {
+        "name": "COLOR00",
+        "full_name": "Color 0",
+        "rw": "W",
+        "description": "Color register 0 (Background / border)",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF180",
+        "chipset": "OCS"
+    },
+    "182": {
+        "name": "COLOR01",
+        "full_name": "Color 1",
+        "rw": "W",
+        "description": "Color register 1",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF182",
+        "chipset": "OCS"
+    },
+    "184": {
+        "name": "COLOR02",
+        "full_name": "Color 2",
+        "rw": "W",
+        "description": "Color register 2",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF184",
+        "chipset": "OCS"
+    },
+    "186": {
+        "name": "COLOR03",
+        "full_name": "Color 3",
+        "rw": "W",
+        "description": "Color register 3",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF186",
+        "chipset": "OCS"
+    },
+    "188": {
+        "name": "COLOR04",
+        "full_name": "Color 4",
+        "rw": "W",
+        "description": "Color register 4",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF188",
+        "chipset": "OCS"
+    },
+    "18A": {
+        "name": "COLOR05",
+        "full_name": "Color 5",
+        "rw": "W",
+        "description": "Color register 5",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF18A",
+        "chipset": "OCS"
+    },
+    "18C": {
+        "name": "COLOR06",
+        "full_name": "Color 6",
+        "rw": "W",
+        "description": "Color register 6",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF18C",
+        "chipset": "OCS"
+    },
+    "18E": {
+        "name": "COLOR07",
+        "full_name": "Color 7",
+        "rw": "W",
+        "description": "Color register 7",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF18E",
+        "chipset": "OCS"
+    },
+    "190": {
+        "name": "COLOR08",
+        "full_name": "Color 8",
+        "rw": "W",
+        "description": "Color register 8",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF190",
+        "chipset": "OCS"
+    },
+    "192": {
+        "name": "COLOR09",
+        "full_name": "Color 9",
+        "rw": "W",
+        "description": "Color register 9",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF192",
+        "chipset": "OCS"
+    },
+    "194": {
+        "name": "COLOR10",
+        "full_name": "Color 10",
+        "rw": "W",
+        "description": "Color register 10",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF194",
+        "chipset": "OCS"
+    },
+    "196": {
+        "name": "COLOR11",
+        "full_name": "Color 11",
+        "rw": "W",
+        "description": "Color register 11",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF196",
+        "chipset": "OCS"
+    },
+    "198": {
+        "name": "COLOR12",
+        "full_name": "Color 12",
+        "rw": "W",
+        "description": "Color register 12",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF198",
+        "chipset": "OCS"
+    },
+    "19A": {
+        "name": "COLOR13",
+        "full_name": "Color 13",
+        "rw": "W",
+        "description": "Color register 13",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF19A",
+        "chipset": "OCS"
+    },
+    "19C": {
+        "name": "COLOR14",
+        "full_name": "Color 14",
+        "rw": "W",
+        "description": "Color register 14",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF19C",
+        "chipset": "OCS"
+    },
+    "19E": {
+        "name": "COLOR15",
+        "full_name": "Color 15",
+        "rw": "W",
+        "description": "Color register 15",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF19E",
+        "chipset": "OCS"
+    },
+    "1A0": {
+        "name": "COLOR16",
+        "full_name": "Color 16",
+        "rw": "W",
+        "description": "Color register 16",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1A0",
+        "chipset": "OCS"
+    },
+    "1A2": {
+        "name": "COLOR17",
+        "full_name": "Color 17",
+        "rw": "W",
+        "description": "Color register 17",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1A2",
+        "chipset": "OCS"
+    },
+    "1A4": {
+        "name": "COLOR18",
+        "full_name": "Color 18",
+        "rw": "W",
+        "description": "Color register 18",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1A4",
+        "chipset": "OCS"
+    },
+    "1A6": {
+        "name": "COLOR19",
+        "full_name": "Color 19",
+        "rw": "W",
+        "description": "Color register 19",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1A6",
+        "chipset": "OCS"
+    },
+    "1A8": {
+        "name": "COLOR20",
+        "full_name": "Color 20",
+        "rw": "W",
+        "description": "Color register 20",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1A8",
+        "chipset": "OCS"
+    },
+    "1AA": {
+        "name": "COLOR21",
+        "full_name": "Color 21",
+        "rw": "W",
+        "description": "Color register 21",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1AA",
+        "chipset": "OCS"
+    },
+    "1AC": {
+        "name": "COLOR22",
+        "full_name": "Color 22",
+        "rw": "W",
+        "description": "Color register 22",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1AC",
+        "chipset": "OCS"
+    },
+    "1AE": {
+        "name": "COLOR23",
+        "full_name": "Color 23",
+        "rw": "W",
+        "description": "Color register 23",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1AE",
+        "chipset": "OCS"
+    },
+    "1B0": {
+        "name": "COLOR24",
+        "full_name": "Color 24",
+        "rw": "W",
+        "description": "Color register 24",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1B0",
+        "chipset": "OCS"
+    },
+    "1B2": {
+        "name": "COLOR25",
+        "full_name": "Color 25",
+        "rw": "W",
+        "description": "Color register 25",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1B2",
+        "chipset": "OCS"
+    },
+    "1B4": {
+        "name": "COLOR26",
+        "full_name": "Color 26",
+        "rw": "W",
+        "description": "Color register 26",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1B4",
+        "chipset": "OCS"
+    },
+    "1B6": {
+        "name": "COLOR27",
+        "full_name": "Color 27",
+        "rw": "W",
+        "description": "Color register 27",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1B6",
+        "chipset": "OCS"
+    },
+    "1B8": {
+        "name": "COLOR28",
+        "full_name": "Color 28",
+        "rw": "W",
+        "description": "Color register 28",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1B8",
+        "chipset": "OCS"
+    },
+    "1BA": {
+        "name": "COLOR29",
+        "full_name": "Color 29",
+        "rw": "W",
+        "description": "Color register 29",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1BA",
+        "chipset": "OCS"
+    },
+    "1BC": {
+        "name": "COLOR30",
+        "full_name": "Color 30",
+        "rw": "W",
+        "description": "Color register 30",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1BC",
+        "chipset": "OCS"
+    },
+    "1BE": {
+        "name": "COLOR31",
+        "full_name": "Color 31",
+        "rw": "W",
+        "description": "Color register 31",
+        "is_color": true,
+        "doc_name": "colorxx",
+        "address": "0xDFF1BE",
+        "chipset": "OCS"
+    },
+    "1C0": {
+        "name": "HTOTAL",
+        "full_name": "Horizontal total",
+        "rw": "W",
+        "description": "Highest number count in horiz line",
+        "doc_name": "htotal",
+        "address": "0xDFF1C0",
+        "chipset": "ECS"
+    },
+    "1C2": {
+        "name": "HSSTOP",
+        "full_name": "Horizontal sync stop",
+        "rw": "W",
+        "description": "Horiz line position for sync stop",
+        "doc_name": "hsstop",
+        "address": "0xDFF1C2",
+        "chipset": "ECS"
+    },
+    "1C4": {
+        "name": "HBSTRT",
+        "full_name": "Horizontal blanking start",
+        "rw": "W",
+        "description": "Horiz line pos for blanking start",
+        "doc_name": "hbstrt",
+        "address": "0xDFF1C4",
+        "chipset": "ECS"
+    },
+    "1C6": {
+        "name": "HBSTOP",
+        "full_name": "Horizontal blanking stop",
+        "rw": "W",
+        "description": "Horiz line pos for blanking stop",
+        "doc_name": "hbstrt",
+        "address": "0xDFF1C6",
+        "chipset": "ECS"
+    },
+    "1C8": {
+        "name": "VTOTAL",
+        "full_name": "Vertical total",
+        "rw": "W",
+        "description": "Highest number count in vert line",
+        "doc_name": "vtotal",
+        "address": "0xDFF1C8",
+        "chipset": "ECS"
+    },
+    "1CA": {
+        "name": "VSSTOP",
+        "full_name": "Vertical sync stop",
+        "rw": "W",
+        "description": "Vert line position for sync stop",
+        "doc_name": "vtotal",
+        "address": "0xDFF1CA",
+        "chipset": "ECS"
+    },
+    "1CC": {
+        "name": "VBSTRT",
+        "full_name": "Vertical blanking start",
+        "rw": "W",
+        "description": "Vert line pos for blanking start",
+        "doc_name": "vbstrt",
+        "address": "0xDFF1CC",
+        "chipset": "ECS"
+    },
+    "1CE": {
+        "name": "VBSTOP",
+        "full_name": "Vertical blanking stop",
+        "rw": "W",
+        "description": "Vert line pos for blanking stop",
+        "doc_name": "vbstrt",
+        "address": "0xDFF1CE",
+        "chipset": "ECS"
+    },
+    "1D0": {
+        "name": "SPRHSTRT",
+        "full_name": "Sprite horiz start",
+        "rw": "W",
+        "description": "UHF sprite horiz start point (UHF)",
+        "doc_name": "sprhstrt",
+        "address": "0xDFF1D0",
+        "chipset": "ECS"
+    },
+    "1D2": {
+        "name": "SPRHSTOP",
+        "full_name": "Sprite horiz stop",
+        "rw": "W",
+        "description": "UHF sprite horiz stop point (UHF)",
+        "doc_name": "sprhstop",
+        "address": "0xDFF1D2",
+        "chipset": "ECS"
+    },
+    "1D4": {
+        "name": "BPLHSTRT",
+        "full_name": "Bitplane horiz start",
+        "rw": "W",
+        "description": "UHF bitplane horiz start point (UHF)",
+        "doc_name": "bplhstrt",
+        "address": "0xDFF1D4",
+        "chipset": "ECS"
+    },
+    "1D6": {
+        "name": "BPLHSTOP",
+        "full_name": "Bitplane horiz stop",
+        "rw": "W",
+        "description": "UHF bitplane horiz stop point (UHF)",
+        "doc_name": "bplhstop",
+        "address": "0xDFF1D6",
+        "chipset": "ECS"
+    },
+    "1D8": {
+        "name": "HHPOSW",
+        "full_name": "Highres H-position write",
+        "rw": "W",
+        "description": "High resolution horiz beam pos write",
+        "doc_name": "hhposw",
+        "address": "0xDFF1D8",
+        "chipset": "ECS"
+    },
+    "1DA": {
+        "name": "HHPOSR",
+        "full_name": "Highres H-position read",
+        "rw": "R",
+        "description": "High resolution horiz beam pos read",
+        "doc_name": "hhposw",
+        "address": "0xDFF1DA",
+        "chipset": "ECS"
+    },
+    "1DC": {
+        "name": "BEAMCON0",
+        "full_name": "Beam counter control 0",
+        "rw": "W",
+        "description": "Beam counter control register 0",
+        "doc_name": "beamcon0",
+        "address": "0xDFF1DC",
+        "chipset": "OCS"
+    },
+    "1DE": {
+        "name": "HSSTRT",
+        "full_name": "Horizontal sync start",
+        "rw": "W",
+        "description": "Horizontal sync start",
+        "doc_name": "hsstrt",
+        "address": "0xDFF1DE",
+        "chipset": "ECS"
+    },
+    "1E0": {
+        "name": "VSSTRT",
+        "full_name": "Vertical sync start",
+        "rw": "W",
+        "description": "Vertical sync start",
+        "doc_name": "vsstrt",
+        "address": "0xDFF1E0",
+        "chipset": "ECS"
+    },
+    "1E2": {
+        "name": "HCENTER",
+        "full_name": "Horizontal center",
+        "rw": "W",
+        "description": "Horizontal center",
+        "doc_name": "hcenter",
+        "address": "0xDFF1E2",
+        "chipset": "ECS"
+    },
+    "1E4": {
+        "name": "DIWHIGH",
+        "full_name": "Display window high",
+        "rw": "W",
+        "description": "Display window upper bits for start/stop",
+        "doc_name": "diwhigh",
+        "address": "0xDFF1E4",
+        "chipset": "ECS"
+    },
+    "1FC": {
+        "name": "FMODE",
+        "full_name": "Fetch mode",
+        "rw": "W",
+        "description": "Fetch mode (AGA memory bandwidth)",
+        "doc_name": "fmode",
+        "address": "0xDFF1FC",
+        "chipset": "AGA"
+    }
+}

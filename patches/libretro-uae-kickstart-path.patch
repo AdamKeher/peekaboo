@@ -1,0 +1,11 @@
+--- a/libretro/libretro-core.c
++++ b/libretro/libretro-core.c
+@@ -87,7 +87,7 @@ char opt_model[10] = {0};
+ char opt_model_fd[10] = {0};
+ char opt_model_hd[10] = {0};
+ char opt_model_cd[10] = {0};
+-char opt_kickstart[64] = {0};
++char opt_kickstart[RETRO_PATH_MAX] = {0};
+ 
+ struct preset_options
+ {

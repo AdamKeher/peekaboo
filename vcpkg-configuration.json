@@ -1,0 +1,6 @@
+{
+  "$comment": "Local overlay ports. glad is overlaid to work around broken pyexpat in Homebrew python on macOS; see vcpkg-overlay-ports/glad/portfile.cmake.",
+  "overlay-ports": [
+    "./vcpkg-overlay-ports"
+  ]
+}

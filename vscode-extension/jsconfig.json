@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "checkJs": true,
+    "strict": false,
+    "noEmit": true,
+    "lib": ["ES2022"]
+  },
+  "include": ["adapter/**/*.js", "*.js", "test/**/*.js"],
+  "exclude": ["node_modules"]
+}

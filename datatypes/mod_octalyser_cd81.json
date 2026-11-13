@@ -1,0 +1,10 @@
+{
+    "name": "Octalyser Module (CD81)",
+    "group": "Tracker Music",
+    "rules": [
+        {
+            "offset": 1080,
+            "bytes": "43443831"
+        }
+    ]
+}

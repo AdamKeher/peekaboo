@@ -1,0 +1,25 @@
+serial_host.c: capture emulated serial output
+
+Generated from the inline patching that scripts/build_puae.ps1 and
+scripts/build_puae.sh used to perform. Applies to libretro-uae
+2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+diff --git a/retrodep/serial_host.c b/retrodep/serial_host.c
+index 470e3f5..90683f9 100644
+--- a/retrodep/serial_host.c
++++ b/retrodep/serial_host.c
+@@ -718,6 +718,13 @@ static void serdatcopy(void)
+ 	serdatshift_masked = serdatshift & ((1 << bits) - 1);
+ 	data_in_serdat = 0;
+ 
++#ifdef __LIBRETRO__
++	{
++		extern void adm_capture_serial_output(int c);
++		adm_capture_serial_output(serdatshift_masked);
++	}
++#endif
++
+ 	if (seriallog > 0 || (consoleopen && seriallog < 0)) {
+ 		gotlogwrite = true;
+ 		if (seriallog_lf && seriallog > 2) {

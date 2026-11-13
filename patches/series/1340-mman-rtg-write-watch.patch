@@ -1,0 +1,152 @@
+RTG write-watch, and a Zorro III ceiling that was zero
+
+Two things in retrodep/mman.c that Picasso96 needs and that the non-JIT build had neither of.
+
+**max_z3fastmem.** main.c's fixup_prefs() holds every Zorro III board to this ceiling - Z3 Fast
+RAM, Z3 Chip RAM and the RTG board's VRAM - and cuts anything larger down to it. WinUAE sets it
+in preinit_shm() from the size of the address window it reserved, and that whole mechanism is
+inside #if defined(NATMEM_OFFSET), which sysdeps.h only defines under JIT. This core has no JIT,
+so preinit_shm() never runs and the variable stayed 0: `rtgmem_size > max_z3fastmem` was true of
+every Zorro III board ever configured, and the board was reset to 0 before the machine started,
+with an error_log nobody reads. The line above it does the same to z3fastmem and the one below
+to z3chipmem, so Z3 Fast RAM was being discarded the same way - found while getting the RTG
+board to survive fixup_prefs, and fixed with it.
+
+There is nothing to be bounded by here: mapped_malloc() falls back to xcalloc, so the real limit
+is the host's memory. 512 MB is the largest size any of the three options offers, so the ceiling
+passes everything the front end can ask for and still refuses nonsense. The NATMEM build
+overwrites it in preinit_shm() before any machine starts, so it is unchanged there.
+
+**Write-watch.** Picasso96 only converts the parts of the RTG frame buffer the guest wrote since
+the last frame. WinUAE answers "which parts" with the kernel: it allocates its memory with
+VirtualAlloc(MEM_WRITE_WATCH) and calls GetWriteWatch(). mman_GetWriteWatch()/mman_ResetWatch()
+wrapped exactly that, inside #if 0 - and inside the same NATMEM_OFFSET block, so they were doubly
+absent.
+
+The honest answer here is therefore "assume every page was written", and that is what this
+implementation gives. It is not the waste it looks like:
+
+  * the core hands the front end a complete frame through video_cb() every time round
+    retro_run() regardless, so the conversion is the only cost;
+  * the alternative is worse than slow. picasso96.c's flush loop does `continue` on a failed
+    GetWriteWatch, so an answer of "nothing is dirty" is a black screen, not a stale one.
+
+The signature drops PVOID/SIZE_T/PULONG_PTR for plain types so it compiles without windows.h,
+and the two functions move out of the NATMEM_OFFSET block - they have nothing to do with the
+natmem reservation and are needed precisely when it is absent.
+
+The page size is fixed at 4096 rather than queried. It only has to be a number both ends agree
+on: picasso_allocatewritewatch() sizes its buffer by dividing the board size by it, and this
+function fills that buffer. Keeping it constant also means the work an RTG frame costs does not
+depend on the host's page size.
+
+Applies to libretro-uae 2b0ed42fe565fb997a0627aaa8f44e0948b527f8 in the order given by
+patches/series.txt.
+
+--- a/retrodep/mman.c
++++ b/retrodep/mman.c
+@@ -27,7 +27,23 @@
+ #include "gui.h"
+ #include "misc.h"
+ 
+-uae_u32 max_z3fastmem;
++/* The ceiling main.c's fixup_prefs() holds every Zorro III board to: Z3 Fast RAM, Z3 Chip RAM
++ * and the RTG board's VRAM. A board bigger than this is silently cut down to it.
++ *
++ * PEEKaboo: it needs a starting value. WinUAE sets it in preinit_shm() from the size of the
++ * address window it reserved, and that whole mechanism is inside #if defined(NATMEM_OFFSET) -
++ * which sysdeps.h only defines under JIT, and this core has no JIT. So preinit_shm() never
++ * runs, max_z3fastmem stayed 0, and `rtgmem_size > max_z3fastmem` was true of every Zorro III
++ * board ever configured: it was reset to 0 before the machine started, with an error_log nobody
++ * reads. The same line above it does it to z3fastmem, and the one below to z3chipmem, so Z3
++ * Fast RAM was being discarded the same way - found while getting the RTG board to survive
++ * fixup_prefs.
++ *
++ * There is nothing to be bounded by here: mapped_malloc() falls back to xcalloc, so the real
++ * limit is the host's memory. 512 MB is the largest size any of the three options offers, so
++ * this passes everything the front end can ask for and still refuses nonsense. The NATMEM build
++ * overwrites it in preinit_shm() before any machine starts, so it is unchanged there. */
++uae_u32 max_z3fastmem = 512 * 1024 * 1024;
+ 
+ #if defined(NATMEM_OFFSET)
+ 
+@@ -361,17 +377,6 @@
+ 	return change;
+ }
+ 
+-#if 0
+-int mman_GetWriteWatch (PVOID lpBaseAddress, SIZE_T dwRegionSize, PVOID *lpAddresses, PULONG_PTR lpdwCount, PULONG lpdwGranularity)
+-{
+-	return GetWriteWatch (WRITE_WATCH_FLAG_RESET, lpBaseAddress, dwRegionSize, lpAddresses, lpdwCount, lpdwGranularity);
+-}
+-void mman_ResetWatch (PVOID lpBaseAddress, SIZE_T dwRegionSize)
+-{
+-	if (ResetWriteWatch (lpBaseAddress, dwRegionSize))
+-		write_log (_T("ResetWriteWatch() failed, %d\n"), GetLastError ());
+-}
+-#endif
+ 
+ static uae_u64 size64;
+ #ifdef _WIN32
+@@ -1400,3 +1405,61 @@
+ bool jit_direct_compatible_memory;
+ 
+ #endif /* NATMEM_OFFSET */
++/* PEEKaboo: RTG write-watch.
++ *
++ * WinUAE allocates its memory with VirtualAlloc(MEM_WRITE_WATCH) and asks the
++ * kernel which pages of the RTG VRAM the guest wrote since the last frame, so
++ * picasso96.c only converts and copies those. This port reserves its memory
++ * through the mmap emulation above, which has no such facility on any platform
++ * it builds for, so the honest answer is "assume every page was written": the
++ * caller then converts the whole visible picture each frame.
++ *
++ * That is not the waste it looks like. The core hands the front-end a complete
++ * frame through video_cb() every time round retro_run() regardless, so the
++ * conversion is the only cost, and a "no pages dirty" answer here would simply
++ * stop the RTG screen updating - picasso96.c's flush loop does `continue` on a
++ * failed GetWriteWatch. Getting it wrong in that direction is a black screen;
++ * getting it wrong this way costs one pass over the picture.
++ *
++ * The contract is Win32 GetWriteWatch's, in plain types so that this compiles
++ * without windows.h: 0 on success, *count is capacity in and page count out,
++ * and addresses receives one pointer per dirty page. picasso96.c sizes its
++ * buffer from the granularity reported here, so the page size has to be the one
++ * picasso_allocatewritewatch() divided by.
++ */
++size_t mman_GetWriteWatchPageSize (void);
++
++int mman_GetWriteWatch (void *base, size_t size, void **addresses, size_t *count, unsigned int *granularity)
++{
++	uae_u8 *p = (uae_u8 *)base;
++	size_t page = mman_GetWriteWatchPageSize ();
++	size_t pages = (size + page - 1) / page;
++	size_t cap = count ? *count : 0;
++	size_t i;
++
++	if (granularity)
++		*granularity = (unsigned int)page;
++	if (!count)
++		return -1;
++	if (pages > cap)
++		pages = cap;
++	if (addresses) {
++		for (i = 0; i < pages; i++)
++			addresses[i] = p + i * page;
++	}
++	*count = pages;
++	return 0;
++}
++
++void mman_ResetWatch (void *base, size_t size)
++{
++	/* Nothing is tracked, so there is nothing to clear. */
++}
++
++/* The page size mman_GetWriteWatch() reports dirty pages in. Fixed rather than
++ * queried: it only has to be a size both sides agree on, and keeping it constant
++ * means the amount of work an RTG frame costs does not depend on the host. */
++size_t mman_GetWriteWatchPageSize (void)
++{
++	return 4096;
++}
